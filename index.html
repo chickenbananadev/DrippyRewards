@@ -1,0 +1,2558 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>$DRIPPY — The Solana Dividend Dog</title>
+<meta name="description" content="Hold $DRIPPY and watch SOL rain into your wallet every 30 minutes. Burn for glory and get paid 2x forever. The Solana Dividend Dog." />
+<meta property="og:title" content="$DRIPPY — The Solana Dividend Dog" />
+<meta property="og:description" content="5% tax. 100% to SOL. Real rewards every 30 minutes. Burn for 2x forever." />
+<meta property="og:image" content="assets/banner.jpg" />
+<meta property="og:type" content="website" />
+<meta name="theme-color" content="#0a0610" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- Preconnect to chart provider to speed up iframe load -->
+<link rel="preconnect" href="https://dexscreener.com">
+<link rel="dns-prefetch" href="https://dexscreener.com">
+<link href="https://fonts.googleapis.com/css2?family=Bowlby+One&family=Permanent+Marker&family=Anton&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+<!-- Jupiter Plugin — Solana swap aggregator widget (current as of 2026) -->
+<script src="https://plugin.jup.ag/plugin-v1.js" data-preload defer></script>
+
+<style>
+:root{
+  --black:#0a0610;
+  --black-2:#120a1c;
+  --char:#1b1228;
+
+  --gold-deep:#7a5012;
+  --gold:#d4a431;
+  --gold-bright:#f5c542;
+  --gold-glow:#ffd966;
+  --gold-pale:#ffe79a;
+
+  --purple-deep:#3a1a5e;
+  --purple:#6b2dc9;
+  --purple-bright:#a259ff;
+  --purple-glow:#c084fc;
+  --purple-pale:#e9d5ff;
+
+  --crimson:#b3151f;
+  --cream:#f6e9c4;
+  --green:#22c55e;
+  --red:#ef4444;
+
+  --display:'Bowlby One', cursive;
+  --tag:'Anton', sans-serif;
+  --hand:'Permanent Marker', cursive;
+  --serif:'Fraunces', serif;
+  --mono:'JetBrains Mono', monospace;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--black);color:var(--cream);font-family:var(--serif);overflow-x:hidden;scroll-behavior:smooth}
+body{
+  background:
+    radial-gradient(ellipse 80% 50% at 50% 0%, rgba(107,45,201,.25) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 90% 30%, rgba(212,164,49,.15) 0%, transparent 50%),
+    radial-gradient(ellipse at top, #1a0a2e 0%, var(--black) 70%, #000 100%) fixed,
+    var(--black);
+}
+
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:1;opacity:.22;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' seed='7'/><feColorMatrix values='0 0 0 0 0.95  0 0 0 0 0.7  0 0 0 0 0.2  0 0 0 .5 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+}
+body::after{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.45;
+  background-image:
+    radial-gradient(2px 2px at 12% 18%, var(--gold-bright), transparent 50%),
+    radial-gradient(1px 1px at 78% 32%, var(--purple-bright), transparent 50%),
+    radial-gradient(2px 2px at 45% 78%, var(--gold-pale), transparent 50%),
+    radial-gradient(1px 1px at 88% 88%, var(--gold-bright), transparent 50%),
+    radial-gradient(1.5px 1.5px at 22% 62%, var(--purple-glow), transparent 50%),
+    radial-gradient(1px 1px at 60% 12%, var(--gold-glow), transparent 50%);
+}
+
+/* ========== MARQUEE ========== */
+.marquee{
+  position:relative;z-index:10;
+  background:linear-gradient(90deg, var(--gold-deep), var(--gold), var(--gold-bright), var(--gold), var(--gold-deep));
+  color:#000;font-family:var(--display);font-size:13px;letter-spacing:.2em;text-transform:uppercase;
+  overflow:hidden;padding:10px 0;
+  border-top:2px solid #000;border-bottom:2px solid #000;
+  box-shadow:0 0 30px rgba(255,217,102,.3);
+}
+.marquee__track{display:flex;gap:40px;white-space:nowrap;animation:slide 32s linear infinite;width:max-content}
+.marquee span{display:inline-flex;align-items:center;gap:12px}
+.marquee b{color:var(--purple-deep)}
+@keyframes slide{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+/* ========== NAV ========== */
+nav{
+  position:sticky;top:0;z-index:20;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 32px;
+  background:rgba(10,6,16,.82);
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  border-bottom:1px solid rgba(212,164,49,.3);
+}
+nav .brand{display:flex;align-items:center;gap:14px;font-family:var(--display);font-size:24px;color:var(--gold-bright);letter-spacing:.02em;text-decoration:none}
+nav .brand-icon{
+  width:40px;height:40px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,var(--gold-glow),var(--gold) 55%,var(--gold-deep) 100%);
+  box-shadow:0 0 24px rgba(255,217,102,.55), inset 0 -6px 12px rgba(0,0,0,.5);
+  border:2px solid #000;
+  display:grid;place-items:center;font-family:var(--display);color:#000;font-size:18px;
+}
+nav .links{display:flex;gap:24px;align-items:center}
+nav .links a{color:var(--cream);text-decoration:none;font-family:var(--tag);font-size:14px;letter-spacing:.14em;text-transform:uppercase;opacity:.82;transition:opacity .2s,color .2s}
+nav .links a:hover{opacity:1;color:var(--gold-bright)}
+nav .cta-mini{
+  background:linear-gradient(180deg, var(--gold-glow), var(--gold) 50%, var(--gold-deep));
+  color:#000;font-family:var(--display);font-size:13px;
+  padding:10px 18px;border-radius:6px;border:2px solid #000;
+  box-shadow:4px 4px 0 #000;text-decoration:none;letter-spacing:.08em;text-transform:uppercase;
+  transition:transform .15s,box-shadow .15s;
+}
+nav .cta-mini:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 #000}
+
+/* ========== HERO ========== */
+.hero{position:relative;padding:50px 32px 60px;overflow:hidden}
+.hero-banner{
+  max-width:1400px;margin:0 auto 50px;
+  border:4px solid #000;border-radius:12px;overflow:hidden;
+  box-shadow:0 0 0 2px var(--gold), 0 20px 60px rgba(0,0,0,.7), 0 0 80px rgba(162,89,255,.25);
+  position:relative;animation:bannerPulse 5s ease-in-out infinite;
+}
+@keyframes bannerPulse{
+  0%,100%{box-shadow:0 0 0 2px var(--gold),0 20px 60px rgba(0,0,0,.7),0 0 80px rgba(162,89,255,.25)}
+  50%{box-shadow:0 0 0 2px var(--gold-glow),0 20px 60px rgba(0,0,0,.7),0 0 120px rgba(162,89,255,.5)}
+}
+.hero-banner img{display:block;width:100%;height:auto}
+
+.hero-content{
+  max-width:1280px;margin:0 auto;
+  display:grid;grid-template-columns:1.25fr .85fr;gap:48px;align-items:center;
+  position:relative;z-index:2;
+}
+
+.tag{
+  font-family:var(--tag);font-size:17px;color:var(--gold-bright);
+  letter-spacing:.28em;text-transform:uppercase;margin-bottom:20px;
+  display:inline-flex;align-items:center;gap:14px;
+}
+.tag::before,.tag::after{content:"";display:block;width:30px;height:2px;background:var(--gold)}
+
+.hero h1{
+  font-family:var(--display);
+  font-size:clamp(42px, 5.8vw, 84px);
+  line-height:.95;letter-spacing:-.01em;color:var(--cream);
+  margin-bottom:22px;text-shadow:5px 5px 0 #000;
+}
+.hero h1 .gold{
+  background:linear-gradient(180deg, var(--gold-pale) 0%, var(--gold-bright) 45%, var(--gold) 90%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(2px 2px 0 rgba(0,0,0,.85)) drop-shadow(0 0 24px rgba(245,197,66,.4));
+}
+.hero h1 .purple{
+  background:linear-gradient(180deg, var(--purple-pale) 0%, var(--purple-glow) 40%, var(--purple-bright) 90%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(2px 2px 0 rgba(0,0,0,.85)) drop-shadow(0 0 24px rgba(192,132,252,.45));
+}
+
+.hero p.lead{font-size:clamp(16px,1.3vw,19px);line-height:1.6;margin-bottom:30px;max-width:620px;color:rgba(246,233,196,.95)}
+.hero p.lead em{font-style:italic;color:var(--gold-bright);font-weight:600;font-family:var(--serif)}
+
+.cta-row{display:flex;gap:12px;flex-wrap:wrap}
+.btn{
+  font-family:var(--display);font-size:14px;
+  padding:16px 24px;border-radius:8px;text-decoration:none;
+  letter-spacing:.06em;text-transform:uppercase;
+  border:3px solid #000;
+  transition:transform .15s, box-shadow .15s;
+  display:inline-flex;align-items:center;gap:10px;cursor:pointer;line-height:1;
+}
+.btn-primary{background:linear-gradient(180deg, var(--gold-glow), var(--gold) 50%, var(--gold-deep));color:#000;box-shadow:6px 6px 0 #000}
+.btn-primary:hover{transform:translate(-3px,-3px);box-shadow:9px 9px 0 #000}
+.btn-purple{background:linear-gradient(180deg, var(--purple-bright), var(--purple) 50%, var(--purple-deep));color:#fff;box-shadow:6px 6px 0 #000}
+.btn-purple:hover{transform:translate(-3px,-3px);box-shadow:9px 9px 0 #000}
+.btn-ghost{background:transparent;color:var(--cream);border-color:var(--gold);box-shadow:6px 6px 0 rgba(212,164,49,.4)}
+.btn-ghost:hover{background:var(--gold);color:#000;box-shadow:6px 6px 0 #000}
+
+/* ========== TIMER ========== */
+.timer-box{
+  position:relative;
+  background:linear-gradient(165deg, var(--char), #000);
+  border:3px solid var(--gold);border-radius:16px;padding:30px 28px 26px;
+  box-shadow:8px 8px 0 #000, 0 0 40px rgba(162,89,255,.2);
+}
+.timer-box::before{
+  content:"NEXT SOL DROP";
+  position:absolute;top:-14px;left:24px;
+  background:var(--gold-bright);color:#000;
+  font-family:var(--display);font-size:11px;letter-spacing:.18em;
+  padding:5px 14px;border:2px solid #000;border-radius:4px;
+}
+.timer-box::after{
+  content:"LIVE";
+  position:absolute;top:-14px;right:24px;
+  background:var(--red);color:#fff;
+  font-family:var(--display);font-size:10px;letter-spacing:.18em;
+  padding:5px 12px;border:2px solid #000;border-radius:4px;
+  animation:livePulse 2s ease-in-out infinite;
+}
+@keyframes livePulse{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.6)}50%{box-shadow:0 0 0 8px rgba(239,68,68,0)}}
+.timer-display{
+  display:flex;justify-content:center;align-items:flex-end;gap:6px;
+  margin:14px 0 16px;
+}
+.timer-unit{
+  background:#000;border:2px solid var(--gold);border-radius:8px;
+  padding:14px 6px;min-width:88px;text-align:center;
+  box-shadow:inset 0 0 20px rgba(212,164,49,.15);
+}
+.timer-num{
+  font-family:var(--display);font-size:46px;line-height:1;
+  color:var(--gold-glow);
+  text-shadow:2px 2px 0 rgba(0,0,0,.85), 0 0 16px rgba(255,217,102,.3);
+  letter-spacing:-.02em;display:block;
+}
+.timer-label{
+  font-family:var(--mono);font-size:10px;letter-spacing:.2em;
+  text-transform:uppercase;color:rgba(246,233,196,.75);
+  margin-top:6px;display:block;
+}
+.timer-colon{font-family:var(--display);font-size:36px;color:var(--gold);padding-bottom:22px;animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{opacity:.3}}
+.timer-sub{
+  font-family:var(--mono);font-size:11px;letter-spacing:.16em;
+  text-transform:uppercase;text-align:center;
+  color:var(--purple-glow);margin-top:14px;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+}
+.timer-sub .dot{
+  display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--green);
+  box-shadow:0 0 10px var(--green);animation:livePulse 2s ease-in-out infinite;
+}
+
+/* ========== LIVE STATS BAR ========== */
+.live-bar-wrap{padding:0 32px;max-width:1400px;margin:0 auto 80px}
+.live-bar-header{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:0 4px 12px;flex-wrap:wrap;gap:8px;
+}
+.lbh-tag{
+  font-family:var(--display);font-size:12px;letter-spacing:.22em;
+  color:var(--gold-bright);text-shadow:2px 2px 0 #000;
+  display:inline-flex;align-items:center;gap:10px;
+}
+.lbh-dot{
+  display:inline-block;width:8px;height:8px;border-radius:50%;
+  background:var(--green);box-shadow:0 0 10px var(--green);
+  animation:livePulse 2s ease-in-out infinite;
+}
+.lbh-meta{
+  font-family:var(--mono);font-size:11px;letter-spacing:.12em;
+  color:rgba(246,233,196,.75);
+}
+.lbh-meta a{color:var(--gold-bright);text-decoration:none;border-bottom:1px dashed rgba(212,164,49,.4)}
+.lbh-meta a:hover{border-color:var(--gold)}
+.live-bar{
+  display:grid;grid-template-columns:repeat(8,1fr);gap:2px;
+  background:#000;border:3px solid var(--gold);border-radius:16px;
+  overflow:hidden;
+  box-shadow:0 0 40px rgba(212,164,49,.15);
+}
+.live-cell{
+  padding:18px 14px;
+  background:linear-gradient(165deg, var(--char), #000);
+  display:flex;flex-direction:column;gap:6px;
+  position:relative;
+}
+.live-cell .k{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:rgba(246,233,196,.7)}
+.live-cell .v{font-family:var(--display);font-size:20px;color:var(--gold-bright);text-shadow:2px 2px 0 #000;line-height:1.1}
+.live-cell .v.up{color:var(--green)}
+.live-cell .v.down{color:var(--red)}
+.live-cell .v.purple{color:var(--purple-glow);text-shadow:2px 2px 0 #000, 0 0 12px rgba(192,132,252,.4)}
+.live-cell .v.gold{color:var(--gold-glow);text-shadow:2px 2px 0 #000, 0 0 12px rgba(255,217,102,.4)}
+.live-cell.loading .v{color:rgba(246,233,196,.35)}
+
+/* ========== DISTRIBUTION STATS CARD ========== */
+.dist-wrap{padding:0 32px;max-width:1400px;margin:0 auto 80px}
+.dist-card{
+  background:linear-gradient(135deg, rgba(212,164,49,.08), rgba(162,89,255,.06));
+  border:3px solid var(--gold);border-radius:16px;
+  padding:24px 28px;
+  box-shadow:0 0 50px rgba(212,164,49,.15), 8px 8px 0 var(--purple-deep);
+  position:relative;overflow:hidden;
+}
+.dist-card::before{
+  content:"";position:absolute;top:-40px;right:-40px;
+  width:200px;height:200px;border-radius:50%;
+  background:radial-gradient(circle, rgba(245,197,66,.15), transparent 70%);
+  pointer-events:none;
+}
+.dist-header{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:20px;padding-bottom:16px;
+  border-bottom:1px dashed rgba(212,164,49,.3);
+  flex-wrap:wrap;gap:8px;
+}
+.dist-tag{
+  font-family:var(--display);font-size:13px;letter-spacing:.22em;
+  color:var(--gold-bright);text-shadow:2px 2px 0 #000;
+  display:inline-flex;align-items:center;gap:10px;
+}
+.dist-source{
+  font-family:var(--mono);font-size:11px;letter-spacing:.12em;
+  color:rgba(246,233,196,.75);text-transform:uppercase;
+}
+.dist-source a{color:var(--gold-bright);text-decoration:none;border-bottom:1px dashed rgba(212,164,49,.5)}
+.dist-source a:hover{border-color:var(--gold)}
+
+.dist-grid{
+  display:grid;grid-template-columns:1fr 1fr 1.4fr;gap:24px;
+  position:relative;z-index:1;
+}
+.dist-cell{display:flex;flex-direction:column;gap:6px}
+.dist-cell.highlight{
+  padding:18px 22px;
+  background:linear-gradient(135deg, rgba(212,164,49,.12), rgba(162,89,255,.08));
+  border:2px solid var(--gold);border-radius:12px;
+  box-shadow:inset 0 0 30px rgba(212,164,49,.1);
+}
+.dist-k{
+  font-family:var(--mono);font-size:11px;letter-spacing:.18em;
+  text-transform:uppercase;color:rgba(246,233,196,.8);
+}
+.dist-v{
+  font-family:var(--display);font-size:24px;color:var(--cream);
+  text-shadow:2px 2px 0 rgba(0,0,0,.85);line-height:1.2;
+}
+.dist-v.gold{
+  color:var(--gold-glow);
+  text-shadow:2px 2px 0 rgba(0,0,0,.9), 0 0 14px rgba(255,217,102,.35);
+  background:none;
+  -webkit-text-fill-color:var(--gold-glow);
+}
+.dist-v.big-gold{
+  font-size:40px;
+  color:var(--gold-glow);
+  text-shadow:2px 2px 0 rgba(0,0,0,.9), 0 0 20px rgba(255,217,102,.45);
+  background:none;
+  -webkit-text-fill-color:var(--gold-glow);
+  letter-spacing:-.01em;
+}
+.dist-sub{
+  font-family:var(--mono);font-size:10px;letter-spacing:.14em;
+  text-transform:uppercase;color:rgba(246,233,196,.7);
+  margin-top:2px;
+}
+@media (max-width: 768px){
+  .dist-grid{grid-template-columns:1fr;gap:18px}
+  .dist-v.big-gold{font-size:30px}
+  .dist-header{flex-direction:column;align-items:flex-start}
+}
+
+/* ========== BURN-TO-EARN STATS CARD ========== */
+.burnstats-wrap{padding:0 32px;max-width:1400px;margin:0 auto 80px}
+.burnstats-card{
+  background:linear-gradient(135deg, rgba(162,89,255,.08), rgba(255,68,68,.06));
+  border:3px solid var(--purple);border-radius:16px;
+  padding:24px 28px;
+  box-shadow:0 0 50px rgba(162,89,255,.15), 8px 8px 0 #1a0a2e;
+  position:relative;overflow:hidden;
+}
+.burnstats-card::before{
+  content:"";position:absolute;top:-40px;right:-40px;
+  width:200px;height:200px;border-radius:50%;
+  background:radial-gradient(circle, rgba(192,132,252,.18), transparent 70%);
+  pointer-events:none;
+}
+.bs-header{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:20px;padding-bottom:16px;
+  border-bottom:1px dashed rgba(162,89,255,.3);
+  flex-wrap:wrap;gap:8px;
+}
+.bs-tag{
+  font-family:var(--display);font-size:13px;letter-spacing:.22em;
+  color:var(--purple-glow);text-shadow:2px 2px 0 #000;
+  display:inline-flex;align-items:center;gap:10px;
+}
+.bs-source{
+  font-family:var(--mono);font-size:11px;letter-spacing:.12em;
+  color:rgba(246,233,196,.75);text-transform:uppercase;
+}
+.bs-source a{color:var(--purple-glow);text-decoration:none;border-bottom:1px dashed rgba(162,89,255,.5)}
+.bs-source a:hover{border-color:var(--purple)}
+
+.bs-grid{
+  display:grid;grid-template-columns:repeat(3, 1fr);gap:18px;
+  position:relative;z-index:1;
+}
+.bs-cell{display:flex;flex-direction:column;gap:6px;padding:12px 0}
+.bs-cell.highlight{
+  padding:18px 22px;
+  background:linear-gradient(135deg, rgba(162,89,255,.12), rgba(245,197,66,.08));
+  border:2px solid var(--purple);border-radius:12px;
+  box-shadow:inset 0 0 30px rgba(162,89,255,.1);
+}
+.bs-k{
+  font-family:var(--mono);font-size:11px;letter-spacing:.16em;
+  text-transform:uppercase;color:rgba(246,233,196,.8);
+}
+.bs-v{
+  font-family:var(--display);font-size:28px;color:var(--cream);
+  text-shadow:2px 2px 0 rgba(0,0,0,.85);line-height:1.2;
+}
+.bs-v.gold{
+  color:var(--gold-glow);
+  text-shadow:2px 2px 0 rgba(0,0,0,.9), 0 0 14px rgba(255,217,102,.35);
+}
+.bs-v.purple{
+  color:var(--purple-glow);
+  text-shadow:2px 2px 0 rgba(0,0,0,.9), 0 0 14px rgba(192,132,252,.35);
+}
+.bs-v.green{
+  color:var(--green);
+  text-shadow:2px 2px 0 rgba(0,0,0,.9), 0 0 14px rgba(34,197,94,.35);
+  font-size:22px;
+}
+.bs-v.big-purple{
+  font-size:40px;
+  color:var(--purple-glow);
+  text-shadow:2px 2px 0 rgba(0,0,0,.9), 0 0 20px rgba(192,132,252,.45);
+  letter-spacing:-.01em;
+}
+.bs-sub{
+  font-family:var(--mono);font-size:10px;letter-spacing:.14em;
+  text-transform:uppercase;color:rgba(246,233,196,.6);
+  margin-top:2px;
+}
+@media (max-width: 768px){
+  .bs-grid{grid-template-columns:1fr;gap:14px}
+  .bs-v.big-purple{font-size:32px}
+  .bs-header{flex-direction:column;align-items:flex-start}
+}
+
+/* ========== SECTIONS ========== */
+section{position:relative;padding:90px 32px;z-index:2}
+.container{max-width:1280px;margin:0 auto}
+.eyebrow{
+  font-family:var(--mono);font-size:12px;letter-spacing:.32em;
+  text-transform:uppercase;color:var(--gold);margin-bottom:18px;
+  display:flex;align-items:center;gap:14px;
+}
+.eyebrow::before{content:"";flex:0 0 40px;height:2px;background:var(--gold)}
+h2{
+  font-family:var(--display);
+  font-size:clamp(40px,6vw,84px);
+  line-height:.95;letter-spacing:-.01em;color:var(--cream);
+  margin-bottom:32px;text-shadow:4px 4px 0 #000;
+}
+h2 .gold{
+  background:linear-gradient(180deg, var(--gold-pale) 0%, var(--gold-bright) 45%, var(--gold) 90%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(2px 2px 0 rgba(0,0,0,.85)) drop-shadow(0 0 18px rgba(245,197,66,.35));
+}
+h2 .purple{
+  background:linear-gradient(180deg, var(--purple-pale) 0%, var(--purple-glow) 40%, var(--purple-bright) 90%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(2px 2px 0 rgba(0,0,0,.85)) drop-shadow(0 0 18px rgba(192,132,252,.4));
+}
+h2 .red{color:var(--crimson);text-shadow:3px 3px 0 #000}
+
+/* ========== MANIFESTO ========== */
+.manifesto{
+  text-align:center;padding:80px 32px;
+  background:
+    radial-gradient(ellipse at 30% 50%, rgba(162,89,255,.18), transparent 60%),
+    radial-gradient(ellipse at 70% 50%, rgba(212,164,49,.12), transparent 60%);
+}
+.manifesto h2{font-size:clamp(40px,5.5vw,76px);line-height:1;margin-bottom:0}
+.manifesto-tag{
+  font-family:var(--hand);font-size:24px;color:var(--gold-bright);
+  margin-top:24px;display:block;text-shadow:2px 2px 0 #000;
+  transform:rotate(-1deg);
+}
+
+/* ========== LEGEND ========== */
+.legend{background:radial-gradient(ellipse at 90% 10%, rgba(255,217,102,.1), transparent 50%),radial-gradient(ellipse at 10% 90%, rgba(162,89,255,.12), transparent 50%)}
+.legend-grid{display:grid;grid-template-columns:.85fr 1.15fr;gap:80px;align-items:start}
+.legend-art{
+  position:sticky;top:120px;
+  border-radius:16px;border:3px solid var(--gold);
+  background:#000;box-shadow:10px 10px 0 var(--purple-deep);
+  overflow:hidden;
+}
+.legend-art img{display:block;width:100%;height:auto}
+.legend-text{font-family:var(--serif);font-size:19px;line-height:1.8;color:rgba(246,233,196,.94)}
+.legend-text p{margin-bottom:22px}
+.legend-text p:first-child::first-letter{
+  font-family:var(--display);font-size:96px;float:left;line-height:.8;
+  padding:8px 14px 0 0;
+  background:linear-gradient(180deg, var(--gold-pale), var(--gold-bright) 60%, var(--gold) 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(3px 3px 0 rgba(0,0,0,.7));
+}
+.legend-text strong{color:var(--gold-bright);font-weight:700}
+.legend-quote{
+  font-family:var(--hand);font-size:26px;line-height:1.35;
+  color:var(--gold-bright);
+  border-left:5px solid var(--gold);
+  padding:20px 0 20px 28px;margin:36px 0;
+  text-shadow:2px 2px 0 #000;
+}
+
+/* ========== HOW IT DRIPS ========== */
+.drips-section{background:linear-gradient(180deg, transparent, rgba(27,18,40,.6));position:relative}
+.drip-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:32px;margin-top:80px}
+.drip-card{
+  background:linear-gradient(165deg, var(--char) 0%, #000 100%);
+  border:3px solid #000;border-radius:20px;
+  padding:48px 32px 32px;position:relative;
+  box-shadow:8px 8px 0 var(--gold), 0 0 0 1px var(--gold);
+  transition:transform .25s, box-shadow .25s;
+}
+.drip-card:hover{transform:translate(-4px,-4px);box-shadow:12px 12px 0 var(--gold), 0 0 0 1px var(--gold)}
+.drip-card:nth-child(2){box-shadow:8px 8px 0 var(--purple), 0 0 0 1px var(--purple)}
+.drip-card:nth-child(2):hover{box-shadow:12px 12px 0 var(--purple), 0 0 0 1px var(--purple)}
+.drip-card .num{
+  position:absolute;top:-34px;left:24px;
+  width:68px;height:68px;border-radius:50%;
+  background:linear-gradient(180deg, var(--gold-glow), var(--gold), var(--gold-deep));
+  color:#000;font-family:var(--display);font-size:30px;
+  display:grid;place-items:center;
+  border:3px solid #000;box-shadow:4px 4px 0 #000;
+}
+.drip-card:nth-child(2) .num{background:linear-gradient(180deg, var(--purple-bright), var(--purple), var(--purple-deep));color:#fff}
+.drip-card h3{font-family:var(--display);font-size:26px;margin:20px 0 16px;color:var(--cream);letter-spacing:.01em;text-shadow:2px 2px 0 #000}
+.drip-card p{font-size:16px;line-height:1.65;color:rgba(246,233,196,.88)}
+.drip-card .stat{
+  font-family:var(--display);font-size:60px;
+  color:var(--gold-glow);
+  text-shadow:3px 3px 0 rgba(0,0,0,.85), 0 0 24px rgba(255,217,102,.4);
+  margin-top:28px;display:block;line-height:1;
+}
+.drip-card:nth-child(2) .stat{
+  color:var(--purple-glow);
+  text-shadow:3px 3px 0 rgba(0,0,0,.85), 0 0 24px rgba(192,132,252,.4);
+}
+
+/* ========== BURN ========== */
+.burn{background:radial-gradient(ellipse at 50% 0%, rgba(179,21,31,.22), transparent 60%),radial-gradient(ellipse at 50% 100%, rgba(255,217,102,.15), transparent 60%);text-align:center;overflow:hidden}
+.burn .flames{font-size:96px;margin-bottom:16px;display:inline-block;animation:flicker 1.4s ease-in-out infinite;filter:drop-shadow(0 0 30px rgba(255,100,0,.6))}
+@keyframes flicker{0%,100%{transform:scale(1) rotate(-4deg)}50%{transform:scale(1.1) rotate(4deg)}}
+.burn p.huge{font-family:var(--serif);font-size:clamp(20px,2.1vw,28px);font-style:italic;max-width:920px;margin:0 auto 32px;line-height:1.55;color:rgba(246,233,196,.96)}
+.burn p.huge strong{color:var(--gold-bright);font-weight:700;font-style:normal}
+.burn-equation{display:flex;align-items:center;justify-content:center;gap:18px;margin:40px 0;flex-wrap:wrap;font-family:var(--display);font-size:17px}
+.burn-pill{padding:18px 26px;border:3px solid #000;border-radius:999px;background:var(--char);color:var(--cream);box-shadow:5px 5px 0 #000;display:flex;align-items:center;gap:10px;letter-spacing:.04em}
+.burn-pill.fire{background:var(--crimson);color:#fff}
+.burn-pill.gold{background:linear-gradient(180deg, var(--gold-glow), var(--gold), var(--gold-deep));color:#000}
+.burn-eq{font-family:var(--display);font-size:32px;color:var(--gold-bright);text-shadow:3px 3px 0 #000}
+.burn-tag{font-family:var(--hand);font-size:26px;color:var(--gold-bright);margin-top:20px;display:block;text-shadow:2px 2px 0 #000}
+
+.burn-addr{
+  margin-top:50px;max-width:760px;margin-left:auto;margin-right:auto;
+  background:#000;border:3px solid var(--crimson);border-radius:16px;
+  padding:28px;text-align:left;
+  box-shadow:0 0 40px rgba(179,21,31,.25), 8px 8px 0 var(--crimson);
+}
+.burn-addr .label{font-family:var(--mono);font-size:11px;letter-spacing:.24em;color:var(--crimson);text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.burn-addr .label::before{content:"🔥";font-size:14px}
+.burn-addr .addr{
+  font-family:var(--mono);font-size:14px;color:var(--cream);
+  word-break:break-all;line-height:1.6;padding:16px;
+  background:rgba(179,21,31,.08);border-radius:8px;border:1px dashed rgba(179,21,31,.5);
+  margin-bottom:14px;
+}
+.burn-addr .note{font-family:var(--mono);font-size:12px;color:rgba(246,233,196,.7);letter-spacing:.06em;line-height:1.7}
+
+/* ========== DASHBOARD: SWAP + CHART ========== */
+.dashboard{
+  padding:100px 32px;
+  background:
+    radial-gradient(ellipse at 20% 50%, rgba(162,89,255,.12), transparent 50%),
+    radial-gradient(ellipse at 80% 50%, rgba(212,164,49,.1), transparent 50%);
+}
+.dashboard-sub{
+  font-family:var(--serif);font-size:18px;font-style:italic;
+  color:rgba(246,233,196,.88);margin-bottom:48px;
+}
+.dashboard-grid{
+  display:grid;grid-template-columns:1fr;gap:32px;
+  margin-bottom:32px;
+  max-width:1100px;
+  margin-left:auto;margin-right:auto;
+}
+.swap-panel, .chart-panel{
+  background:linear-gradient(165deg, var(--char), #000);
+  border:3px solid var(--gold);border-radius:16px;
+  overflow:hidden;
+  box-shadow:8px 8px 0 var(--purple-deep), 0 0 40px rgba(212,164,49,.15);
+  display:flex;flex-direction:column;
+}
+.chart-panel{box-shadow:8px 8px 0 var(--gold-deep), 0 0 40px rgba(162,89,255,.15);border-color:var(--purple-bright)}
+.panel-header{
+  padding:14px 20px;
+  background:#000;border-bottom:2px solid var(--gold);
+  display:flex;justify-content:space-between;align-items:center;
+}
+.chart-panel .panel-header{border-bottom-color:var(--purple-bright)}
+.panel-tag{
+  font-family:var(--display);font-size:13px;letter-spacing:.18em;
+  color:var(--gold-bright);text-shadow:2px 2px 0 #000;
+}
+.chart-panel .panel-tag{color:var(--purple-glow)}
+.panel-source{
+  font-family:var(--mono);font-size:11px;letter-spacing:.14em;
+  text-transform:uppercase;color:rgba(246,233,196,.75);
+}
+
+.swap-frame, .chart-frame{
+  position:relative;
+  flex:1;
+  background:#000;
+  min-height:600px;
+}
+.swap-frame{
+  min-height:520px;
+  /* Center the Jupiter widget horizontally and vertically */
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+}
+.chart-frame{min-height:600px}
+.swap-frame iframe, .chart-frame iframe{
+  display:block;width:100%;height:100%;border:none;background:#000;
+  position:absolute;inset:0;
+}
+.chart-frame iframe{position:absolute}
+.jupiter-container{
+  width:100%;
+  max-width:480px;
+  min-height:480px;
+  background:transparent;
+  border-radius:12px;
+  overflow:hidden;
+}
+/* Style overrides for Jupiter Plugin's inner widget */
+#jupiter-terminal #integrated-terminal,
+#jupiter-terminal > div{
+  width:100% !important;
+  background:transparent !important;
+}
+/* Add a subtle gold glow around the widget on desktop to integrate with theme */
+@media (min-width: 769px){
+  .jupiter-container{
+    box-shadow:0 0 40px rgba(245,197,66,.08), inset 0 0 0 1px rgba(212,164,49,.15);
+  }
+}
+
+.chart-loading{
+  position:absolute;inset:40px 0 0 0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
+  background:linear-gradient(135deg, rgba(10,6,16,1) 0%, rgba(26,10,46,1) 100%);color:var(--gold);
+  font-family:var(--mono);font-size:13px;letter-spacing:.15em;pointer-events:none;
+  z-index:1;
+}
+.chart-spinner{
+  width:48px;height:48px;
+  border:3px solid rgba(212,164,49,.18);
+  border-top-color:var(--gold-bright);
+  border-radius:50%;
+  animation:chartSpin 1s linear infinite;
+}
+.chart-loading-text{
+  opacity:.7;
+  animation:chartTextPulse 1.6s ease-in-out infinite;
+}
+@keyframes chartSpin{ to{ transform:rotate(360deg) } }
+@keyframes chartTextPulse{
+  0%,100%{ opacity:.5 }
+  50%{ opacity:1 }
+}
+.chart-frame.loaded .chart-loading{
+  opacity:0;
+  visibility:hidden;
+  transition:opacity .4s ease, visibility 0s .4s;
+}
+
+/* Swap iframe fallback - shows by default if iframe fails */
+.swap-fallback{
+  position:absolute;inset:0;
+  background:linear-gradient(165deg, var(--char), #000);
+  display:none;
+  place-items:center;padding:40px 30px;text-align:center;
+}
+.swap-fallback.show{display:grid}
+.fb-inner{max-width:340px}
+.fb-icon{font-size:64px;display:block;margin-bottom:16px;filter:drop-shadow(0 0 20px rgba(255,217,102,.5))}
+.fb-inner h3{
+  font-family:var(--display);font-size:26px;color:var(--gold-bright);
+  margin-bottom:14px;text-shadow:2px 2px 0 #000;letter-spacing:.02em;
+}
+.fb-inner p{
+  font-family:var(--serif);font-size:16px;line-height:1.5;
+  color:rgba(246,233,196,.85);margin-bottom:20px;
+}
+.fb-inner .btn{margin-top:6px}
+.fb-note{
+  margin-top:18px !important;font-size:12px !important;
+  color:rgba(246,233,196,.5) !important;font-style:italic;
+}
+
+.dashboard-links{
+  display:flex;justify-content:center;gap:16px;flex-wrap:wrap;
+  margin-top:32px;
+}
+.dashboard-links a{
+  font-family:var(--mono);font-size:13px;letter-spacing:.12em;
+  text-decoration:none;color:var(--gold-bright);
+  padding:10px 18px;border:2px solid rgba(212,164,49,.4);border-radius:8px;
+  background:rgba(0,0,0,.4);
+  transition:all .15s;
+}
+.dashboard-links a:hover{
+  border-color:var(--gold);background:rgba(212,164,49,.1);
+  transform:translateY(-2px);
+}
+
+/* ========== CONTRACT ========== */
+.tokenomics{background:linear-gradient(180deg, rgba(27,18,40,.4), transparent)}
+.token-grid{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:48px;align-items:start}
+.contract-box{
+  background:#000;border:3px solid var(--gold);border-radius:16px;
+  padding:30px;position:relative;
+  box-shadow:0 0 60px rgba(255,217,102,.2), 8px 8px 0 var(--gold-deep);
+}
+.contract-box .label{font-family:var(--mono);font-size:11px;letter-spacing:.28em;color:var(--gold-bright);text-transform:uppercase;margin-bottom:16px}
+.contract-addr{
+  font-family:var(--mono);font-size:14px;color:var(--cream);
+  word-break:break-all;line-height:1.6;padding:18px;
+  background:rgba(212,164,49,.06);border-radius:8px;border:1px dashed rgba(212,164,49,.4);
+  margin-bottom:16px;
+}
+.copy-btn{
+  font-family:var(--display);font-size:13px;
+  background:linear-gradient(180deg, var(--gold-glow), var(--gold), var(--gold-deep));
+  color:#000;border:2px solid #000;padding:13px 22px;border-radius:8px;
+  box-shadow:3px 3px 0 #000;cursor:pointer;
+  transition:transform .12s,box-shadow .12s;
+  letter-spacing:.08em;text-transform:uppercase;
+  text-decoration:none;display:inline-block;
+}
+.copy-btn:hover{transform:translate(-2px,-2px);box-shadow:5px 5px 0 #000}
+.copy-btn.copied{background:var(--green);color:#fff}
+
+.stats-list{display:flex;flex-direction:column;gap:14px}
+.stat-row{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:18px 22px;border:2px solid #000;border-radius:12px;
+  background:linear-gradient(90deg, var(--char), #000);
+  box-shadow:4px 4px 0 var(--gold-deep);
+}
+.stat-row .k{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:rgba(246,233,196,.8)}
+.stat-row .v{font-family:var(--display);font-size:18px;color:var(--gold-bright);text-shadow:2px 2px 0 #000}
+.stat-row.hot .v{color:var(--crimson)}
+.stat-row.purple-row .v{color:var(--purple-glow)}
+
+/* ========== GALLERY ========== */
+.gallery{padding:90px 32px;background:linear-gradient(180deg, transparent, rgba(58,26,94,.2), transparent)}
+.gallery-grid{display:grid;grid-template-columns:1fr 1.3fr 1fr;gap:24px;margin-top:60px;align-items:stretch}
+.gallery-grid.two-up{grid-template-columns:1fr 1fr;max-width:1000px;margin-left:auto;margin-right:auto}
+.gallery-item{
+  border-radius:16px;border:3px solid var(--gold);overflow:hidden;
+  box-shadow:8px 8px 0 var(--purple-deep);
+  background:#000;position:relative;
+  transition:transform .25s, box-shadow .25s;
+}
+.gallery-item:hover{transform:translate(-3px,-3px);box-shadow:11px 11px 0 var(--purple-deep)}
+.gallery-item img, .gallery-item video{display:block;width:100%;height:100%;object-fit:cover}
+.gallery-item .cap{
+  position:absolute;bottom:0;left:0;right:0;
+  padding:14px 18px 16px;
+  background:linear-gradient(to top, rgba(0,0,0,.95), transparent);
+  font-family:var(--display);font-size:14px;color:var(--gold-bright);letter-spacing:.06em;
+  text-shadow:2px 2px 0 #000;
+}
+.gallery-item.center{border-color:var(--purple-bright);box-shadow:8px 8px 0 var(--gold-deep)}
+.gallery-item.center:hover{box-shadow:11px 11px 0 var(--gold-deep)}
+.gallery-item.video-item{aspect-ratio:432/640;display:grid}
+.gallery-item.img-item{min-height:480px}
+
+/* ========== PARTNERSHIPS ========== */
+.partners{padding:90px 32px;background:linear-gradient(180deg, rgba(27,18,40,.5), transparent)}
+.partner-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;margin-top:56px}
+.partner-card{
+  background:linear-gradient(165deg, var(--char), #000);
+  border:3px solid var(--gold);border-radius:16px;
+  padding:32px 20px;text-align:center;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  min-height:160px;gap:10px;
+  box-shadow:6px 6px 0 var(--purple-deep);
+  text-decoration:none;color:var(--cream);
+  transition:transform .2s, box-shadow .2s;
+}
+.partner-card:hover{transform:translate(-3px,-3px);box-shadow:9px 9px 0 var(--purple-deep)}
+.partner-card .logo{font-family:var(--display);font-size:24px;color:var(--gold-bright);text-shadow:2px 2px 0 #000;letter-spacing:.04em}
+.partner-card .role{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:rgba(246,233,196,.75)}
+.partner-card.empty{
+  border-style:dashed;border-color:rgba(212,164,49,.4);background:transparent;
+  box-shadow:none;
+}
+.partner-card.empty .logo{color:rgba(212,164,49,.5);font-size:18px}
+.partner-card.empty .role{color:rgba(246,233,196,.4)}
+.partner-card.empty:hover{transform:none;box-shadow:none;border-color:var(--gold)}
+.partner-card.empty:hover .logo{color:var(--gold-bright)}
+.partners-cta{
+  margin-top:48px;text-align:center;
+  font-family:var(--serif);font-size:18px;color:rgba(246,233,196,.88);font-style:italic;
+}
+.partners-cta a{color:var(--gold-bright);font-weight:600;text-decoration:none;border-bottom:1px dashed var(--gold)}
+
+/* ========== PACK / SOCIALS ========== */
+.pack{text-align:center;background:radial-gradient(ellipse at center, rgba(162,89,255,.12), transparent 60%)}
+.pack h2{margin-bottom:24px}
+.pack p.sub{font-size:21px;color:rgba(246,233,196,.92);max-width:680px;margin:0 auto 56px;line-height:1.65;font-style:italic}
+.social-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:20px;max-width:1100px;margin:0 auto}
+.social-card{
+  background:linear-gradient(165deg, var(--char), #000);
+  border:3px solid var(--gold);border-radius:20px;
+  padding:36px 20px;text-decoration:none;color:var(--cream);
+  display:flex;flex-direction:column;align-items:center;gap:12px;
+  box-shadow:6px 6px 0 var(--purple-deep);
+  transition:transform .2s,box-shadow .2s;
+  position:relative;overflow:hidden;
+}
+.social-card:hover{transform:translate(-3px,-3px);box-shadow:9px 9px 0 var(--purple-deep)}
+.social-card .icon{font-size:48px;line-height:1;filter:drop-shadow(0 0 12px rgba(255,217,102,.4))}
+.social-card .name{font-family:var(--display);font-size:17px;letter-spacing:.04em;color:var(--gold-bright);text-shadow:2px 2px 0 #000}
+.social-card .handle{font-family:var(--mono);font-size:11px;color:rgba(246,233,196,.75);letter-spacing:.04em}
+
+/* ========== FOOTER ========== */
+footer{
+  padding:70px 32px 40px;text-align:center;
+  border-top:1px solid rgba(212,164,49,.25);
+  background:linear-gradient(180deg, transparent, #000 80%);
+}
+footer .pawprint{font-size:42px;margin-bottom:18px;display:inline-block;filter:drop-shadow(0 0 14px rgba(255,217,102,.5))}
+footer p{font-family:var(--mono);font-size:12px;color:rgba(246,233,196,.7);letter-spacing:.12em;line-height:1.9}
+footer p.woof{font-family:var(--display);font-size:28px;color:var(--gold-glow);text-shadow:2px 2px 0 rgba(0,0,0,.85), 0 0 16px rgba(255,217,102,.3);margin-top:18px;letter-spacing:.1em}
+footer .disclaimer{margin-top:28px;font-size:12px;color:rgba(246,233,196,.55);max-width:680px;margin-left:auto;margin-right:auto;line-height:1.7}
+footer a{color:var(--gold-bright);text-decoration:none}
+footer a:hover{text-decoration:underline}
+
+/* ========== RESPONSIVE ========== */
+@media (max-width: 1100px){
+  .live-bar{grid-template-columns:repeat(4,1fr)}
+  .partner-grid{grid-template-columns:repeat(3,1fr)}
+}
+@media (max-width: 960px){
+  nav{padding:14px 18px}
+  nav .links{display:none}
+  .hero{padding:30px 18px 60px}
+  .hero-content{grid-template-columns:1fr;text-align:center;gap:40px}
+  .hero p.lead{margin-left:auto;margin-right:auto}
+  .cta-row{justify-content:center}
+  .tag{justify-content:center}
+  .legend-grid{grid-template-columns:1fr;gap:48px}
+  .legend-art{position:static;max-width:480px;margin:0 auto}
+  .drip-cards{grid-template-columns:1fr;gap:56px;margin-top:80px}
+  .token-grid{grid-template-columns:1fr}
+  .gallery-grid{grid-template-columns:1fr;gap:20px}
+  .gallery-item.img-item{min-height:auto;aspect-ratio:3/4}
+  .social-grid{grid-template-columns:1fr 1fr;gap:16px}
+  .partner-grid{grid-template-columns:1fr 1fr}
+  .live-bar{grid-template-columns:1fr 1fr}
+  .live-cell{padding:14px 12px}
+  .live-cell .v{font-size:17px}
+  .dashboard-grid{grid-template-columns:1fr;gap:20px}
+  .swap-frame{min-height:520px;padding:12px}
+  .jupiter-container{max-width:100%;min-height:480px}
+  .chart-frame{min-height:480px}
+  section{padding:80px 20px}
+  .burn-equation{font-size:14px;gap:10px}
+  .burn-eq{font-size:24px}
+  .legend-quote{font-size:22px}
+  .timer-unit{min-width:64px;padding:12px 4px}
+  .timer-num{font-size:34px}
+}
+@media (max-width:520px){
+  .partner-grid{grid-template-columns:1fr}
+  .live-bar{grid-template-columns:1fr}
+}
+
+/* ============================================================
+   INTRO SPLASH — 2.5s gold-drip reveal
+   ============================================================ */
+.intro{
+  position:fixed;inset:0;z-index:9999;
+  background:radial-gradient(ellipse at center, #1a0a2e 0%, #000 80%);
+  display:grid;place-items:center;
+  overflow:hidden;
+  animation:introExit .8s ease-in 2s forwards;
+}
+.intro.done{display:none}
+
+.intro-drips{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.intro-drips i{
+  position:absolute;top:-60px;
+  width:6px;height:50px;
+  background:linear-gradient(to bottom, transparent, var(--gold-bright), var(--gold));
+  border-radius:50% 50% 50% 50% / 70% 70% 30% 30%;
+  filter:drop-shadow(0 0 10px rgba(245,197,66,.55));
+  animation:dropFall linear infinite;
+  opacity:.85;
+}
+@keyframes dropFall{
+  0%{transform:translateY(-100px) scaleY(.6);opacity:0}
+  15%{opacity:1}
+  100%{transform:translateY(110vh) scaleY(1.2);opacity:0}
+}
+
+.intro-logo{
+  position:relative;z-index:2;text-align:center;
+  animation:logoIn 1.1s cubic-bezier(.2,.7,.2,1) .3s both;
+}
+.intro-paw{
+  width:78px;height:78px;
+  color:var(--gold-bright);
+  filter:drop-shadow(0 0 24px rgba(245,197,66,.6));
+  margin:0 auto 18px;display:block;
+  animation:pawWiggle 1.4s ease-in-out .8s infinite;
+}
+.intro-word{
+  font-family:var(--display);
+  font-size:clamp(56px, 12vw, 130px);
+  line-height:1;letter-spacing:.02em;
+  background:linear-gradient(180deg, var(--gold-pale), var(--gold-bright) 50%, var(--gold) 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(3px 3px 0 rgba(0,0,0,.7)) drop-shadow(0 0 40px rgba(245,197,66,.45));
+  margin:0;
+}
+.intro-tag{
+  display:block;margin-top:14px;
+  font-family:var(--tag);font-size:14px;
+  letter-spacing:.4em;text-transform:uppercase;
+  color:var(--gold-bright);
+  opacity:0;
+  animation:tagIn .8s ease-out 1.0s forwards;
+}
+@keyframes logoIn{
+  0%{opacity:0;transform:translateY(20px) scale(.92);filter:blur(6px)}
+  60%{filter:blur(0)}
+  100%{opacity:1;transform:translateY(0) scale(1);filter:blur(0)}
+}
+@keyframes tagIn{
+  to{opacity:.95}
+}
+@keyframes pawWiggle{
+  0%,100%{transform:rotate(-3deg)}
+  50%{transform:rotate(3deg)}
+}
+@keyframes introExit{
+  to{opacity:0;visibility:hidden;pointer-events:none}
+}
+
+.intro-curtain{
+  position:absolute;inset:0;
+  background:linear-gradient(to top, transparent 0%, #000 50%);
+  transform:translateY(100%);
+  animation:curtain 1s cubic-bezier(.65,0,.35,1) 1.6s forwards;
+  pointer-events:none;
+}
+@keyframes curtain{
+  0%{transform:translateY(100%)}
+  100%{transform:translateY(-100%)}
+}
+
+/* Page hidden until intro starts wiping; revealed underneath */
+body.intro-running > *:not(.intro){
+  opacity:0;
+  transform:translateY(10px);
+}
+body.intro-done > *:not(.intro){
+  animation:siteReveal .9s ease-out .15s both;
+}
+@keyframes siteReveal{
+  from{opacity:0;transform:translateY(10px)}
+  to{opacity:1;transform:translateY(0)}
+}
+
+/* ============================================================
+   AMBIENT DRIPS — slow gold drops in hero background
+   ============================================================ */
+.ambient-drips{
+  position:absolute;inset:0;pointer-events:none;z-index:0;
+  overflow:hidden;
+  opacity:0;
+  transition:opacity 1s ease-in 2.8s;
+}
+body.intro-done .ambient-drips{opacity:.55}
+.ambient-drips i{
+  position:absolute;top:-30px;
+  width:4px;height:24px;
+  background:linear-gradient(to bottom, transparent, var(--gold));
+  border-radius:50% 50% 50% 50% / 70% 70% 30% 30%;
+  filter:drop-shadow(0 0 6px rgba(212,164,49,.5));
+  animation:ambientFall linear infinite;
+}
+@keyframes ambientFall{
+  0%{transform:translateY(0) scaleY(.6);opacity:0}
+  15%{opacity:1}
+  85%{opacity:1}
+  100%{transform:translateY(110vh) scaleY(1);opacity:0}
+}
+
+/* ============================================================
+   SCROLL REVEAL
+   ============================================================ */
+.reveal{
+  opacity:0;
+  transform:translateY(30px);
+  transition:opacity .9s cubic-bezier(.2,.7,.2,1), transform .9s cubic-bezier(.2,.7,.2,1);
+  will-change:opacity, transform;
+}
+.reveal.in{opacity:1;transform:translateY(0)}
+.reveal.delay-1{transition-delay:.08s}
+.reveal.delay-2{transition-delay:.16s}
+.reveal.delay-3{transition-delay:.24s}
+
+/* ============================================================
+   MICRO-INTERACTIONS
+   ============================================================ */
+.marquee:hover .marquee__track{animation-play-state:paused}
+
+.drip-card{transition:transform .35s cubic-bezier(.2,.7,.2,1), box-shadow .35s cubic-bezier(.2,.7,.2,1)}
+.drip-card::after{
+  content:"";position:absolute;inset:0;border-radius:20px;pointer-events:none;
+  background:radial-gradient(circle at var(--mx, 50%) var(--my, 50%), rgba(245,197,66,.14), transparent 60%);
+  opacity:0;transition:opacity .4s;
+}
+.drip-card:hover::after{opacity:1}
+
+.drip-card.in .stat{animation:statPop .7s cubic-bezier(.2,.7,.2,1) .3s backwards}
+@keyframes statPop{
+  0%{opacity:0;transform:scale(.6) translateY(20px)}
+  60%{transform:scale(1.08) translateY(0)}
+  100%{opacity:1;transform:scale(1) translateY(0)}
+}
+
+.hero-banner{animation:bannerFloat 8s ease-in-out 3s infinite}
+@keyframes bannerFloat{
+  0%,100%{transform:translateY(0)}
+  50%{transform:translateY(-6px)}
+}
+
+.live-cell .v.flash{animation:cellFlash .8s ease-out}
+@keyframes cellFlash{
+  0%{filter:brightness(1.5) drop-shadow(0 0 12px var(--gold-bright))}
+  100%{filter:brightness(1)}
+}
+
+.social-card{position:relative;overflow:hidden}
+.social-card::before{
+  content:"";position:absolute;inset:0;
+  background:linear-gradient(120deg, transparent 30%, rgba(245,197,66,.18) 50%, transparent 70%);
+  transform:translateX(-100%);
+  transition:transform .8s ease;
+  pointer-events:none;
+}
+.social-card:hover::before{transform:translateX(100%)}
+
+.partner-card{position:relative;overflow:hidden}
+.partner-card::before{
+  content:"";position:absolute;inset:0;
+  background:linear-gradient(120deg, transparent 30%, rgba(245,197,66,.15) 50%, transparent 70%);
+  transform:translateX(-100%);
+  transition:transform .8s ease;
+  pointer-events:none;
+}
+.partner-card:hover::before{transform:translateX(100%)}
+
+.btn-primary{position:relative;overflow:hidden}
+.btn-primary::after{
+  content:"";position:absolute;top:0;left:-100%;width:100%;height:100%;
+  background:linear-gradient(90deg, transparent, rgba(255,255,255,.35), transparent);
+  transition:left .6s ease;
+}
+.btn-primary:hover::after{left:100%}
+
+.gallery-item img, .gallery-item video{transition:transform .6s ease}
+.gallery-item:hover img, .gallery-item:hover video{transform:scale(1.04)}
+
+.burn.in .flames{animation:flickerActive 1s ease-in-out infinite}
+@keyframes flickerActive{
+  0%,100%{transform:scale(1) rotate(-5deg);filter:drop-shadow(0 0 30px rgba(255,100,0,.6))}
+  50%{transform:scale(1.15) rotate(5deg);filter:drop-shadow(0 0 40px rgba(255,150,0,.9))}
+}
+
+/* ============================================================
+   CAROUSEL — "Many Faces. One Dog."
+   ============================================================ */
+.carousel{
+  position:relative;
+  margin-top:60px;
+  padding:0;
+  overflow:hidden;
+  border-radius:16px;
+}
+.carousel-track{
+  display:flex;
+  gap:24px;
+  overflow-x:auto;
+  scroll-snap-type:x mandatory;
+  scroll-behavior:smooth;
+  padding:8px 60px;
+  scrollbar-width:none;
+  -ms-overflow-style:none;
+  -webkit-overflow-scrolling:touch;
+}
+.carousel-track::-webkit-scrollbar{display:none}
+
+.carousel-item{
+  flex:0 0 320px;
+  scroll-snap-align:center;
+  position:relative;
+  border:3px solid var(--gold);
+  border-radius:14px;
+  overflow:hidden;
+  background:#0a0610;
+  box-shadow:6px 6px 0 var(--purple-deep);
+  aspect-ratio:3/4;
+  transition:transform .3s cubic-bezier(.2,.7,.2,1), box-shadow .3s cubic-bezier(.2,.7,.2,1);
+}
+.carousel-item:hover{
+  transform:translate(-3px,-3px);
+  box-shadow:9px 9px 0 var(--purple-deep);
+}
+.carousel-item.video-item{border-color:var(--purple-bright);box-shadow:6px 6px 0 var(--gold-deep)}
+.carousel-item.video-item:hover{box-shadow:9px 9px 0 var(--gold-deep)}
+.carousel-item img, .carousel-item video{
+  display:block;width:100%;height:100%;
+  object-fit:cover;
+}
+.carousel-item .cap{
+  position:absolute;left:0;right:0;bottom:0;
+  padding:14px 16px;
+  background:linear-gradient(to top, rgba(0,0,0,.92) 0%, rgba(0,0,0,.6) 60%, transparent 100%);
+  font-family:var(--display);font-size:14px;letter-spacing:.06em;
+  color:var(--gold-glow);
+  text-shadow:1px 1px 0 #000;
+}
+
+/* Navigation buttons */
+.carousel-nav{
+  position:absolute;top:50%;transform:translateY(-50%);
+  z-index:10;
+  width:48px;height:48px;
+  border:2px solid var(--gold);border-radius:50%;
+  background:rgba(10,6,16,.85);
+  color:var(--gold-glow);
+  font-size:30px;line-height:1;
+  font-family:var(--display);
+  cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .2s ease;
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
+  box-shadow:0 0 20px rgba(0,0,0,.5);
+}
+.carousel-nav:hover{
+  background:var(--gold);
+  color:var(--black);
+  transform:translateY(-50%) scale(1.08);
+  box-shadow:0 0 25px rgba(245,197,66,.5);
+}
+.carousel-nav.prev{left:12px}
+.carousel-nav.next{right:12px}
+.carousel-nav:disabled{opacity:.3;cursor:not-allowed}
+
+/* Dots */
+.carousel-dots{
+  display:flex;justify-content:center;gap:8px;
+  margin-top:24px;
+  flex-wrap:wrap;
+}
+.carousel-dot{
+  width:10px;height:10px;border-radius:50%;
+  background:rgba(212,164,49,.3);
+  border:1px solid rgba(212,164,49,.5);
+  cursor:pointer;
+  transition:all .25s ease;
+  padding:0;
+}
+.carousel-dot.active{
+  background:var(--gold);
+  border-color:var(--gold-bright);
+  box-shadow:0 0 8px rgba(245,197,66,.6);
+  transform:scale(1.2);
+}
+
+@media (max-width: 768px){
+  .carousel-item{flex:0 0 260px}
+  .carousel-track{padding:8px 24px;gap:18px}
+  .carousel-nav{width:40px;height:40px;font-size:24px}
+  .carousel-nav.prev{left:6px}
+  .carousel-nav.next{right:6px}
+}
+
+
+/* Respect reduced-motion */
+@media (prefers-reduced-motion: reduce){
+  .intro{display:none}
+  body.intro-running > *:not(.intro){opacity:1;transform:none}
+  .reveal{opacity:1;transform:none;transition:none}
+  .ambient-drips{display:none}
+  .hero-banner{animation:none}
+  *,*::before,*::after{animation-duration:.01ms !important;transition-duration:.01ms !important}
+}
+</style>
+</head>
+<body class="intro-running">
+
+<noscript><style>.intro{display:none}body.intro-running > *:not(.intro){opacity:1 !important;transform:none !important}</style></noscript>
+
+<!-- ========== INTRO SPLASH ========== -->
+<div id="intro" class="intro" aria-hidden="true">
+  <div class="intro-drips" id="introDrips"></div>
+  <div class="intro-logo">
+    <svg class="intro-paw" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <g fill="currentColor">
+        <ellipse cx="50" cy="62" rx="22" ry="20"/>
+        <ellipse cx="22" cy="42" rx="9" ry="12"/>
+        <ellipse cx="78" cy="42" rx="9" ry="12"/>
+        <ellipse cx="35" cy="22" rx="8" ry="11"/>
+        <ellipse cx="65" cy="22" rx="8" ry="11"/>
+      </g>
+    </svg>
+    <h1 class="intro-word">DRIPPY</h1>
+    <span class="intro-tag">The Solana Dividend Dog</span>
+  </div>
+  <div class="intro-curtain"></div>
+</div>
+
+<!-- MARQUEE -->
+<div class="marquee" aria-hidden="true">
+  <div class="marquee__track">
+    <span>💰 REAL SOL EVERY 30 MINUTES</span><span>🔥 BURN FOR <b>2X REWARDS FOREVER</b></span>
+    <span>🐕 THE PACK ALWAYS EATS</span><span>💧 5% TAX → 100% TO SOL</span>
+    <span>⚡ LIVE ON SOLANA</span><span>🏆 BUILT DIFFERENT</span>
+    <span>💰 REAL SOL EVERY 30 MINUTES</span><span>🔥 BURN FOR <b>2X REWARDS FOREVER</b></span>
+    <span>🐕 THE PACK ALWAYS EATS</span><span>💧 5% TAX → 100% TO SOL</span>
+    <span>⚡ LIVE ON SOLANA</span><span>🏆 BUILT DIFFERENT</span>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav>
+  <a href="#top" class="brand">
+    <span class="brand-icon">$</span>
+    DRIPPY
+  </a>
+  <div class="links">
+    <a href="#trade">Buy &amp; Chart</a>
+    <a href="#legend">Legend</a>
+    <a href="#mechanics">Mechanics</a>
+    <a href="#burn">Burn</a>
+    <a href="#partners">Pack</a>
+  </div>
+  <a class="cta-mini" href="https://www.forgeswap.fun/" target="_blank" rel="noopener">Buy $DRIPPY</a>
+</nav>
+
+<!-- HERO -->
+<header class="hero" id="top">
+  <div class="ambient-drips" id="ambientDrips"></div>
+
+  <div class="hero-banner">
+    <img src="assets/banner.jpg" alt="Drippy — the Solana Dividend Dog" />
+  </div>
+
+  <div class="hero-content">
+    <div>
+      <span class="tag">The Solana Dividend Dog</span>
+      <h1>The Drip <span class="gold">Never</span> <span class="purple">Stops.</span></h1>
+      <p class="lead">
+        He doesn't promise lambos. He promises that every 30 minutes, while you're sleeping, eating, or staring at memes, <em>a little more SOL quietly appears in your wallet.</em> Hold to earn. Burn to become a legend.
+      </p>
+      <div class="cta-row">
+        <a class="btn btn-primary" href="https://www.forgeswap.fun/" target="_blank" rel="noopener">
+          💰 Buy $DRIPPY
+        </a>
+        <a class="btn btn-purple" href="https://t.me/DrippyRewards" target="_blank" rel="noopener">
+          🐕 Join The Pack
+        </a>
+        <a class="btn btn-ghost" href="#trade">Live Chart</a>
+      </div>
+    </div>
+
+    <div class="timer-box" id="timerBox">
+      <div class="timer-display">
+        <div class="timer-unit">
+          <span class="timer-num" id="tHours">00</span>
+          <span class="timer-label">Hours</span>
+        </div>
+        <span class="timer-colon">:</span>
+        <div class="timer-unit">
+          <span class="timer-num" id="tMins">00</span>
+          <span class="timer-label">Minutes</span>
+        </div>
+        <span class="timer-colon">:</span>
+        <div class="timer-unit">
+          <span class="timer-num" id="tSecs">00</span>
+          <span class="timer-label">Seconds</span>
+        </div>
+      </div>
+      <div class="timer-sub"><span class="dot"></span> Auto-distributed to all holders</div>
+    </div>
+  </div>
+</header>
+
+<!-- LIVE STATS BAR -->
+<div class="live-bar-wrap">
+  <div class="live-bar-header">
+    <span class="lbh-tag"><span class="lbh-dot"></span> LIVE ON-CHAIN DATA</span>
+    <span class="lbh-meta">Auto-refresh every 30s · <a href="https://solscan.io/token/EPRZgmvU4aTQ4UaC4bywgNvxJ5YmhuKqM1bx3gw4DRPY" target="_blank" rel="noopener">View on Solscan ↗</a></span>
+  </div>
+  <div class="live-bar" id="liveBar">
+    <div class="live-cell loading" data-key="price"><span class="k">Price</span><span class="v">—</span></div>
+    <div class="live-cell loading" data-key="change"><span class="k">24h Change</span><span class="v">—</span></div>
+    <div class="live-cell loading" data-key="mcap"><span class="k">Market Cap</span><span class="v">—</span></div>
+    <div class="live-cell loading" data-key="vol"><span class="k">24h Volume</span><span class="v">—</span></div>
+    <div class="live-cell loading" data-key="liq"><span class="k">Liquidity</span><span class="v">—</span></div>
+    <div class="live-cell loading" data-key="supply"><span class="k">Circ. Supply</span><span class="v">—</span></div>
+    <div class="live-cell loading" data-key="burned"><span class="k">🔥 Burned</span><span class="v purple">—</span></div>
+    <div class="live-cell loading" data-key="rewards"><span class="k">💰 SOL Paid</span><span class="v gold">—</span></div>
+  </div>
+</div>
+
+<!-- DISTRIBUTION STATS CARD — Forge tracked rewards -->
+<div class="dist-wrap">
+  <div class="dist-card">
+    <div class="dist-header">
+      <span class="dist-tag"><span class="lbh-dot"></span> REWARDS DISTRIBUTION</span>
+      <span class="dist-source" id="distSourceLabel">Verified on Forge · <a href="https://forgepad.fun/token/EPRZgmvU4aTQ4UaC4bywgNvxJ5YmhuKqM1bx3gw4DRPY" target="_blank" rel="noopener">View Live ↗</a></span>
+    </div>
+    <div class="dist-grid">
+      <div class="dist-cell">
+        <span class="dist-k">Last Distribution</span>
+        <span class="dist-v" id="distLastTime">Loading...</span>
+        <span class="dist-sub" id="distLastAgo"></span>
+      </div>
+      <div class="dist-cell">
+        <span class="dist-k">Last Amount</span>
+        <span class="dist-v gold" id="distLastAmount">0.050861 SOL</span>
+        <span class="dist-sub">SOL paid out</span>
+      </div>
+      <div class="dist-cell highlight">
+        <span class="dist-k">Total Distributed</span>
+        <span class="dist-v big-gold" id="distTotal">19.21 SOL</span>
+        <span class="dist-sub">SOL since launch</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- BURN STATS CARD — burn events, tokens burned, supply % burned, etc. -->
+<div class="burnstats-wrap">
+  <div class="burnstats-card">
+    <div class="bs-header">
+      <span class="bs-tag"><span class="lbh-dot"></span> 🔥 BURN-TO-EARN STATS</span>
+      <span class="bs-source">Live from Forge · <a href="https://forgepad.fun/token/EPRZgmvU4aTQ4UaC4bywgNvxJ5YmhuKqM1bx3gw4DRPY" target="_blank" rel="noopener">View ↗</a></span>
+    </div>
+    <div class="bs-grid">
+      <div class="bs-cell">
+        <span class="bs-k">🔥 Burn Events</span>
+        <span class="bs-v" id="bsBurnEvents">152</span>
+        <span class="bs-sub">total burns</span>
+      </div>
+      <div class="bs-cell">
+        <span class="bs-k">Tokens Burned</span>
+        <span class="bs-v purple" id="bsTokensBurned">22,377,461</span>
+        <span class="bs-sub">$DRIPPY incinerated</span>
+      </div>
+      <div class="bs-cell highlight">
+        <span class="bs-k">% Supply Burned</span>
+        <span class="bs-v big-purple" id="bsBurnPct">2.20%</span>
+        <span class="bs-sub">of total supply</span>
+      </div>
+      <div class="bs-cell">
+        <span class="bs-k">💰 Distributions</span>
+        <span class="bs-v gold" id="bsDistCount">70</span>
+        <span class="bs-sub">payout cycles</span>
+      </div>
+      <div class="bs-cell">
+        <span class="bs-k">Status</span>
+        <span class="bs-v green" id="bsStatus">ACTIVE</span>
+        <span class="bs-sub">running 24/7</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MANIFESTO -->
+<section class="manifesto">
+  <h2>We Don't Wait For <span class="gold">Opportunities.</span><br>We <span class="purple">Create</span> Them.</h2>
+  <span class="manifesto-tag">— legends build legacies</span>
+</section>
+
+<!-- LIVE DASHBOARD: SWAP + CHART -->
+<section class="dashboard" id="trade">
+  <div class="container">
+    <div class="eyebrow">Trade Live</div>
+    <h2>Buy. <span class="purple">Swap.</span> <span class="gold">Track.</span></h2>
+    <p class="dashboard-sub">Direct on-chain. No middlemen. No nonsense.</p>
+
+    <div class="dashboard-grid">
+      <!-- SWAP PANEL — Jupiter Terminal (real on-site swap) -->
+      <div class="swap-panel">
+        <div class="panel-header">
+          <span class="panel-tag">SWAP $DRIPPY</span>
+          <span class="panel-source">Powered by Jupiter</span>
+        </div>
+        <div class="swap-frame" id="swapFrame">
+          <div id="jupiter-terminal" class="jupiter-container"></div>
+          <div class="swap-fallback" id="swapFallback">
+            <div class="fb-inner">
+              <span class="fb-icon">⚒️</span>
+              <h3>Loading Swap...</h3>
+              <p>If the swap doesn't appear in a few seconds, you can also use ForgeSwap directly.</p>
+              <a class="btn btn-primary" href="https://www.forgeswap.fun/" target="_blank" rel="noopener">⚒️ Open ForgeSwap →</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CHART PANEL -->
+      <div class="chart-panel" id="chart">
+        <div class="panel-header">
+          <span class="panel-tag">LIVE CHART</span>
+          <span class="panel-source">DexScreener</span>
+        </div>
+        <div class="chart-frame" id="chartFrame">
+          <div class="chart-loading">
+            <div class="chart-spinner"></div>
+            <span class="chart-loading-text">LOADING LIVE CHART</span>
+          </div>
+          <iframe
+            src="https://dexscreener.com/solana/3ohceht4kcjkysrtn4mysd2zwgkwz1cinualvtcchqmz?embed=1&theme=dark&trades=0&info=0"
+            title="DRIPPY Live Chart"
+            loading="eager"
+            onload="document.getElementById('chartFrame').classList.add('loaded')"
+            allow="clipboard-write"
+          ></iframe>
+        </div>
+      </div>
+    </div>
+
+    <div class="dashboard-links">
+      <a href="https://www.forgeswap.fun/" target="_blank" rel="noopener">⚒️ ForgeSwap</a>
+      <a href="https://forgepad.fun/token/EPRZgmvU4aTQ4UaC4bywgNvxJ5YmhuKqM1bx3gw4DRPY" target="_blank" rel="noopener">🚀 Forgepad</a>
+      <a href="https://dexscreener.com/solana/3ohceht4kcjkysrtn4mysd2zwgkwz1cinualvtcchqmz" target="_blank" rel="noopener">📊 DexScreener</a>
+      <a href="https://solscan.io/token/EPRZgmvU4aTQ4UaC4bywgNvxJ5YmhuKqM1bx3gw4DRPY" target="_blank" rel="noopener">🔍 Solscan</a>
+    </div>
+  </div>
+</section>
+
+<!-- LEGEND -->
+<section class="legend" id="legend">
+  <div class="container">
+    <div class="eyebrow">Chapter One</div>
+    <h2>The Legend of <span class="gold">Drippy</span></h2>
+    <div class="legend-grid">
+      <div class="legend-art">
+        <img src="assets/drippy-hangar.jpg" alt="Drippy at the hangar" />
+      </div>
+      <div class="legend-text">
+        <p>In the glittering underbelly of Solana, where blocks fly faster than fire hydrants and every wallet dreams of getting rich, there lived a dog who refused to chase tails. His name was <strong>Drippy</strong>.</p>
+
+        <p>He wasn't born special. Just a scruffy street dog with one floppy ear and a coat that somehow always looked fresh out the wash. But Drippy had a nose for something the rest of the pack missed: the hidden rhythm inside the blockchain itself.</p>
+
+        <p>One moonlit night, during the wildest memecoin frenzy Solana had ever seen, Drippy slipped past the guards of a forgotten liquidity pool and stuck his snout straight into the smart contract. What he found wasn't bones or treats. It was pure, liquid code, a 5% tax mechanism so elegant it made the chain itself hum.</p>
+
+        <p>But Drippy wasn't done. He dug deeper. With a joyful bark, he rewrote part of the contract with his paw:</p>
+
+        <div class="legend-quote">
+          "Every time someone buys or sells, 5% drips back into the pool. Every 30 minutes, that pool rains SOL straight into the wallets of the loyal pack. And for those who prove their loyalty by burning their tokens, the drip becomes twice as strong. Forever."
+        </div>
+
+        <p>From that moment, burning became <strong>sacred</strong> in the Pack. When a holder burns $DRIPPY, those tokens don't just vanish, they become eternal fuel for the drip. The burner receives 2x rewards on the burned amount for the rest of time, even if they hold zero tokens afterward.</p>
+
+        <p>Drippy now roams the chain like a true legend. Every buy and sell feeds the drip. Every burn makes it more powerful. He doesn't care if the market is green or red, the rewards keep flowing like water from a fire hydrant that never runs dry.</p>
+
+        <p><strong>Holders aren't just investors. They're the Pack. And the ones who burn? They become Drippy's Chosen.</strong></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT DRIPS -->
+<section class="drips-section" id="mechanics">
+  <div class="container">
+    <div class="eyebrow">The Mechanics</div>
+    <h2>How The <span class="gold">Drip</span> Works</h2>
+
+    <div class="drip-cards">
+      <div class="drip-card">
+        <div class="num">1</div>
+        <h3>Buy &amp; Sell Tax</h3>
+        <p>Every buy and every sell pays a 5% tax. No exceptions. No exemptions. The tax is the lifeblood of the pool, and the pool is the heart of the Pack.</p>
+        <span class="stat">5%</span>
+      </div>
+      <div class="drip-card">
+        <div class="num">2</div>
+        <h3>Auto-Converted to SOL</h3>
+        <p>100% of that tax gets converted to SOL automatically by the contract. No team wallets. No multisig delays. Just pure, liquid SOL piling up for the pack.</p>
+        <span class="stat">100%</span>
+      </div>
+      <div class="drip-card">
+        <div class="num">3</div>
+        <h3>Rains Every 30 Min</h3>
+        <p>The pool dumps SOL directly into holder wallets every half hour. No claiming. No gas. No hassle. Sleep, eat, scroll, get paid.</p>
+        <span class="stat">30:00</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- BURN -->
+<section class="burn" id="burn">
+  <div class="container">
+    <div class="eyebrow">Drippy's Chosen</div>
+    <span class="flames" aria-hidden="true">🔥</span>
+    <h2>Burn For <span class="red">Glory.</span><br>Get Paid <span class="gold">Forever.</span></h2>
+    <p class="huge">
+      Burn any amount of $DRIPPY and the contract remembers. You get <strong>2x rewards on the burned tokens for life</strong>, even if your balance hits zero. The supply gets scarcer, the Pack gets stronger, and the SOL keeps dripping as thanks.
+    </p>
+
+    <div class="burn-equation">
+      <div class="burn-pill fire">🔥 BURN $DRIPPY</div>
+      <span class="burn-eq">→</span>
+      <div class="burn-pill">∞ FOREVER</div>
+      <span class="burn-eq">=</span>
+      <div class="burn-pill gold">💰 2X DRIP</div>
+    </div>
+
+    <span class="burn-tag">"he takes care of his people."</span>
+
+    <div class="burn-addr">
+      <div class="label">Burn Address — send $DRIPPY here to earn 2x forever</div>
+      <div class="addr" id="burnAddr">N1LCBQJnjLP3ppv7npzL5Btzf5Yp3hBMr6s8GmVfEyV</div>
+      <button class="copy-btn" id="copyBurnBtn" onclick="copyAddr('burnAddr','copyBurnBtn')">📋 Copy Burn Address</button>
+      <p class="note" style="margin-top:14px">⚠️ Only send $DRIPPY tokens to this address. Tokens sent here are burned forever and cannot be recovered. Your wallet receives 2x rewards on the burned amount for life.</p>
+    </div>
+  </div>
+</section>
+
+<!-- GALLERY -->
+<section class="gallery">
+  <div class="container">
+    <div class="eyebrow">Meet The Legend</div>
+    <h2>Many <span class="gold">Faces.</span> One <span class="purple">Dog.</span></h2>
+
+    <div class="carousel">
+      <button class="carousel-nav prev" aria-label="Previous">‹</button>
+      <button class="carousel-nav next" aria-label="Next">›</button>
+
+      <div class="carousel-track" id="carouselTrack">
+        <div class="carousel-item video-item">
+          <video src="assets/drippy-video.mp4" poster="assets/video-poster.jpg" autoplay muted loop playsinline></video>
+          <div class="cap">▶ Drippy In Motion</div>
+        </div>
+        <div class="carousel-item">
+          <img src="assets/drippy-king.png" alt="King Drippy on the throne" loading="lazy" />
+          <div class="cap">King Drippy</div>
+        </div>
+        <div class="carousel-item">
+          <img src="assets/carousel/eat-the-dip.jpg" alt="Drippy eating the dip" loading="lazy" />
+          <div class="cap">Eat The Dip</div>
+        </div>
+        <div class="carousel-item">
+          <img src="assets/carousel/good-morning.jpg" alt="Good Morning Fam" loading="lazy" />
+          <div class="cap">Good Morning Fam</div>
+        </div>
+        <div class="carousel-item">
+          <img src="assets/carousel/uncle-sam.jpg" alt="We Want You To Raid" loading="lazy" />
+          <div class="cap">Drippy Wants You</div>
+        </div>
+        <div class="carousel-item">
+          <img src="assets/carousel/waterpark.jpg" alt="Drippy at the waterpark" loading="lazy" />
+          <div class="cap">Sliding To The Moon</div>
+        </div>
+        <div class="carousel-item video-item">
+          <video src="assets/carousel/drippy-guitar.mp4" autoplay muted loop playsinline preload="metadata"></video>
+          <div class="cap">▶ Drippy On Guitar</div>
+        </div>
+        <div class="carousel-item video-item">
+          <video src="assets/carousel/drippy-car.mp4" autoplay muted loop playsinline preload="metadata"></video>
+          <div class="cap">▶ Built Different</div>
+        </div>
+        <div class="carousel-item video-item">
+          <video src="assets/carousel/drippy-boxing.mp4" autoplay muted loop playsinline preload="metadata"></video>
+          <div class="cap">▶ Heavyweight Drip</div>
+        </div>
+      </div>
+
+      <div class="carousel-dots" id="carouselDots"></div>
+    </div>
+  </div>
+</section>
+
+<!-- CONTRACT -->
+<section class="tokenomics" id="tokenomics">
+  <div class="container">
+    <div class="eyebrow">The Contract</div>
+    <h2>Tokenomics &amp; <span class="gold">CA</span></h2>
+
+    <div class="token-grid">
+      <div class="contract-box">
+        <div class="label">Contract Address (Solana SPL)</div>
+        <div class="contract-addr" id="ca">EPRZgmvU4aTQ4UaC4bywgNvxJ5YmhuKqM1bx3gw4DRPY</div>
+        <button class="copy-btn" id="copyBtn" onclick="copyAddr('ca','copyBtn')">📋 Copy Address</button>
+        <a class="copy-btn" style="margin-left:8px" href="https://dexscreener.com/solana/3ohceht4kcjkysrtn4mysd2zwgkwz1cinualvtcchqmz" target="_blank" rel="noopener">📊 DexScreener</a>
+      </div>
+
+      <div class="stats-list">
+        <div class="stat-row"><span class="k">Tax Rate</span><span class="v">5% Buy / 5% Sell</span></div>
+        <div class="stat-row hot"><span class="k">Tax Destination</span><span class="v">100% → SOL</span></div>
+        <div class="stat-row"><span class="k">Reward Interval</span><span class="v">Every 30 Min</span></div>
+        <div class="stat-row"><span class="k">Claim Process</span><span class="v">Auto / Zero Action</span></div>
+        <div class="stat-row purple-row"><span class="k">Burn Multiplier</span><span class="v">2x Forever</span></div>
+        <div class="stat-row"><span class="k">Network</span><span class="v">Solana</span></div>
+        <div class="stat-row"><span class="k">Launched On</span><span class="v">Forgepad</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PARTNERSHIPS -->
+<section class="partners" id="partners">
+  <div class="container">
+    <div class="eyebrow">The Alliances</div>
+    <h2>The <span class="purple">Pack</span> Grows.</h2>
+
+    <div class="partner-grid">
+      <a class="partner-card" href="https://forgepad.fun/" target="_blank" rel="noopener">
+        <span class="logo">FORGEPAD</span>
+        <span class="role">Launchpad</span>
+      </a>
+      <div class="partner-card empty">
+        <span class="logo">+ FUTURE PACK</span>
+        <span class="role">Coming Soon</span>
+      </div>
+      <div class="partner-card empty">
+        <span class="logo">+ FUTURE PACK</span>
+        <span class="role">Coming Soon</span>
+      </div>
+      <div class="partner-card empty">
+        <span class="logo">+ FUTURE PACK</span>
+        <span class="role">Coming Soon</span>
+      </div>
+    </div>
+
+    <p class="partners-cta">
+      Want to partner with the pack? <a href="https://t.me/DrippyRewards" target="_blank" rel="noopener">Reach out on Telegram</a>
+    </p>
+  </div>
+</section>
+
+<!-- THE PACK / SOCIALS -->
+<section class="pack" id="pack">
+  <div class="container">
+    <div class="eyebrow">Join The Movement</div>
+    <h2>Welcome To <span class="gold">The Pack</span></h2>
+    <p class="sub">Hold $DRIPPY. Burn for glory. Stay loyal. Get paid forever. The chain has spoken. The dog has chosen. Now it's your turn.</p>
+
+    <div class="social-grid">
+      <a class="social-card" href="https://x.com/drippyrewards" target="_blank" rel="noopener">
+        <span class="icon">𝕏</span>
+        <span class="name">Twitter / X</span>
+        <span class="handle">@drippyrewards</span>
+      </a>
+      <a class="social-card" href="https://t.me/DrippyRewards" target="_blank" rel="noopener">
+        <span class="icon">✈️</span>
+        <span class="name">Telegram</span>
+        <span class="handle">t.me/DrippyRewards</span>
+      </a>
+      <a class="social-card" href="https://www.forgeswap.fun/" target="_blank" rel="noopener">
+        <span class="icon">⚒️</span>
+        <span class="name">ForgeSwap</span>
+        <span class="handle">Buy direct</span>
+      </a>
+      <a class="social-card" href="https://dexscreener.com/solana/3ohceht4kcjkysrtn4mysd2zwgkwz1cinualvtcchqmz" target="_blank" rel="noopener">
+        <span class="icon">📈</span>
+        <span class="name">DexScreener</span>
+        <span class="handle">Live chart</span>
+      </a>
+      <a class="social-card" href="https://solscan.io/token/EPRZgmvU4aTQ4UaC4bywgNvxJ5YmhuKqM1bx3gw4DRPY" target="_blank" rel="noopener">
+        <span class="icon">🔍</span>
+        <span class="name">Solscan</span>
+        <span class="handle">On-chain data</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <span class="pawprint" aria-hidden="true">🐾</span>
+  <p>$DRIPPY • The Solana Dividend Dog</p>
+  <p>Launched on <a href="https://forgepad.fun/" target="_blank" rel="noopener">Forgepad.fun</a></p>
+  <p class="woof">WOOF.</p>
+  <p class="disclaimer">$DRIPPY is a memecoin. This is not financial advice. Crypto is highly volatile and you can lose everything. Only spend what you can afford to lose. Drippy is a good dog but he is still a dog.</p>
+</footer>
+
+<script>
+// =====================================================
+// CONFIG — edit these in one place
+// =====================================================
+const DRIPPY = {
+  tokenAddress: 'EPRZgmvU4aTQ4UaC4bywgNvxJ5YmhuKqM1bx3gw4DRPY',
+  pairAddress:  '3ohceht4kcjkysrtn4mysd2zwgkwz1cinualvtcchqmz',
+  burnAddress:  'N1LCBQJnjLP3ppv7npzL5Btzf5Yp3hBMr6s8GmVfEyV',
+  // Burn wallet doubles as the rewards distributor — tracks SOL outflows
+  rewardsWallet: 'N1LCBQJnjLP3ppv7npzL5Btzf5Yp3hBMr6s8GmVfEyV',
+  // Anchor: 5/15/2026 9:49:37 PM EDT (last actual distribution) → UTC equivalent
+  rewardsAnchorUTC: Date.UTC(2026, 4, 16, 1, 49, 37),
+  rewardsIntervalMs: 30 * 60 * 1000, // 30 minutes
+
+  // RPC endpoints — tried in order, falls back if one fails
+  // 🔑 RECOMMENDED: Get a free Helius key at https://helius.dev/ and add it as
+  //   the first entry: 'https://mainnet.helius-rpc.com/?api-key=YOUR_KEY'
+  // Free tier = 100k requests/day, way more reliable than public endpoints.
+  rpcs: [
+    'https://mainnet.helius-rpc.com/?api-key=c3f500f3-db28-4d44-994f-0fa0e0ebd510',
+    'https://solana-rpc.publicnode.com',
+    'https://api.mainnet-beta.solana.com',
+    'https://rpc.ankr.com/solana'
+  ],
+
+  // ============================================================
+  // FORGE DISTRIBUTION STATS — update these from the Forge token page
+  // https://forgepad.fun/token/EPRZgmvU4aTQ4UaC4bywgNvxJ5YmhuKqM1bx3gw4DRPY
+  // The site will try to fetch live from Forge first; these are the fallback
+  // if the API isn't reachable from the browser (CORS).
+  // ============================================================
+  distribution: {
+    lastTime: '2026-05-17T12:53:29.000Z', // 5/17 8:53 AM EDT
+    lastAmountSol: 0.050861,
+    totalDistributedSol: 19.21,
+    verifiedAt: '2026-05-17T15:00:00Z'
+  }
+};
+// Backwards compat
+DRIPPY.rpc = DRIPPY.rpcs[0];
+
+// SAFETY NET — always finish intro within 4 seconds even if other JS errors
+setTimeout(() => {
+  if(document.body.classList.contains('intro-running')){
+    document.body.classList.remove('intro-running');
+    document.body.classList.add('intro-done');
+    const intro = document.getElementById('intro');
+    if(intro) intro.style.display = 'none';
+  }
+}, 4000);
+
+// Render the burn address into the DOM once on load
+(function(){
+  const el = document.getElementById('burnAddr');
+  if(el) el.textContent = DRIPPY.burnAddress;
+})();
+
+// =====================================================
+// INTRO SPLASH — 2.5s gold-drip reveal then site appears
+// =====================================================
+(function(){
+  // intro-running class is already on body (pre-applied to prevent FOUC)
+  // Spawn a handful of falling drips behind the logo
+  const wrap = document.getElementById('introDrips');
+  if(wrap){
+    const count = 14;
+    for(let i = 0; i < count; i++){
+      const d = document.createElement('i');
+      d.style.left = (Math.random() * 100) + '%';
+      d.style.animationDuration = (1 + Math.random() * 1.2) + 's';
+      d.style.animationDelay = (Math.random() * 0.6) + 's';
+      d.style.transform = `scale(${0.6 + Math.random() * 0.8})`;
+      wrap.appendChild(d);
+    }
+  }
+  // After intro animation completes, swap classes and remove overlay
+  setTimeout(() => {
+    document.body.classList.remove('intro-running');
+    document.body.classList.add('intro-done');
+    const intro = document.getElementById('intro');
+    if(intro){
+      setTimeout(() => { intro.style.display = 'none'; }, 1000);
+    }
+  }, 2500);
+})();
+
+// =====================================================
+// AMBIENT DRIPS — slow gold drips in hero background
+// =====================================================
+(function(){
+  const wrap = document.getElementById('ambientDrips');
+  if(!wrap) return;
+  const count = window.innerWidth < 768 ? 5 : 9;
+  for(let i = 0; i < count; i++){
+    const d = document.createElement('i');
+    d.style.left = (5 + Math.random() * 90) + '%';
+    d.style.animationDuration = (8 + Math.random() * 8) + 's';
+    d.style.animationDelay = (Math.random() * 12) + 's';
+    d.style.opacity = (.3 + Math.random() * .5);
+    d.style.transform = `scale(${0.5 + Math.random() * 1.2})`;
+    wrap.appendChild(d);
+  }
+})();
+
+// =====================================================
+// SCROLL REVEAL — sections + cards fade in as they hit viewport
+// =====================================================
+(function(){
+  // Add .reveal to common section blocks (skip the hero)
+  const containers = document.querySelectorAll(
+    'section .container, section .live-bar-wrap, .manifesto h2, .manifesto-tag'
+  );
+  containers.forEach(el => el.classList.add('reveal'));
+
+  // Cards get individual reveal with staggered delay
+  const cards = document.querySelectorAll(
+    '.drip-card, .gallery-item, .partner-card, .social-card'
+  );
+  cards.forEach((el, i) => {
+    el.classList.add('reveal');
+    if(i % 3 === 1) el.classList.add('delay-1');
+    if(i % 3 === 2) el.classList.add('delay-2');
+  });
+
+  // IntersectionObserver fires once per element
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if(e.isIntersecting){
+        e.target.classList.add('in');
+        // Also mark parent section for context (e.g. burn flames go active)
+        const section = e.target.closest('section');
+        if(section) section.classList.add('in');
+        io.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.15, rootMargin: '0px 0px -10% 0px' });
+
+  // Wait for intro to start exiting before observing, so reveals trigger naturally as user scrolls
+  setTimeout(() => {
+    document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+  }, 1800);
+})();
+
+// =====================================================
+// CAROUSEL — "Many Faces. One Dog."
+// Horizontal scroll with arrow buttons, dots, autoplay, swipe.
+// =====================================================
+(function(){
+  const track = document.getElementById('carouselTrack');
+  if(!track) return;
+  const dotsContainer = document.getElementById('carouselDots');
+  const prevBtn = document.querySelector('.carousel-nav.prev');
+  const nextBtn = document.querySelector('.carousel-nav.next');
+  const items = Array.from(track.children);
+  if(items.length === 0) return;
+
+  // Build dots
+  items.forEach((_, i) => {
+    const dot = document.createElement('button');
+    dot.className = 'carousel-dot' + (i === 0 ? ' active' : '');
+    dot.setAttribute('aria-label', `Slide ${i+1}`);
+    dot.addEventListener('click', () => scrollTo(i));
+    dotsContainer.appendChild(dot);
+  });
+
+  function getItemWidth(){
+    const first = items[0];
+    const style = getComputedStyle(track);
+    const gap = parseFloat(style.gap) || 24;
+    return first.offsetWidth + gap;
+  }
+
+  function getCurrentIndex(){
+    const itemW = getItemWidth();
+    const containerCenter = track.scrollLeft + track.offsetWidth / 2;
+    let bestIdx = 0;
+    let bestDist = Infinity;
+    items.forEach((item, i) => {
+      const itemCenter = item.offsetLeft + item.offsetWidth / 2;
+      const dist = Math.abs(containerCenter - itemCenter);
+      if(dist < bestDist){
+        bestDist = dist;
+        bestIdx = i;
+      }
+    });
+    return bestIdx;
+  }
+
+  function updateDots(){
+    const idx = getCurrentIndex();
+    document.querySelectorAll('.carousel-dot').forEach((d, i) => {
+      d.classList.toggle('active', i === idx);
+    });
+  }
+
+  function scrollTo(idx){
+    if(idx < 0) idx = 0;
+    if(idx > items.length - 1) idx = items.length - 1;
+    const item = items[idx];
+    const offset = item.offsetLeft - (track.offsetWidth - item.offsetWidth) / 2;
+    track.scrollTo({ left: offset, behavior: 'smooth' });
+  }
+
+  prevBtn?.addEventListener('click', () => scrollTo(getCurrentIndex() - 1));
+  nextBtn?.addEventListener('click', () => scrollTo(getCurrentIndex() + 1));
+
+  let scrollTimeout;
+  track.addEventListener('scroll', () => {
+    clearTimeout(scrollTimeout);
+    scrollTimeout = setTimeout(updateDots, 100);
+  });
+
+  // Auto-advance every 5 seconds — pause on hover/interaction
+  let autoplayTimer;
+  let userInteracted = false;
+  function startAutoplay(){
+    stopAutoplay();
+    autoplayTimer = setInterval(() => {
+      if(userInteracted) return;
+      const idx = getCurrentIndex();
+      const nextIdx = idx >= items.length - 1 ? 0 : idx + 1;
+      scrollTo(nextIdx);
+    }, 5000);
+  }
+  function stopAutoplay(){
+    if(autoplayTimer) clearInterval(autoplayTimer);
+  }
+
+  const carousel = document.querySelector('.carousel');
+  carousel.addEventListener('mouseenter', () => { userInteracted = true; });
+  carousel.addEventListener('mouseleave', () => { userInteracted = false; });
+  track.addEventListener('touchstart', () => { userInteracted = true; }, { passive: true });
+
+  // Respect reduced motion
+  if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+    startAutoplay();
+  }
+})();
+
+
+(function(){
+  document.querySelectorAll('.drip-card').forEach(card => {
+    card.addEventListener('mousemove', e => {
+      const rect = card.getBoundingClientRect();
+      const x = ((e.clientX - rect.left) / rect.width) * 100;
+      const y = ((e.clientY - rect.top) / rect.height) * 100;
+      card.style.setProperty('--mx', x + '%');
+      card.style.setProperty('--my', y + '%');
+    });
+  });
+})();
+
+// =====================================================
+// LIVE CELL FLASH — when a value updates, briefly highlight it
+// =====================================================
+function flashCell(key){
+  const cell = document.querySelector(`[data-key="${key}"] .v`);
+  if(!cell) return;
+  cell.classList.remove('flash');
+  // Force reflow so the animation can restart
+  void cell.offsetWidth;
+  cell.classList.add('flash');
+}
+
+// =====================================================
+// COUNTDOWN TIMER — synced for all visitors
+// =====================================================
+function tickTimer(){
+  const now = Date.now();
+  const elapsed = now - DRIPPY.rewardsAnchorUTC;
+  let remaining;
+  if(elapsed < 0){
+    remaining = -elapsed;
+  } else {
+    remaining = DRIPPY.rewardsIntervalMs - (elapsed % DRIPPY.rewardsIntervalMs);
+  }
+  const totalSec = Math.floor(remaining / 1000);
+  const h = String(Math.floor(totalSec / 3600)).padStart(2,'0');
+  const m = String(Math.floor((totalSec % 3600) / 60)).padStart(2,'0');
+  const s = String(totalSec % 60).padStart(2,'0');
+  document.getElementById('tHours').textContent = h;
+  document.getElementById('tMins').textContent  = m;
+  document.getElementById('tSecs').textContent  = s;
+}
+setInterval(tickTimer, 1000);
+tickTimer();
+
+// =====================================================
+// LIVE STATS — DexScreener API + Solana RPC
+// =====================================================
+function fmtUsd(n){
+  if(n == null || isNaN(n)) return '—';
+  n = Number(n);
+  if(n >= 1e9) return '$' + (n/1e9).toFixed(2) + 'B';
+  if(n >= 1e6) return '$' + (n/1e6).toFixed(2) + 'M';
+  if(n >= 1e3) return '$' + (n/1e3).toFixed(1) + 'K';
+  if(n >= 1)   return '$' + n.toFixed(2);
+  if(n >= .01) return '$' + n.toFixed(4);
+  return '$' + n.toFixed(8).replace(/0+$/,'').replace(/\.$/,'');
+}
+function fmtNum(n){
+  if(n == null || isNaN(n)) return '—';
+  n = Number(n);
+  if(n >= 1e9) return (n/1e9).toFixed(2) + 'B';
+  if(n >= 1e6) return (n/1e6).toFixed(2) + 'M';
+  if(n >= 1e3) return (n/1e3).toFixed(1) + 'K';
+  return Math.round(n).toLocaleString();
+}
+function setCell(key, value, cls){
+  const cell = document.querySelector(`[data-key="${key}"]`);
+  if(!cell) return;
+  const v = cell.querySelector('.v');
+  const prev = v.textContent;
+  v.textContent = value;
+  cell.classList.remove('loading');
+  v.classList.remove('up','down');
+  if(cls) v.classList.add(cls);
+  // Flash if value actually changed (skip first load when prev is em-dash)
+  if(prev && prev !== '—' && prev !== value){
+    flashCell(key);
+  }
+}
+
+// Track values across loaders so we can cross-compute (price × supply for MC)
+let _liveData = {
+  priceUsd: null,
+  totalSupply: 1_000_000_000, // Drippy is fixed 1B supply — confirm from on-chain later
+  burnedTokens: null,
+  burnedPct: null
+};
+
+function recomputeMarketCap(){
+  // Market cap = price × circulating supply
+  // Circulating = totalSupply - burnedTokens
+  // If we have all three, compute and override DexScreener's MC.
+  if(_liveData.priceUsd == null) return;
+  if(_liveData.totalSupply == null) return;
+
+  let circulating;
+  if(_liveData.burnedTokens != null){
+    circulating = _liveData.totalSupply - _liveData.burnedTokens;
+  } else if(_liveData.burnedPct != null){
+    circulating = _liveData.totalSupply * (1 - _liveData.burnedPct / 100);
+  } else {
+    circulating = _liveData.totalSupply;
+  }
+
+  if(!isFinite(circulating) || circulating <= 0) return;
+
+  const mc = _liveData.priceUsd * circulating;
+  setCell('mcap', fmtUsd(mc));
+  setCell('supply', fmtNum(circulating));
+}
+
+async function loadDexScreener(){
+  try{
+    // Query the SPECIFIC pair address rather than all token pairs.
+    // Searching by token can return dead/stale pools (e.g. abandoned Forge bonding curve)
+    // with high liquidity but ~$0 volume that grossly misrepresent price.
+    let pair = null;
+    if(DRIPPY.pairAddress){
+      const r = await fetch(`https://api.dexscreener.com/latest/dex/pairs/solana/${DRIPPY.pairAddress}`, {cache:'no-store'});
+      if(r.ok){
+        const data = await r.json();
+        // Endpoint returns either {pair: {...}} or {pairs: [{...}]} depending on version
+        pair = data.pair || (data.pairs && data.pairs[0]) || null;
+      }
+    }
+
+    // Fallback: if direct pair lookup fails, search by token and pick the one with HIGHEST 24h volume
+    // (active trading pool, not just highest TVL which can be a stale graduate pool)
+    if(!pair){
+      const r = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${DRIPPY.tokenAddress}`, {cache:'no-store'});
+      if(!r.ok) throw new Error('dex api');
+      const data = await r.json();
+      const pairs = data.pairs || [];
+      // Sort by 24h volume (descending) — the actively traded pool wins
+      pair = pairs.sort((a,b) => (b.volume?.h24 || 0) - (a.volume?.h24 || 0))[0];
+    }
+
+    if(!pair) throw new Error('no pair');
+    console.log('[DexScreener] using pair:', pair.pairAddress, 'vol24h:', pair.volume?.h24);
+
+    const priceUsd = parseFloat(pair.priceUsd);
+    setCell('price', fmtUsd(priceUsd));
+    _liveData.priceUsd = priceUsd;
+
+    const ch = pair.priceChange?.h24;
+    if(ch != null){
+      const sign = ch >= 0 ? '+' : '';
+      setCell('change', `${sign}${ch.toFixed(2)}%`, ch >= 0 ? 'up' : 'down');
+    } else setCell('change','—');
+
+    setCell('vol',  fmtUsd(pair.volume?.h24));
+    setCell('liq',  fmtUsd(pair.liquidity?.usd));
+
+    // Don't trust DexScreener's MC — recompute from price × circulating ourselves.
+    if(_liveData.totalSupply != null){
+      recomputeMarketCap();
+    } else {
+      setCell('mcap', fmtUsd(pair.marketCap || pair.fdv));
+    }
+  }catch(e){
+    console.warn('[DexScreener]', e);
+  }
+}
+
+// Cache which RPC is working — once we find one, stick with it for the session
+let _liveRpc = null;
+async function rpcCall(method, params){
+  const endpoints = _liveRpc ? [_liveRpc, ...DRIPPY.rpcs.filter(r => r !== _liveRpc)] : DRIPPY.rpcs;
+  let lastError;
+  for(const endpoint of endpoints){
+    try{
+      const r = await fetch(endpoint, {
+        method:'POST',
+        headers:{'content-type':'application/json'},
+        body: JSON.stringify({jsonrpc:'2.0', id:1, method, params})
+      });
+      if(!r.ok){
+        lastError = new Error(`${endpoint}: HTTP ${r.status}`);
+        console.warn('[RPC]', lastError.message);
+        continue;
+      }
+      const j = await r.json();
+      if(j.error){
+        lastError = new Error(`${endpoint}: ${j.error.message}`);
+        console.warn('[RPC]', lastError.message);
+        continue;
+      }
+      // Success — remember this endpoint
+      if(_liveRpc !== endpoint){
+        _liveRpc = endpoint;
+        console.log('[RPC] using:', endpoint);
+      }
+      return j.result;
+    }catch(e){
+      lastError = e;
+      console.warn('[RPC] fetch failed for', endpoint, e.message);
+    }
+  }
+  throw lastError || new Error('All RPC endpoints failed');
+}
+
+async function loadSupply(){
+  try{
+    const res = await rpcCall('getTokenSupply', [DRIPPY.tokenAddress]);
+    const amt = Number(res?.value?.uiAmount);
+    if(!isFinite(amt)){
+      console.warn('[supply] unexpected response shape', res);
+      // Fall back to 1B (Drippy's known total)
+      _liveData.totalSupply = 1_000_000_000;
+      recomputeMarketCap();
+      return;
+    }
+    _liveData.totalSupply = amt;
+    // Don't update supply cell here — recomputeMarketCap will set circulating
+    recomputeMarketCap();
+  }catch(e){
+    console.warn('[supply] all RPCs failed:', e.message);
+    // Use known total supply as fallback
+    _liveData.totalSupply = 1_000_000_000;
+    recomputeMarketCap();
+  }
+}
+
+async function loadBurned(){
+  // Disabled: the Forge API (via /api/distribution proxy) provides the authoritative
+  // cumulative burn total. The on-chain wallet balance only shows current snapshot
+  // which doesn't match Forge's tracked total burns. loadDistribution() populates this cell.
+  return;
+}
+
+// Rewards distributed = total SOL flowing OUT of the rewards wallet.
+// PRIMARY source is Forge's /api/token-distribution (see loadDistribution).
+// This on-chain scan stays as a FALLBACK in case Forge's API is unreachable.
+async function loadRewards(){
+  const cell = document.querySelector('[data-key="rewards"]');
+  if(!cell) return;
+  const vEl = cell.querySelector('.v');
+
+  // If Forge already populated this cell, don't run the slow on-chain scan
+  const current = vEl.textContent || '';
+  if(current && current !== '—' && current !== 'Tracking' && !current.includes('error')){
+    return;
+  }
+
+  if(!DRIPPY.rewardsWallet){
+    vEl.textContent = 'Tracking';
+    cell.classList.remove('loading');
+    return;
+  }
+
+  const cacheKey = 'drippy:rewards:' + DRIPPY.rewardsWallet;
+  let cache = {};
+  try{ cache = JSON.parse(localStorage.getItem(cacheKey) || '{}'); }catch(_){}
+  let totalLamportsOut = Number(cache.totalLamportsOut) || 0;
+  let newestSig = cache.newestSig || null;
+
+  const renderTotal = () => {
+    const sol = totalLamportsOut / 1e9;
+    if(sol <= 0){
+      vEl.textContent = '0 SOL';
+    } else if(sol < 0.01){
+      vEl.textContent = sol.toFixed(4) + ' SOL';
+    } else if(sol < 1){
+      vEl.textContent = sol.toFixed(3) + ' SOL';
+    } else {
+      vEl.textContent = sol.toLocaleString(undefined, {maximumFractionDigits: 2}) + ' SOL';
+    }
+    vEl.classList.add('gold');
+    cell.classList.remove('loading');
+  };
+  // Always render immediately so the cell isn't blank
+  renderTotal();
+
+  try{
+    // Pull all signatures NEWER than the cached newest (or all if no cache)
+    let allNewSigs = [];
+    let before = null;
+    let pages = 0;
+    const maxPages = newestSig ? 3 : 4;
+    while(pages < maxPages){
+      const params = [DRIPPY.rewardsWallet, { limit: 1000 }];
+      if(before) params[1].before = before;
+      if(newestSig && !before) params[1].until = newestSig;
+      let sigs;
+      try{
+        sigs = await rpcCall('getSignaturesForAddress', params);
+      }catch(rpcErr){
+        console.warn('[rewards] sig fetch failed at page', pages, rpcErr.message);
+        break;
+      }
+      if(!sigs || !sigs.length) break;
+      const launchSec = Math.floor(DRIPPY.rewardsAnchorUTC / 1000);
+      const inWindow = sigs.filter(s => !s.blockTime || s.blockTime >= launchSec);
+      allNewSigs = allNewSigs.concat(inWindow);
+      if(inWindow.length < sigs.length) break;
+      before = sigs[sigs.length-1].signature;
+      pages++;
+      if(sigs.length < 1000) break;
+    }
+
+    if(allNewSigs.length === 0){
+      // No transactions yet, but display the existing cached total (0 or whatever)
+      console.log('[rewards] no new signatures since last scan');
+      return;
+    }
+
+    const newest = allNewSigs[0].signature;
+
+    // Fetch each transaction in batches
+    const batchSize = 15; // smaller batch for public RPC reliability
+    for(let i = 0; i < allNewSigs.length; i += batchSize){
+      const batch = allNewSigs.slice(i, i + batchSize);
+      const txs = await Promise.all(
+        batch.map(s => rpcCall('getTransaction', [
+          s.signature,
+          { maxSupportedTransactionVersion: 0, encoding: 'jsonParsed' }
+        ]).catch(err => {
+          console.warn('[rewards] tx fetch failed:', s.signature.slice(0,8), err.message);
+          return null;
+        })
+      ));
+      for(const tx of txs){
+        if(!tx || !tx.meta || tx.meta.err) continue;
+        const keys = tx.transaction?.message?.accountKeys || [];
+        const idx = keys.findIndex(k => (typeof k === 'string' ? k : k.pubkey) === DRIPPY.rewardsWallet);
+        if(idx < 0) continue;
+        const pre = Number(tx.meta.preBalances?.[idx] || 0);
+        const post = Number(tx.meta.postBalances?.[idx] || 0);
+        const delta = pre - post;
+        let txFee = 0;
+        if(idx === 0) txFee = Number(tx.meta.fee || 0);
+        const outAmount = delta - txFee;
+        if(outAmount > 0) totalLamportsOut += outAmount;
+      }
+      // Re-render after each batch so the number ticks up live
+      renderTotal();
+    }
+
+    cache.totalLamportsOut = totalLamportsOut;
+    cache.newestSig = newest;
+    cache.updatedAt = Date.now();
+    try{ localStorage.setItem(cacheKey, JSON.stringify(cache)); }catch(_){}
+    renderTotal();
+  }catch(e){
+    console.warn('[rewards] outer error:', e.message);
+    // Don't show "RPC error" since we already rendered the cached total
+  }
+}
+
+async function loadAll(){
+  loadDexScreener();
+  loadSupply();
+  loadBurned();
+  // loadDistribution runs FIRST — it populates SOL Paid from Forge's authoritative API.
+  // loadRewards runs second as a fallback (only fires if Forge data didn't land).
+  await loadDistribution();
+  loadRewards();
+}
+loadAll();
+setInterval(loadAll, 30000); // refresh every 30 sec
+
+// =====================================================
+// FORGE DISTRIBUTION — render manual values + try API for live
+// =====================================================
+function fmtRelativeTime(iso){
+  try{
+    const then = new Date(iso).getTime();
+    const now = Date.now();
+    const diff = Math.max(0, now - then);
+    const min = Math.floor(diff / 60000);
+    if(min < 1) return 'just now';
+    if(min < 60) return min + ' min ago';
+    const hr = Math.floor(min / 60);
+    if(hr < 24) return hr + ' hr ago';
+    const days = Math.floor(hr / 24);
+    return days + ' day' + (days > 1 ? 's' : '') + ' ago';
+  }catch(_){ return ''; }
+}
+function fmtTime(iso){
+  try{
+    const d = new Date(iso);
+    return d.toLocaleString(undefined, {
+      month: 'short', day: 'numeric',
+      hour: 'numeric', minute: '2-digit', hour12: true
+    });
+  }catch(_){ return iso; }
+}
+function fmtSol(n){
+  n = Number(n);
+  if(!isFinite(n)) return '—';
+  if(n === 0) return '0 SOL';
+  if(n < 0.001) return n.toFixed(6) + ' SOL';
+  if(n < 1) return n.toFixed(4) + ' SOL';
+  return n.toLocaleString(undefined, { maximumFractionDigits: 3 }) + ' SOL';
+}
+
+function renderDistribution(data){
+  const lastTimeEl = document.getElementById('distLastTime');
+  const lastAgoEl = document.getElementById('distLastAgo');
+  const lastAmtEl = document.getElementById('distLastAmount');
+  const totalEl = document.getElementById('distTotal');
+  if(!lastTimeEl) return;
+
+  if(data.lastTime){
+    lastTimeEl.textContent = fmtTime(data.lastTime);
+    if(lastAgoEl) lastAgoEl.textContent = fmtRelativeTime(data.lastTime);
+  }
+  if(data.lastAmountSol != null){
+    lastAmtEl.textContent = fmtSol(data.lastAmountSol);
+  }
+  if(data.totalDistributedSol != null){
+    totalEl.textContent = fmtSol(data.totalDistributedSol);
+  }
+}
+
+async function loadDistribution(){
+  // First render from the manually-set fallback values so the card is never blank
+  renderDistribution(DRIPPY.distribution);
+
+  // Hit our own Vercel serverless proxy — no CORS, pre-formatted, 30s server cache
+  try{
+    const r = await fetch('/api/distribution', { cache: 'no-store' });
+    if(!r.ok) throw new Error('proxy ' + r.status);
+    const d = await r.json();
+    if(d.error) throw new Error('proxy error: ' + d.error);
+
+    // Update the Distribution card
+    const liveData = {
+      lastTime: d.lastDistributionAt || DRIPPY.distribution.lastTime,
+      lastAmountSol: d.lastAmountSol ?? DRIPPY.distribution.lastAmountSol,
+      totalDistributedSol: d.totalDistributedSol ?? DRIPPY.distribution.totalDistributedSol,
+      successfulRuns: d.successfulDistributions,
+      lastRunRecipients: d.lastRunRecipients,
+      attempted: d.lastRunAttempted,
+      burnEvents: d.burnEvents,
+      burnedPct: d.totalSupplyBurnedPct,
+      tokensBurnedFormatted: d.tokensBurnedFormatted,
+      status: d.status
+    };
+
+    renderDistribution(liveData);
+
+    // Update SOL Paid cell in the live bar (authoritative source)
+    const rewardsCell = document.querySelector('[data-key="rewards"]');
+    if(rewardsCell){
+      const v = rewardsCell.querySelector('.v');
+      const sol = liveData.totalDistributedSol;
+      let formatted;
+      if(sol <= 0) formatted = '0 SOL';
+      else if(sol < 0.01) formatted = sol.toFixed(4) + ' SOL';
+      else if(sol < 1) formatted = sol.toFixed(3) + ' SOL';
+      else formatted = sol.toLocaleString(undefined, {maximumFractionDigits: 2}) + ' SOL';
+      v.textContent = formatted;
+      v.classList.add('gold');
+      rewardsCell.classList.remove('loading');
+    }
+
+    // Update Burned cell with FORMATTED token amount (much more readable than raw)
+    const burnedCell = document.querySelector('[data-key="burned"]');
+    if(burnedCell){
+      const v = burnedCell.querySelector('.v');
+      // Prefer the full comma-formatted number from Forge (authoritative)
+      // Fall back to compact form if full not available, then '—' if nothing
+      const display = d.tokensBurnedFull || d.tokensBurnedFormatted || '—';
+      v.textContent = display;
+      v.classList.add('purple');
+      burnedCell.classList.remove('loading');
+    }
+
+    // Feed burn data into _liveData for accurate market cap + circulating supply
+    // Drippy uses 6 decimals — Forge's raw value is in base units (× 10^6)
+    if(d.tokensBurnedExact != null){
+      _liveData.burnedTokens = d.tokensBurnedExact;
+    } else if(d.tokensBurnedRaw){
+      _liveData.burnedTokens = Number(d.tokensBurnedRaw) / 1e6;
+    }
+    if(d.totalSupplyBurnedPct != null){
+      _liveData.burnedPct = d.totalSupplyBurnedPct;
+    }
+    // Force totalSupply to known 1B (Drippy's fixed supply) so circ always computes
+    // even if RPC failed earlier
+    if(_liveData.totalSupply == null) _liveData.totalSupply = 1_000_000_000;
+    recomputeMarketCap();
+
+    // Update Burn Stats card with full comma-formatted numbers
+    const setText = (id, text) => {
+      const el = document.getElementById(id);
+      if(el) el.textContent = text;
+    };
+    setText('bsBurnEvents', d.burnEvents != null ? d.burnEvents.toLocaleString() : '—');
+    setText('bsBurnPct', d.totalSupplyBurnedPct != null ? d.totalSupplyBurnedPct.toFixed(2) + '%' : '—');
+    // Show the FULL number with commas — not the compact 22.38M form
+    setText('bsTokensBurned', d.tokensBurnedFull || d.tokensBurnedFormatted || '—');
+    setText('bsDistCount', d.successfulDistributions != null ? d.successfulDistributions.toLocaleString() : '—');
+    setText('bsStatus', (d.status || 'unknown').toUpperCase());
+
+    // Upgrade the badge to "Live"
+    const label = document.getElementById('distSourceLabel');
+    if(label){
+      const runs = liveData.successfulRuns || '?';
+      label.innerHTML = `<span style="color:var(--green)">●</span> Live · ${runs} distributions · <a href="https://forgepad.fun/token/${DRIPPY.tokenAddress}" target="_blank" rel="noopener">View on Forge ↗</a>`;
+    }
+
+    console.log('[forge] live data loaded via proxy:', liveData);
+  }catch(e){
+    console.warn('[forge] proxy fetch failed:', e.message);
+    // Manual fallback values already rendered above
+  }
+}
+
+// =====================================================
+// JUPITER PLUGIN — real on-site swap widget
+// Uses the current Plugin v1 (Terminal v3 was deprecated 2026).
+// =====================================================
+async function initJupiter(){
+  const fallback = document.getElementById('swapFallback');
+  const container = document.getElementById('jupiter-terminal');
+  if(!container) return;
+
+  // Wait for Plugin script to load
+  if(!window.Jupiter || typeof window.Jupiter.init !== 'function'){
+    setTimeout(initJupiter, 200);
+    return;
+  }
+
+  try{
+    window.Jupiter.init({
+      displayMode: 'integrated',
+      integratedTargetId: 'jupiter-terminal',
+      formProps: {
+        initialInputMint: 'So11111111111111111111111111111111111111112', // SOL
+        initialOutputMint: DRIPPY.tokenAddress,
+        swapMode: 'ExactIn'
+      },
+      defaultExplorer: 'Solscan',
+      branding: {
+        logoUri: '',
+        name: 'DRIPPY'
+      },
+      containerStyles: {
+        background: 'transparent'
+      },
+      onSuccess: ({ txid }) => {
+        console.log('[jupiter] swap success:', txid);
+      },
+      onSwapError: ({ error }) => {
+        console.warn('[jupiter] swap error:', error);
+      }
+    });
+    console.log('[jupiter] plugin initialized for', DRIPPY.tokenAddress);
+    if(fallback) fallback.classList.remove('show');
+  }catch(e){
+    console.warn('[jupiter] init failed:', e);
+    if(fallback) fallback.classList.add('show');
+  }
+}
+
+// Initialize once DOM is ready
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', initJupiter);
+} else {
+  initJupiter();
+}
+
+// Safety net — if Jupiter never loads after 10 seconds, show fallback
+setTimeout(() => {
+  const container = document.getElementById('jupiter-terminal');
+  const fallback = document.getElementById('swapFallback');
+  if(container && fallback && container.children.length === 0){
+    console.warn('[jupiter] widget did not render — showing ForgeSwap fallback');
+    fallback.classList.add('show');
+  }
+}, 10000);
+
+// =====================================================
+// COPY ADDRESS
+// =====================================================
+function copyAddr(srcId, btnId){
+  const txt = document.getElementById(srcId).innerText.trim();
+  const btn = document.getElementById(btnId);
+  const ok = ()=>{
+    const orig = btn.textContent;
+    btn.textContent='✅ Copied!';
+    btn.classList.add('copied');
+    setTimeout(()=>{btn.textContent = orig.replace('✅ Copied!','📋 Copy');btn.classList.remove('copied');},1800);
+  };
+  // store original
+  if(!btn.dataset.orig) btn.dataset.orig = btn.textContent;
+  const restore = ()=>{btn.textContent = btn.dataset.orig; btn.classList.remove('copied')};
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(()=>{
+      btn.textContent='✅ Copied!';btn.classList.add('copied');
+      setTimeout(restore, 1800);
+    }).catch(()=>{
+      const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);
+      btn.textContent='✅ Copied!';btn.classList.add('copied');setTimeout(restore,1800);
+    });
+  }else{
+    const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);
+    btn.textContent='✅ Copied!';btn.classList.add('copied');setTimeout(restore,1800);
+  }
+}
+</script>
+
+</body>
+</html>
