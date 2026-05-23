@@ -13,20 +13,29 @@ const REDIS_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_R
 const LB_KEY = 'drippy:burn:leaderboard';   // sorted set: member=wallet, score=tokensBurned
 const META_PREFIX = 'drippy:burn:meta:';    // per-wallet detail (JSON string)
 
-// Minimal Redis REST helper — runs a single command via Upstash's REST endpoint.
+// Minimal Redis REST helper. Upstash expects every element of the command
+// array to be a STRING — numbers must be stringified or the command misbehaves.
 async function redis(command){
-  if(!REDIS_URL || !REDIS_TOKEN) return null; // Redis not configured — degrade gracefully
+  if(!REDIS_URL || !REDIS_TOKEN) return null;
   try{
+    const stringCmd = command.map(x => String(x));
     const r = await fetch(REDIS_URL, {
       method: 'POST',
       headers: {
         'Authorization': 'Bearer ' + REDIS_TOKEN,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(command)
+      body: JSON.stringify(stringCmd)
     });
-    if(!r.ok) return null;
+    if(!r.ok){
+      console.error('[redis] HTTP', r.status, await r.text());
+      return null;
+    }
     const j = await r.json();
+    if(j.error){
+      console.error('[redis] cmd error:', j.error);
+      return null;
+    }
     return j.result;
   }catch(e){
     console.error('[redis]', e.message);
@@ -38,7 +47,7 @@ module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  res.setHeader('Cache-Control', 's-maxage=20, stale-while-revalidate=40');
+  res.setHeader('Cache-Control', 'no-store');
 
   if (req.method === 'OPTIONS') { res.status(204).end(); return; }
 
@@ -96,9 +105,11 @@ module.exports = async (req, res) => {
     // ---- Leaderboard: record this wallet if it has burned ----
     let rank = null;
     if (formatted.burner.burnEvents > 0 && formatted.burner.tokensBurned > 0) {
-      const score = formatted.burner.tokensBurned;
+      // Score must be an integer-ish string for ZADD. Round to whole tokens.
+      const score = Math.round(formatted.burner.tokensBurned);
 
-      // ZADD — add/update this wallet's score in the sorted set
+      // ZADD key score member  — adds or updates this wallet in the sorted set.
+      // GT flag is NOT used so a re-check always refreshes the score.
       await redis(['ZADD', LB_KEY, score, address]);
 
       // Store display metadata for this wallet
@@ -110,9 +121,9 @@ module.exports = async (req, res) => {
         updatedAt: Date.now()
       })]);
 
-      // ZREVRANK — get this wallet's 0-based rank (highest score = rank 0)
+      // ZREVRANK key member — 0-based rank, highest score first
       const rankResult = await redis(['ZREVRANK', LB_KEY, address]);
-      if (rankResult != null) rank = Number(rankResult) + 1; // 1-based for display
+      if (rankResult != null) rank = Number(rankResult) + 1;
     }
 
     formatted.leaderboardRank = rank;
