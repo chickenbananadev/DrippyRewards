@@ -14,12 +14,13 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <!-- Preconnect to chart provider to speed up iframe load -->
-<link rel="preconnect" href="https://www.geckoterminal.com">
-<link rel="dns-prefetch" href="https://www.geckoterminal.com">
+<link rel="preconnect" href="https://api.geckoterminal.com">
+<link rel="dns-prefetch" href="https://api.geckoterminal.com">
 <link href="https://fonts.googleapis.com/css2?family=Bowlby+One&family=Permanent+Marker&family=Anton&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 
 <!-- Jupiter Plugin — Solana swap aggregator widget (current as of 2026) -->
 <script src="https://plugin.jup.ag/plugin-v1.js" data-preload defer></script>
+<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js" defer></script>
 
 <style>
 :root{
@@ -1068,6 +1069,51 @@ h2 .red{color:var(--crimson);text-shadow:3px 3px 0 #000}
   transition:opacity .4s ease, visibility 0s .4s;
 }
 
+/* Native chart container */
+.lw-chart{
+  position:absolute;inset:0;
+  background:linear-gradient(180deg, rgba(10,6,16,1) 0%, rgba(26,10,46,1) 100%);
+}
+
+/* Chart controls (timeframe buttons) */
+.chart-controls{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 16px;gap:10px;flex-wrap:wrap;
+  border-bottom:1px solid rgba(212,164,49,.2);
+  background:rgba(10,6,16,.6);
+}
+.chart-timeframes{display:flex;gap:4px;flex-wrap:wrap}
+.tf-btn{
+  background:transparent;
+  border:1px solid rgba(212,164,49,.25);
+  color:var(--cream);
+  font-family:var(--mono);font-size:11px;letter-spacing:.06em;
+  padding:6px 11px;border-radius:6px;cursor:pointer;
+  transition:all .15s ease;
+}
+.tf-btn:hover{
+  background:rgba(212,164,49,.12);
+  border-color:rgba(212,164,49,.5);
+  color:var(--gold-glow);
+}
+.tf-btn.active{
+  background:var(--gold);
+  border-color:var(--gold-bright);
+  color:var(--black);
+  font-weight:bold;
+}
+#chartLivePrice{
+  color:var(--gold-glow);
+  font-family:var(--display);font-size:15px;
+  text-shadow:0 0 10px rgba(255,217,102,.3);
+}
+#chartLiveChange{
+  font-family:var(--mono);font-size:11px;letter-spacing:.05em;
+  margin-left:6px;
+}
+#chartLiveChange.up{color:var(--green)}
+#chartLiveChange.down{color:#ff5b5b}
+
 /* Inline "Full Chart" link in panel header */
 .chart-fullbtn-inline{
   color:var(--purple-glow);
@@ -1929,22 +1975,26 @@ body.intro-done .ambient-drips{opacity:.55}
         <div class="panel-header">
           <span class="panel-tag">LIVE CHART</span>
           <span class="panel-source">
-            GeckoTerminal ·
-            <a href="https://dexscreener.com/solana/3ohceht4kcjkysrtn4mysd2zwgkwz1cinualvtcchqmz" target="_blank" rel="noopener" class="chart-fullbtn-inline">📊 Full Chart ↗</a>
+            <span id="chartLivePrice">—</span> <span id="chartLiveChange"></span>
           </span>
+        </div>
+        <div class="chart-controls">
+          <div class="chart-timeframes" id="chartTimeframes">
+            <button class="tf-btn" data-tf="1m">1m</button>
+            <button class="tf-btn" data-tf="5m">5m</button>
+            <button class="tf-btn active" data-tf="15m">15m</button>
+            <button class="tf-btn" data-tf="1h">1h</button>
+            <button class="tf-btn" data-tf="4h">4h</button>
+            <button class="tf-btn" data-tf="1d">1D</button>
+          </div>
+          <a href="https://dexscreener.com/solana/3ohceht4kcjkysrtn4mysd2zwgkwz1cinualvtcchqmz" target="_blank" rel="noopener" class="chart-fullbtn-inline">📊 Full Chart ↗</a>
         </div>
         <div class="chart-frame" id="chartFrame">
           <div class="chart-loading" id="chartLoading">
             <div class="chart-spinner"></div>
             <span class="chart-loading-text">LOADING LIVE CHART</span>
           </div>
-          <iframe
-            src="https://www.geckoterminal.com/solana/pools/3ohceht4kcjkysrtn4mysd2zwgkwz1cinualvtcchqmz?embed=1&info=0&swaps=0&grayscale=0&light_chart=0"
-            title="DRIPPY Live Chart"
-            loading="eager"
-            onload="document.getElementById('chartFrame').classList.add('loaded')"
-            allow="clipboard-write"
-          ></iframe>
+          <div id="lwChart" class="lw-chart"></div>
         </div>
       </div>
     </div>
@@ -2398,6 +2448,128 @@ setTimeout(() => {
   setTimeout(() => {
     document.querySelectorAll('.reveal').forEach(el => io.observe(el));
   }, 1800);
+})();
+
+
+// =====================================================
+// NATIVE PRICE CHART — real candles from GeckoTerminal API
+// =====================================================
+(function(){
+  function whenReady(cb){
+    if(window.LightweightCharts){ cb(); return; }
+    let tries = 0;
+    const iv = setInterval(() => {
+      if(window.LightweightCharts){ clearInterval(iv); cb(); }
+      else if(++tries > 60){ clearInterval(iv); console.error('[chart] library load failed'); }
+    }, 100);
+  }
+
+  whenReady(() => {
+    const container = document.getElementById('lwChart');
+    const frame = document.getElementById('chartFrame');
+    if(!container) return;
+
+    const chart = LightweightCharts.createChart(container, {
+      layout: {
+        background: { type: 'solid', color: 'transparent' },
+        textColor: '#f6e9c4',
+        fontFamily: 'JetBrains Mono, monospace',
+        fontSize: 11
+      },
+      grid: {
+        vertLines: { color: 'rgba(212,164,49,0.05)' },
+        horzLines: { color: 'rgba(162,89,255,0.07)' }
+      },
+      rightPriceScale: {
+        borderColor: 'rgba(212,164,49,0.3)',
+        scaleMargins: { top: 0.1, bottom: 0.28 }
+      },
+      timeScale: {
+        borderColor: 'rgba(212,164,49,0.3)',
+        timeVisible: true,
+        secondsVisible: false
+      },
+      crosshair: {
+        mode: 1,
+        vertLine: { color: 'rgba(245,197,66,0.4)', style: 3, labelBackgroundColor: '#1a0a2e' },
+        horzLine: { color: 'rgba(245,197,66,0.4)', style: 3, labelBackgroundColor: '#1a0a2e' }
+      },
+      autoSize: true
+    });
+
+    const candleSeries = chart.addCandlestickSeries({
+      upColor: '#f5c542', downColor: '#ff4d6d',
+      borderUpColor: '#ffd966', borderDownColor: '#ff5b5b',
+      wickUpColor: '#f5c542', wickDownColor: '#ff4d6d',
+      priceFormat: { type: 'price', precision: 8, minMove: 0.00000001 }
+    });
+
+    const volumeSeries = chart.addHistogramSeries({
+      priceFormat: { type: 'volume' },
+      priceScaleId: '',
+      color: 'rgba(162,89,255,0.4)'
+    });
+    chart.priceScale('').applyOptions({ scaleMargins: { top: 0.82, bottom: 0 } });
+
+    let currentTf = '15m';
+
+    async function loadCandles(tf){
+      try{
+        const r = await fetch('/api/candles?tf=' + tf, { cache: 'no-store' });
+        const d = await r.json();
+        const candles = d.candles || [];
+
+        if(candles.length === 0){
+          const txt = document.querySelector('.chart-loading-text');
+          if(txt) txt.textContent = 'NO CHART DATA YET';
+          return;
+        }
+
+        candleSeries.setData(candles.map(c => ({
+          time: c.time, open: c.open, high: c.high, low: c.low, close: c.close
+        })));
+        volumeSeries.setData(candles.map(c => ({
+          time: c.time,
+          value: c.volume,
+          color: c.close >= c.open ? 'rgba(245,197,66,0.4)' : 'rgba(255,77,109,0.4)'
+        })));
+        chart.timeScale().fitContent();
+
+        // Header price + 24h change
+        const first = candles[0], last = candles[candles.length - 1];
+        const priceEl = document.getElementById('chartLivePrice');
+        const changeEl = document.getElementById('chartLiveChange');
+        if(priceEl){
+          priceEl.textContent = '$' + last.close.toLocaleString('en-US', { minimumFractionDigits: 6, maximumFractionDigits: 9 });
+        }
+        if(changeEl && first.open > 0){
+          const pct = ((last.close - first.open) / first.open) * 100;
+          changeEl.textContent = (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%';
+          changeEl.className = pct >= 0 ? 'up' : 'down';
+        }
+
+        if(frame) frame.classList.add('loaded');
+        console.log('[chart]', candles.length, 'candles loaded for', tf);
+      }catch(e){
+        console.error('[chart] load failed:', e);
+        const txt = document.querySelector('.chart-loading-text');
+        if(txt) txt.textContent = 'CHART UNAVAILABLE';
+      }
+    }
+
+    document.querySelectorAll('.tf-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tf = btn.getAttribute('data-tf');
+        if(tf === currentTf) return;
+        currentTf = tf;
+        document.querySelectorAll('.tf-btn').forEach(b => b.classList.toggle('active', b === btn));
+        loadCandles(tf);
+      });
+    });
+
+    loadCandles(currentTf);
+    setInterval(() => loadCandles(currentTf), 30000); // refresh every 30s
+  });
 })();
 
 
