@@ -20,6 +20,7 @@
 
 <!-- Jupiter Plugin — Solana swap aggregator widget (current as of 2026) -->
 <script src="https://plugin.jup.ag/plugin-v1.js" data-preload defer></script>
+<script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
 
 <style>
 :root{
@@ -800,6 +801,547 @@ h2 .red{color:var(--crimson);text-shadow:3px 3px 0 #000}
   .lb-share{display:none}
   .lb-yr-note{margin-left:0;width:100%}
 }
+
+/* ========== LEADERBOARD TABS ========== */
+.lb-tabs{
+  display:flex;gap:8px;
+  margin-bottom:16px;
+  padding-bottom:14px;
+  border-bottom:1px dashed rgba(162,89,255,.2);
+}
+.lb-tab{
+  flex:1;
+  background:rgba(10,6,16,.6);
+  border:1.5px solid rgba(162,89,255,.25);
+  color:rgba(246,233,196,.65);
+  font-family:var(--mono);font-size:11px;letter-spacing:.08em;
+  padding:9px 12px;border-radius:8px;cursor:pointer;
+  transition:all .15s ease;
+  text-transform:uppercase;
+}
+.lb-tab:hover{
+  border-color:rgba(162,89,255,.5);
+  color:var(--cream);
+}
+.lb-tab.active{
+  background:linear-gradient(135deg, var(--purple), var(--purple-bright));
+  border-color:var(--purple-bright);
+  color:var(--cream);
+  box-shadow:0 0 14px rgba(162,89,255,.3);
+}
+
+/* ========== DRIPQUESTS ========== */
+.dq-block{
+  max-width:880px;margin:48px auto 0;
+  padding:32px 28px;
+  background:linear-gradient(135deg, rgba(245,197,66,.08), rgba(162,89,255,.06));
+  border:3px solid var(--gold);
+  border-radius:16px;
+  box-shadow:0 0 60px rgba(245,197,66,.1), 8px 8px 0 #1a0a2e;
+}
+.dq-header{text-align:center;margin-bottom:24px}
+.dq-title{
+  font-family:var(--display);font-size:36px;
+  text-shadow:3px 3px 0 #000;
+  margin-bottom:6px;letter-spacing:.02em;
+}
+.dq-subtitle{
+  font-family:var(--mono);font-size:12px;
+  color:rgba(246,233,196,.65);
+  letter-spacing:.06em;text-transform:uppercase;
+}
+.dq-rank-display{margin-bottom:24px}
+.dq-rank-card{
+  display:flex;gap:20px;align-items:center;
+  padding:20px;
+  background:rgba(10,6,16,.7);
+  border:2px solid rgba(212,164,49,.35);
+  border-radius:14px;
+  transition:border-color .3s ease, box-shadow .3s ease;
+}
+.dq-rank-card.tier-bronze{border-color:#cd7f32;box-shadow:0 0 22px rgba(205,127,50,.3)}
+.dq-rank-card.tier-silver{border-color:#c0c0c0;box-shadow:0 0 22px rgba(192,192,192,.3)}
+.dq-rank-card.tier-gold{border-color:#ffd700;box-shadow:0 0 26px rgba(255,215,0,.4)}
+.dq-rank-card.tier-diamond{border-color:#b9f2ff;box-shadow:0 0 32px rgba(185,242,255,.45)}
+.dq-rank-art{
+  width:120px;height:120px;flex-shrink:0;
+  border-radius:14px;
+  overflow:hidden;
+  position:relative;
+  background:linear-gradient(135deg, rgba(10,6,16,.6), rgba(58,26,94,.4));
+  border:2px solid rgba(212,164,49,.4);
+}
+.dq-rank-art img{
+  width:100%;height:100%;object-fit:cover;
+  filter:saturate(1.1);
+}
+.dq-rank-card.tier-bronze .dq-rank-art{border-color:#cd7f32}
+.dq-rank-card.tier-silver .dq-rank-art{border-color:#c0c0c0}
+.dq-rank-card.tier-gold .dq-rank-art{border-color:#ffd700}
+.dq-rank-card.tier-diamond .dq-rank-art{border-color:#b9f2ff}
+.dq-rank-info{flex:1}
+.dq-rank-label{
+  font-family:var(--mono);font-size:10px;letter-spacing:.16em;
+  text-transform:uppercase;color:rgba(246,233,196,.6);
+}
+.dq-rank-name{
+  font-family:var(--display);font-size:28px;
+  color:var(--gold-glow);
+  text-shadow:2px 2px 0 #000;
+  margin:4px 0 10px;
+}
+.dq-rank-card.tier-bronze .dq-rank-name{color:#cd7f32}
+.dq-rank-card.tier-silver .dq-rank-name{color:#c0c0c0}
+.dq-rank-card.tier-gold .dq-rank-name{color:#ffd700}
+.dq-rank-card.tier-diamond .dq-rank-name{color:#b9f2ff}
+.dq-rank-progress-bar{
+  height:10px;
+  background:rgba(0,0,0,.5);
+  border-radius:6px;overflow:hidden;
+  border:1px solid rgba(212,164,49,.2);
+}
+.dq-rank-progress-fill{
+  height:100%;width:0%;
+  background:linear-gradient(90deg, var(--gold), var(--gold-bright));
+  transition:width .6s ease;
+  box-shadow:0 0 12px rgba(255,217,102,.4);
+}
+.dq-rank-progress-text{
+  font-family:var(--mono);font-size:11px;
+  color:rgba(246,233,196,.7);
+  margin-top:6px;
+}
+.dq-grid{
+  display:grid;grid-template-columns:repeat(auto-fill, minmax(170px, 1fr));
+  gap:12px;
+}
+.dq-tile{
+  position:relative;
+  padding:14px 12px;
+  background:rgba(10,6,16,.6);
+  border:2px solid rgba(162,89,255,.2);
+  border-radius:10px;
+  text-align:center;
+  transition:all .2s ease;
+  opacity:.6;
+}
+.dq-tile.unlocked{
+  opacity:1;
+  background:linear-gradient(135deg, rgba(245,197,66,.12), rgba(162,89,255,.08));
+  border-color:var(--gold);
+  box-shadow:0 0 18px rgba(245,197,66,.18);
+}
+.dq-tile.unlocked::after{
+  content:'✓';
+  position:absolute;top:6px;right:8px;
+  font-family:var(--display);font-size:14px;
+  color:var(--green);
+  text-shadow:0 0 6px rgba(50,255,150,.6);
+}
+.dq-tile-icon{font-size:28px;display:block;margin-bottom:6px}
+.dq-tile-name{
+  font-family:var(--display);font-size:13px;
+  color:var(--cream);
+  margin-bottom:4px;letter-spacing:.02em;
+}
+.dq-tile.unlocked .dq-tile-name{color:var(--gold-glow)}
+.dq-tile-desc{
+  font-family:var(--mono);font-size:10px;line-height:1.4;
+  color:rgba(246,233,196,.55);
+}
+.dq-share-btn{
+  display:block;margin:24px auto 0;
+  background:linear-gradient(135deg, var(--purple-bright), var(--purple));
+  border:none;border-radius:12px;
+  padding:14px 32px;
+  font-family:var(--display);font-size:14px;letter-spacing:.06em;
+  color:var(--cream);
+  cursor:pointer;
+  box-shadow:4px 4px 0 #1a0a2e;
+  transition:all .15s ease;
+}
+.dq-share-btn:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 #1a0a2e}
+
+/* ========== WHATS DRIPPING ========== */
+.dripping{padding:80px 32px;background:linear-gradient(180deg, transparent, rgba(58,26,94,.12), transparent)}
+.dripping-intro{
+  max-width:540px;margin:14px auto 0;text-align:center;
+  font-family:var(--mono);font-size:13px;color:rgba(246,233,196,.7);
+}
+.dripping-list{
+  max-width:740px;margin:36px auto 0;
+  display:flex;flex-direction:column;gap:12px;
+}
+.dripping-empty{
+  text-align:center;padding:30px;
+  font-family:var(--mono);font-size:13px;
+  color:rgba(246,233,196,.5);
+  background:rgba(10,6,16,.5);
+  border:2px dashed rgba(212,164,49,.2);
+  border-radius:12px;
+}
+.dripping-item{
+  display:flex;gap:16px;align-items:center;
+  padding:18px 20px;
+  background:rgba(10,6,16,.7);
+  border:2px solid rgba(212,164,49,.25);
+  border-radius:12px;
+  transition:all .2s ease;
+}
+.dripping-item.live{
+  border-color:#ff4d6d;
+  background:linear-gradient(135deg, rgba(255,77,109,.12), rgba(10,6,16,.7));
+  box-shadow:0 0 22px rgba(255,77,109,.25);
+}
+.dripping-badge{
+  flex-shrink:0;
+  font-family:var(--mono);font-size:10px;letter-spacing:.1em;
+  padding:5px 10px;border-radius:6px;
+  text-transform:uppercase;font-weight:bold;
+}
+.dripping-badge.live{
+  background:#ff4d6d;color:#fff;
+  animation:dpulse 1.5s ease-in-out infinite;
+}
+.dripping-badge.upcoming{
+  background:rgba(245,197,66,.18);
+  color:var(--gold-glow);
+  border:1px solid rgba(245,197,66,.4);
+}
+@keyframes dpulse{
+  0%,100%{box-shadow:0 0 0 0 rgba(255,77,109,.6)}
+  50%{box-shadow:0 0 0 8px rgba(255,77,109,0)}
+}
+.dripping-content{flex:1}
+.dripping-title{
+  font-family:var(--display);font-size:15px;
+  color:var(--cream);margin-bottom:4px;
+}
+.dripping-meta{
+  font-family:var(--mono);font-size:11px;
+  color:rgba(246,233,196,.65);
+}
+.dripping-cta{
+  flex-shrink:0;
+  font-family:var(--mono);font-size:11px;letter-spacing:.06em;
+  color:var(--gold-glow);
+  text-decoration:none;
+  padding:8px 14px;
+  border:1.5px solid rgba(245,197,66,.4);
+  border-radius:8px;
+  transition:all .15s ease;
+}
+.dripping-cta:hover{background:rgba(245,197,66,.12);border-color:var(--gold)}
+
+/* ========== PROOF OF DRIP ========== */
+.podrip{padding:80px 32px}
+.podrip-intro{
+  max-width:580px;margin:14px auto 0;text-align:center;
+  font-family:var(--mono);font-size:13px;color:rgba(246,233,196,.7);
+}
+.podrip-list{
+  max-width:780px;margin:36px auto 0;
+  display:flex;flex-direction:column;gap:8px;
+  max-height:520px;overflow-y:auto;
+  padding-right:6px;
+}
+.podrip-list::-webkit-scrollbar{width:6px}
+.podrip-list::-webkit-scrollbar-thumb{background:rgba(245,197,66,.3);border-radius:3px}
+.podrip-loading{
+  text-align:center;padding:30px;
+  font-family:var(--mono);font-size:12px;
+  color:rgba(246,233,196,.5);
+}
+.podrip-row{
+  display:grid;grid-template-columns:auto 1fr auto auto;
+  gap:14px;align-items:center;
+  padding:11px 16px;
+  background:rgba(10,6,16,.65);
+  border:1.5px solid rgba(245,197,66,.18);
+  border-radius:9px;
+  text-decoration:none;
+  transition:all .15s ease;
+}
+.podrip-row:hover{
+  border-color:rgba(245,197,66,.5);
+  background:rgba(245,197,66,.06);
+}
+.podrip-icon{font-size:16px}
+.podrip-amount{
+  font-family:var(--display);font-size:15px;
+  color:var(--gold-glow);
+}
+.podrip-time{
+  font-family:var(--mono);font-size:11px;
+  color:rgba(246,233,196,.6);
+}
+.podrip-link{
+  font-family:var(--mono);font-size:10px;letter-spacing:.04em;
+  color:var(--purple-glow);
+  text-transform:uppercase;
+}
+
+/* ========== FEED DRIPPY EASTER EGG ========== */
+.legend-art{position:relative;cursor:pointer;user-select:none}
+.feed-drippy-burst{
+  position:absolute;inset:0;
+  pointer-events:none;
+  overflow:visible;
+}
+.feed-drippy-burst .treat{
+  position:absolute;
+  font-size:32px;
+  animation:treatFly 1.4s ease-out forwards;
+  pointer-events:none;
+}
+@keyframes treatFly{
+  0%{opacity:0;transform:translate(0,0) scale(.5) rotate(0)}
+  20%{opacity:1;transform:translate(var(--dx,0),var(--dy,-30px)) scale(1.2) rotate(60deg)}
+  100%{opacity:0;transform:translate(calc(var(--dx,0) * 1.6), calc(var(--dy,-30px) * 4)) scale(.8) rotate(720deg)}
+}
+.legend-art.bark::after{
+  content:'WOOF! 🐕';
+  position:absolute;top:10%;right:10%;
+  font-family:var(--display);font-size:32px;
+  color:var(--gold-glow);
+  text-shadow:3px 3px 0 #000, 0 0 20px rgba(255,217,102,.6);
+  animation:barkPop .8s ease-out forwards;
+  pointer-events:none;
+  z-index:5;
+}
+@keyframes barkPop{
+  0%{opacity:0;transform:scale(.4) rotate(-15deg)}
+  30%{opacity:1;transform:scale(1.15) rotate(-8deg)}
+  100%{opacity:0;transform:scale(1) rotate(-5deg) translateY(-40px)}
+}
+
+/* ========== ADMIN MODAL ========== */
+.footer-admin{
+  margin-top:18px;
+  font-size:10px;opacity:.25;
+  transition:opacity .2s ease;
+}
+.footer-admin:hover{opacity:.6}
+.footer-admin a{
+  color:rgba(246,233,196,.4);
+  text-decoration:none;
+  letter-spacing:.3em;
+  cursor:pointer;
+}
+.admin-modal{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,.88);
+  display:none;align-items:center;justify-content:center;
+  z-index:1100;padding:20px;
+  backdrop-filter:blur(10px);
+}
+.admin-modal.show{display:flex}
+.admin-modal-inner{
+  background:#0a0610;
+  border:2px solid var(--gold);
+  border-radius:14px;
+  padding:24px;
+  max-width:520px;width:100%;
+  max-height:90vh;overflow-y:auto;
+  position:relative;
+  box-shadow:0 0 60px rgba(245,197,66,.15);
+}
+.admin-close{
+  position:absolute;top:12px;right:14px;
+  background:transparent;border:none;
+  color:rgba(246,233,196,.5);
+  font-size:18px;cursor:pointer;
+  padding:6px 10px;border-radius:6px;
+  transition:color .15s ease;
+}
+.admin-close:hover{color:var(--cream)}
+.admin-title{
+  font-family:var(--display);font-size:20px;
+  color:var(--gold-glow);
+  margin-bottom:16px;
+  text-align:center;
+}
+.admin-input{
+  width:100%;
+  background:rgba(10,6,16,.7);
+  border:1.5px solid rgba(212,164,49,.3);
+  border-radius:8px;
+  padding:11px 14px;
+  font-family:var(--mono);font-size:13px;
+  color:var(--cream);
+  outline:none;
+  margin-bottom:10px;
+  box-sizing:border-box;
+}
+.admin-input::placeholder{color:rgba(246,233,196,.35)}
+.admin-input:focus{
+  border-color:var(--gold);
+  box-shadow:0 0 12px rgba(245,197,66,.18);
+}
+.admin-row{display:flex;gap:8px}
+.admin-row .admin-input{flex:1}
+.admin-select{cursor:pointer}
+.admin-btn{
+  display:block;width:100%;
+  padding:11px 16px;
+  font-family:var(--display);font-size:13px;letter-spacing:.05em;
+  border:none;border-radius:9px;
+  cursor:pointer;
+  transition:transform .15s ease;
+  box-sizing:border-box;
+}
+.admin-btn:hover{transform:translateY(-1px)}
+.admin-btn.primary{
+  background:linear-gradient(135deg, var(--gold-bright), var(--gold));
+  color:var(--black);
+  box-shadow:3px 3px 0 var(--gold-deep);
+}
+.admin-btn.ghost{
+  background:transparent;
+  color:rgba(246,233,196,.5);
+  border:1.5px solid rgba(246,233,196,.2);
+  margin-top:14px;
+}
+.admin-btn.ghost:hover{color:var(--cream)}
+.admin-error{
+  color:#ff6b6b;
+  font-family:var(--mono);font-size:12px;
+  margin-top:10px;text-align:center;min-height:16px;
+}
+.admin-status{
+  color:var(--green);
+  font-family:var(--mono);font-size:12px;
+  margin-top:10px;text-align:center;min-height:16px;
+}
+.admin-status.error{color:#ff6b6b}
+.admin-section{
+  margin-bottom:20px;
+  padding-bottom:16px;
+  border-bottom:1px dashed rgba(212,164,49,.15);
+}
+.admin-section:last-of-type{border-bottom:none}
+.admin-section-title{
+  font-family:var(--mono);font-size:11px;letter-spacing:.14em;
+  text-transform:uppercase;
+  color:var(--gold-glow);
+  margin-bottom:10px;
+}
+.admin-event-list{display:flex;flex-direction:column;gap:8px}
+.admin-event-item{
+  display:flex;gap:12px;align-items:center;
+  padding:10px 12px;
+  background:rgba(10,6,16,.6);
+  border:1px solid rgba(212,164,49,.18);
+  border-radius:8px;
+}
+.admin-event-info{flex:1;min-width:0}
+.admin-event-title{
+  font-family:var(--display);font-size:13px;
+  color:var(--cream);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.admin-event-time{
+  font-family:var(--mono);font-size:10px;
+  color:rgba(246,233,196,.55);
+}
+.admin-event-del{
+  background:rgba(255,107,107,.12);
+  border:1px solid rgba(255,107,107,.4);
+  color:#ff6b6b;
+  font-family:var(--mono);font-size:10px;letter-spacing:.06em;
+  padding:6px 10px;border-radius:6px;
+  cursor:pointer;
+}
+.admin-event-del:hover{background:#ff6b6b;color:#fff}
+.admin-empty{
+  text-align:center;padding:14px;
+  font-family:var(--mono);font-size:11px;
+  color:rgba(246,233,196,.4);
+}
+
+/* ========== EVENT IMAGES (in the public events feed) ========== */
+.dripping-item{position:relative}
+.dripping-img{
+  width:60px;height:60px;flex-shrink:0;
+  border-radius:8px;
+  object-fit:cover;
+  border:1.5px solid rgba(212,164,49,.35);
+}
+@media (max-width:540px){
+  .dripping-img{width:48px;height:48px}
+}
+
+/* ========== SHARE CARD MODAL ========== */
+.share-modal{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,.85);
+  display:none;align-items:center;justify-content:center;
+  z-index:1000;padding:20px;
+  backdrop-filter:blur(8px);
+}
+.share-modal.show{display:flex}
+.share-modal-inner{
+  background:#0a0610;
+  border:3px solid var(--gold);
+  border-radius:16px;
+  padding:24px;
+  max-width:540px;width:100%;
+  max-height:90vh;overflow-y:auto;
+}
+.share-modal-title{
+  font-family:var(--display);font-size:20px;
+  color:var(--gold-glow);text-align:center;
+  margin-bottom:14px;
+}
+.share-card-preview{
+  background:linear-gradient(135deg, #1a0a2e, #0a0610);
+  border:2px solid var(--gold);
+  border-radius:12px;
+  padding:24px 20px;
+  position:relative;
+}
+.share-card-canvas{
+  width:100%;display:block;border-radius:8px;
+}
+.share-modal-actions{
+  display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;
+}
+.share-modal-actions button, .share-modal-actions a{
+  flex:1;min-width:130px;
+  padding:11px 14px;
+  font-family:var(--display);font-size:13px;letter-spacing:.04em;
+  border:none;border-radius:10px;
+  cursor:pointer;text-align:center;text-decoration:none;
+  transition:transform .15s ease;
+}
+.share-modal-actions button:hover, .share-modal-actions a:hover{transform:translateY(-2px)}
+.share-download-btn{
+  background:linear-gradient(135deg, var(--gold-bright), var(--gold));
+  color:var(--black);
+}
+.share-tweet-btn{
+  background:linear-gradient(135deg, #1d9bf0, #1a8cd8);
+  color:#fff;
+}
+.share-close-btn{
+  background:transparent;
+  color:rgba(246,233,196,.6);
+  border:1.5px solid rgba(246,233,196,.2) !important;
+}
+
+/* ========== X TIMELINE EMBED ========== */
+.xfeed{padding:80px 32px;background:linear-gradient(180deg, transparent, rgba(10,6,16,.4))}
+.xfeed-frame{
+  max-width:580px;margin:36px auto 0;
+  background:rgba(10,6,16,.7);
+  border:2px solid rgba(212,164,49,.3);
+  border-radius:14px;
+  padding:16px;
+  min-height:400px;
+}
+
+/* ========== HOLDERS CELL flourish ========== */
+.live-cell[data-key="holders"] .v{color:var(--green)}
 
 /* ========== FAQ ========== */
 .faq{
@@ -1658,8 +2200,9 @@ body.intro-done .ambient-drips{opacity:.55}
   <div class="links">
     <a href="#trade">Buy &amp; Chart</a>
     <a href="#checker">My Drips</a>
+    <a href="#dripquests">Quests</a>
+    <a href="#whatsdripping">Live</a>
     <a href="#legend">Legend</a>
-    <a href="#mechanics">Mechanics</a>
     <a href="#burn">Burn</a>
     <a href="#faq">FAQ</a>
     <a href="#partners">Pack</a>
@@ -1730,6 +2273,7 @@ body.intro-done .ambient-drips{opacity:.55}
     <div class="live-cell loading" data-key="supply"><span class="k">Circ. Supply</span><span class="v">—</span></div>
     <div class="live-cell loading" data-key="burned"><span class="k">🔥 Burned</span><span class="v purple">—</span></div>
     <div class="live-cell loading" data-key="rewards"><span class="k">💰 SOL Paid</span><span class="v gold">—</span></div>
+    <div class="live-cell loading" data-key="holders"><span class="k">🐕 Holders</span><span class="v">—</span></div>
   </div>
 </div>
 
@@ -1872,11 +2416,15 @@ body.intro-done .ambient-drips{opacity:.55}
       </div>
     </div>
 
-    <!-- BURN LEADERBOARD -->
+    <!-- LEADERBOARD with burn / earn toggle -->
     <div class="lb-block" id="leaderboard">
       <div class="lb-header">
-        <span class="lb-title">🔥 Burn Leaderboard</span>
+        <span class="lb-title" id="lbTitle">🔥 Burn Leaderboard</span>
         <span class="lb-meta" id="lbMeta">Top burners in the pack</span>
+      </div>
+      <div class="lb-tabs">
+        <button class="lb-tab active" data-lbtype="burn">🔥 Top Burners</button>
+        <button class="lb-tab" data-lbtype="earn">💰 Top Earners</button>
       </div>
       <div class="lb-yourank" id="lbYourRank">
         <span class="lb-yr-label">Your Rank</span>
@@ -1888,6 +2436,36 @@ body.intro-done .ambient-drips{opacity:.55}
       </div>
       <div class="lb-footer">Leaderboard grows as holders check their wallets. Burn more $DRIPPY to climb.</div>
     </div>
+
+    <!-- DRIP QUESTS — gamified quest/tier system -->
+    <div class="dq-block" id="dripquests">
+      <div class="dq-header">
+        <div class="dq-title">⚔️ <span class="gold">Drip</span><span class="purple">Quests</span></div>
+        <div class="dq-subtitle">Earn ranks. Collect tier characters. Become a legend.</div>
+      </div>
+
+      <div class="dq-rank-display" id="dqRankDisplay">
+        <div class="dq-rank-card" id="dqRankCard">
+          <div class="dq-rank-art" id="dqRankArt">
+            <img src="assets/drippy-king.png" alt="Drippy tier character" />
+          </div>
+          <div class="dq-rank-info">
+            <div class="dq-rank-label">Current Rank</div>
+            <div class="dq-rank-name" id="dqRankName">Check Your Wallet</div>
+            <div class="dq-rank-progress">
+              <div class="dq-rank-progress-bar"><div class="dq-rank-progress-fill" id="dqProgressFill"></div></div>
+              <div class="dq-rank-progress-text" id="dqProgressText">0 / 10 quests complete</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dq-grid" id="dqGrid">
+        <!-- Filled by JS — 10 quest tiles -->
+      </div>
+
+      <button class="dq-share-btn" id="dqShareBtn" style="display:none">🃏 Share My Rank</button>
+    </div>
   </div>
 </section>
 
@@ -1895,6 +2473,30 @@ body.intro-done .ambient-drips{opacity:.55}
 <section class="manifesto">
   <h2>We Don't Wait For <span class="gold">Opportunities.</span><br>We <span class="purple">Create</span> Them.</h2>
   <span class="manifesto-tag">— legends build legacies</span>
+</section>
+
+<!-- WHAT'S DRIPPING — events feed -->
+<section class="dripping" id="whatsdripping">
+  <div class="container">
+    <div class="eyebrow">Live & Upcoming</div>
+    <h2>What's <span class="gold">Drip</span><span class="purple">ping</span></h2>
+    <p class="dripping-intro">X Spaces, AMAs, and announcements from the pack.</p>
+    <div class="dripping-list" id="drippingList">
+      <div class="dripping-empty">Nothing scheduled right now. Check back soon.</div>
+    </div>
+  </div>
+</section>
+
+<!-- PROOF OF DRIP wall -->
+<section class="podrip" id="proofofdrip">
+  <div class="container">
+    <div class="eyebrow">On-Chain Truth</div>
+    <h2>Proof of <span class="purple">Drip</span></h2>
+    <p class="podrip-intro">Every distribution is verifiable on Solana. Here are the most recent payouts.</p>
+    <div class="podrip-list" id="podripList">
+      <div class="podrip-loading">Loading recent distributions...</div>
+    </div>
+  </div>
 </section>
 
 <!-- LIVE DASHBOARD: SWAP + CHART -->
@@ -1965,8 +2567,9 @@ body.intro-done .ambient-drips{opacity:.55}
     <div class="eyebrow">Chapter One</div>
     <h2>The Legend of <span class="gold">Drippy</span></h2>
     <div class="legend-grid">
-      <div class="legend-art">
+      <div class="legend-art" id="feedDrippy" title="Click me!">
         <img src="assets/drippy-hangar.jpg" alt="Drippy at the hangar" />
+        <div class="feed-drippy-burst" id="feedDrippyBurst"></div>
       </div>
       <div class="legend-text">
         <p>In the glittering underbelly of Solana, where blocks fly faster than fire hydrants and every wallet dreams of getting rich, there lived a dog who refused to chase tails. His name was <strong>Drippy</strong>.</p>
@@ -2212,6 +2815,23 @@ body.intro-done .ambient-drips{opacity:.55}
   </div>
 </section>
 
+<!-- X TIMELINE EMBED -->
+<section class="xfeed" id="xfeed">
+  <div class="container">
+    <div class="eyebrow">Latest Drips</div>
+    <h2>From The <span class="gold">@drippyrewards</span> Feed</h2>
+    <div class="xfeed-frame">
+      <a class="twitter-timeline"
+         data-theme="dark"
+         data-chrome="noheader nofooter transparent"
+         data-tweet-limit="5"
+         href="https://twitter.com/drippyrewards">
+        Posts by @drippyrewards
+      </a>
+    </div>
+  </div>
+</section>
+
 <!-- THE PACK / SOCIALS -->
 <section class="pack" id="pack">
   <div class="container">
@@ -2256,6 +2876,7 @@ body.intro-done .ambient-drips{opacity:.55}
   <p>Launched on <a href="https://forgepad.fun/" target="_blank" rel="noopener">Forgepad.fun</a></p>
   <p class="woof">WOOF.</p>
   <p class="disclaimer">$DRIPPY is a memecoin. This is not financial advice. Crypto is highly volatile and you can lose everything. Only spend what you can afford to lose. Drippy is a good dog but he is still a dog.</p>
+  <p class="footer-admin"><a href="#" id="adminLink">·</a></p>
 </footer>
 
 <script>
@@ -2527,10 +3148,22 @@ setTimeout(() => {
       results.classList.add('show');
       console.log('[wallet] loaded for', shortAddr(d.wallet));
 
-      // Refresh the leaderboard, highlighting this wallet + showing their rank
+      // Cache the wallet data for DripQuests verification and share card
+      window._dripWalletData = d;
+
+      // Refresh the leaderboard, highlighting this wallet
       if(window.loadLeaderboard){
-        window.loadLeaderboard(d.wallet, d.leaderboardRank);
+        window.loadLeaderboard(d.wallet, d.burnRank, d.earnRank);
       }
+
+      // Update DripQuests with this wallet's progress
+      if(window.updateDripQuests){
+        window.updateDripQuests(d);
+      }
+
+      // Reveal share rank button
+      const shareBtn = document.getElementById('dqShareBtn');
+      if(shareBtn) shareBtn.style.display = 'block';
     }catch(e){
       console.error('[wallet] error:', e);
       errorEl.textContent = 'Something went wrong. Try again in a moment.';
@@ -2548,15 +3181,20 @@ setTimeout(() => {
 })();
 
 // =====================================================
-// BURN LEADERBOARD
-// Loads top 15 burners. Highlights the checked wallet.
+// LEADERBOARD with burn/earn tabs
 // =====================================================
 (function(){
   const listEl = document.getElementById('lbList');
   const metaEl = document.getElementById('lbMeta');
+  const titleEl = document.getElementById('lbTitle');
   const yourRankEl = document.getElementById('lbYourRankValue');
   const yourRankNote = document.querySelector('.lb-yr-note');
   if(!listEl) return;
+
+  let _currentType = 'burn';
+  let _lastWallet = null;
+  let _lastBurnRank = null;
+  let _lastEarnRank = null;
 
   function fmtTokens(n){
     if(n == null || isNaN(n)) return '0';
@@ -2565,15 +3203,21 @@ setTimeout(() => {
     if(n >= 1e3) return (n/1e3).toFixed(1) + 'K';
     return Math.round(n).toLocaleString();
   }
+  function fmtSolSmall(n){
+    if(n == null || isNaN(n)) return '0';
+    n = Number(n);
+    if(n < 0.001) return n.toFixed(6);
+    if(n < 1) return n.toFixed(4);
+    return n.toLocaleString('en-US', { maximumFractionDigits: 3 });
+  }
   function shortAddr(a){
     if(!a || a.length < 12) return a || '';
     return a.slice(0,4) + '...' + a.slice(-4);
   }
 
-  // Exposed globally so the wallet checker can trigger a refresh
-  window.loadLeaderboard = async function(highlightWallet, knownRank){
+  async function fetchAndRender(type, highlightWallet){
     try{
-      const r = await fetch('/api/leaderboard?limit=15', { cache: 'no-store' });
+      const r = await fetch('/api/leaderboard?type=' + type + '&limit=15', { cache: 'no-store' });
       const d = await r.json();
 
       if(d.configured === false){
@@ -2583,17 +3227,19 @@ setTimeout(() => {
       }
 
       const entries = d.entries || [];
+      const noun = type === 'earn' ? 'earner' : 'burner';
+
       if(entries.length === 0){
-        listEl.innerHTML = '<div class="lb-loading">No burns recorded yet. Be the first to claim the throne. 🔥</div>';
+        const emoji = type === 'earn' ? '💰' : '🔥';
+        listEl.innerHTML = '<div class="lb-loading">No ' + noun + 's recorded yet. Be the first to claim the throne. ' + emoji + '</div>';
         if(metaEl) metaEl.textContent = '';
         return;
       }
 
       if(metaEl){
-        metaEl.textContent = d.total + (d.total === 1 ? ' burner' : ' burners') + ' on the board';
+        metaEl.textContent = d.total + ' ' + noun + (d.total === 1 ? '' : 's') + ' on the board';
       }
 
-      // Render rows
       listEl.innerHTML = '';
       entries.forEach(e => {
         const isYou = highlightWallet && e.wallet === highlightWallet;
@@ -2603,39 +3249,683 @@ setTimeout(() => {
         if(e.rank === 1) rankClass = 'top1';
         else if(e.rank === 2) rankClass = 'top2';
         else if(e.rank === 3) rankClass = 'top3';
-        const medal = e.rank === 1 ? '👑' : (e.rank <= 3 ? '🔥' : '#' + e.rank);
+        const medal = e.rank === 1 ? '👑' : (e.rank <= 3 ? (type==='earn'?'💰':'🔥') : '#' + e.rank);
+        let primaryValue, primaryLabel, secondary;
+        if(type === 'earn'){
+          primaryValue = fmtSolSmall(e.totalReceivedSol) + ' SOL';
+          primaryLabel = 'earned';
+          secondary = (e.distributionCount || 0).toLocaleString() + ' drips';
+        } else {
+          primaryValue = fmtTokens(e.tokensBurned);
+          primaryLabel = 'burned';
+          secondary = (e.burnWeightSharePct || 0).toFixed(1) + '%';
+        }
         row.innerHTML = `
           <span class="lb-rank ${rankClass}">${medal}</span>
           <span class="lb-wallet">${shortAddr(e.wallet)}${isYou ? '<span class="lb-you-tag">YOU</span>' : ''}</span>
-          <span class="lb-burned">${fmtTokens(e.tokensBurned)}<br><span class="lb-burned-sub">burned</span></span>
-          <span class="lb-share">${(e.burnWeightSharePct || 0).toFixed(1)}%</span>
+          <span class="lb-burned">${primaryValue}<br><span class="lb-burned-sub">${primaryLabel}</span></span>
+          <span class="lb-share">${secondary}</span>
         `;
         listEl.appendChild(row);
       });
 
-      // Update "your rank" box
+      // "Your rank" text
       if(highlightWallet){
-        if(knownRank){
-          yourRankEl.textContent = '#' + knownRank;
-          if(yourRankNote) yourRankNote.textContent = knownRank <= 15
-            ? 'You are on the board. Keep burning to climb.'
-            : 'Burn more $DRIPPY to break into the top 15.';
+        const rankForThisType = type === 'earn' ? _lastEarnRank : _lastBurnRank;
+        if(rankForThisType){
+          yourRankEl.textContent = '#' + rankForThisType;
+          if(yourRankNote) yourRankNote.textContent = rankForThisType <= 15
+            ? 'You are on the board. Keep going.'
+            : (type === 'earn' ? 'Hold more $DRIPPY to climb earnings.' : 'Burn more $DRIPPY to break into the top 15.');
         } else {
-          yourRankEl.textContent = 'Unranked';
-          if(yourRankNote) yourRankNote.textContent = 'Burn $DRIPPY to get on the leaderboard.';
+          yourRankEl.textContent = type === 'earn' ? 'No earnings yet' : 'Unranked';
+          if(yourRankNote) yourRankNote.textContent = type === 'earn'
+            ? 'Hold $DRIPPY to start earning.'
+            : 'Burn $DRIPPY to get on the leaderboard.';
         }
       }
-
-      console.log('[leaderboard] loaded', entries.length, 'entries');
     }catch(e){
       console.error('[leaderboard] error:', e);
       listEl.innerHTML = '<div class="lb-loading">Could not load leaderboard. Try refreshing.</div>';
     }
+  }
+
+  // Tab switching
+  document.querySelectorAll('.lb-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      const type = tab.getAttribute('data-lbtype');
+      if(type === _currentType) return;
+      _currentType = type;
+      document.querySelectorAll('.lb-tab').forEach(t => t.classList.toggle('active', t === tab));
+      if(titleEl){
+        titleEl.textContent = type === 'earn' ? '💰 Earnings Leaderboard' : '🔥 Burn Leaderboard';
+      }
+      fetchAndRender(type, _lastWallet);
+    });
+  });
+
+  // Public hook for wallet-check completion
+  window.loadLeaderboard = function(wallet, burnRank, earnRank){
+    _lastWallet = wallet || null;
+    _lastBurnRank = burnRank || null;
+    _lastEarnRank = earnRank || null;
+    fetchAndRender(_currentType, _lastWallet);
   };
 
-  // Load leaderboard on page load (no wallet highlighted yet)
-  window.loadLeaderboard(null, null);
+  // Initial load
+  fetchAndRender('burn', null);
 })();
+
+
+// =====================================================
+// DRIPQUESTS — quest verification + rank tier system
+// =====================================================
+(function(){
+  const QUESTS = [
+    { id: 'join',        icon: '🐕', name: 'Join the Pack',    desc: 'Hold any amount of $DRIPPY',     check: (d) => (d.currentHoldings?.uiAmount || 0) > 0 },
+    { id: 'diamond_start', icon: '💎', name: 'Diamond Starter', desc: 'Hold 1M+ $DRIPPY',             check: (d) => (d.currentHoldings?.uiAmount || 0) >= 1_000_000 },
+    { id: 'whale',       icon: '🐋', name: 'Whale Status',      desc: 'Hold 10M+ $DRIPPY',             check: (d) => (d.currentHoldings?.uiAmount || 0) >= 10_000_000 },
+    { id: 'first_drip',  icon: '💧', name: 'First Drip',         desc: 'Receive your first payout',    check: (d) => (d.distributionCount || 0) >= 1 },
+    { id: 'veteran',     icon: '🌊', name: 'Drip Veteran',       desc: 'Receive 50+ payouts',           check: (d) => (d.distributionCount || 0) >= 50 },
+    { id: 'legend',      icon: '🏆', name: 'Drip Legend',        desc: 'Receive 100+ payouts',          check: (d) => (d.distributionCount || 0) >= 100 },
+    { id: 'init_burn',   icon: '🔥', name: 'Initiate the Burn',  desc: 'Burn any $DRIPPY',              check: (d) => (d.burner?.burnEvents || 0) >= 1 },
+    { id: 'burn_boss',   icon: '🔥', name: 'Burn Boss',          desc: 'Burn 1M+ $DRIPPY total',        check: (d) => (d.burner?.tokensBurned || 0) >= 1_000_000 },
+    { id: 'inferno',     icon: '⚡', name: 'Inferno',             desc: '5+ separate burn events',        check: (d) => (d.burner?.burnEvents || 0) >= 5 },
+    { id: 'earned_pt1',  icon: '📈', name: 'Earned 0.1 SOL',     desc: 'Earn 0.1+ total SOL',           check: (d) => (d.totalReceivedSol || 0) >= 0.1 }
+  ];
+
+  const TIERS = [
+    { name: 'No Rank',         min: 0, cls: '',         label: 'Check Your Wallet' },
+    { name: 'Bronze Dripper',  min: 1, cls: 'tier-bronze',  label: 'Bronze Dripper' },
+    { name: 'Silver Dripper',  min: 4, cls: 'tier-silver',  label: 'Silver Dripper' },
+    { name: 'Gold Dripper',    min: 7, cls: 'tier-gold',    label: 'Gold Dripper' },
+    { name: 'Diamond Dripper', min: 9, cls: 'tier-diamond', label: 'Diamond Dripper' }
+  ];
+
+  function computeTier(completedCount){
+    let tier = TIERS[0];
+    for(const t of TIERS){
+      if(completedCount >= t.min) tier = t;
+    }
+    return tier;
+  }
+
+  function nextTier(completedCount){
+    for(let i = TIERS.length - 1; i >= 0; i--){
+      if(completedCount >= TIERS[i].min){
+        return TIERS[i+1] || null;
+      }
+    }
+    return TIERS[1];
+  }
+
+  function renderGrid(walletData){
+    const grid = document.getElementById('dqGrid');
+    if(!grid) return;
+    grid.innerHTML = '';
+    QUESTS.forEach(q => {
+      const isUnlocked = walletData ? !!q.check(walletData) : false;
+      const tile = document.createElement('div');
+      tile.className = 'dq-tile' + (isUnlocked ? ' unlocked' : '');
+      tile.innerHTML = `
+        <span class="dq-tile-icon">${q.icon}</span>
+        <div class="dq-tile-name">${q.name}</div>
+        <div class="dq-tile-desc">${q.desc}</div>
+      `;
+      grid.appendChild(tile);
+    });
+  }
+
+  window.updateDripQuests = function(walletData){
+    if(!walletData) return;
+    const completed = QUESTS.filter(q => q.check(walletData)).length;
+    const tier = computeTier(completed);
+    const next = nextTier(completed);
+
+    // Rank card
+    const card = document.getElementById('dqRankCard');
+    if(card){
+      card.classList.remove('tier-bronze','tier-silver','tier-gold','tier-diamond');
+      if(tier.cls) card.classList.add(tier.cls);
+    }
+    const rankName = document.getElementById('dqRankName');
+    if(rankName) rankName.textContent = tier.label;
+
+    // Progress bar (toward next tier — or full if maxed)
+    const progressFill = document.getElementById('dqProgressFill');
+    const progressText = document.getElementById('dqProgressText');
+    const pct = (completed / QUESTS.length) * 100;
+    if(progressFill) progressFill.style.width = pct + '%';
+    if(progressText){
+      if(next && next.min > completed){
+        progressText.textContent = `${completed} / ${QUESTS.length} quests · ${next.min - completed} more to ${next.name}`;
+      } else {
+        progressText.textContent = `${completed} / ${QUESTS.length} quests complete — Max rank!`;
+      }
+    }
+
+    renderGrid(walletData);
+  };
+
+  // Render empty grid on page load
+  renderGrid(null);
+})();
+
+
+// =====================================================
+// PROOF OF DRIP — recent distributions feed
+// =====================================================
+(function(){
+  const listEl = document.getElementById('podripList');
+  if(!listEl) return;
+
+  function shortSig(s){ return s.slice(0,4) + '...' + s.slice(-4); }
+  function timeAgo(iso){
+    const ms = Date.now() - new Date(iso).getTime();
+    const m = Math.floor(ms / 60000);
+    if(m < 1) return 'just now';
+    if(m < 60) return m + 'm ago';
+    const h = Math.floor(m / 60);
+    if(h < 24) return h + 'h ago';
+    return Math.floor(h/24) + 'd ago';
+  }
+  function fmtSol(n){
+    n = Number(n || 0);
+    if(n < 0.001) return n.toFixed(6);
+    if(n < 1) return n.toFixed(4);
+    return n.toLocaleString('en-US', { maximumFractionDigits: 3 });
+  }
+
+  async function load(){
+    try{
+      // Use any recently-checked wallet from the Forge distribution data
+      // — these are the distributor's RECENT distributions, available from any wallet check.
+      // The wallet endpoint returns the wallet's own recent distributions; for a global
+      // feed we'd want the distributor's view. Use a known burner wallet as a probe.
+      const r = await fetch('/api/wallet?address=2j2NXDChymZ3tSiRMuLp8ea8CxSMGnX3qyBokqLzggT2', { cache: 'no-store' });
+      const d = await r.json();
+      const drips = (d.recentDistributions || []).slice(0, 15);
+      if(drips.length === 0){
+        listEl.innerHTML = '<div class="podrip-loading">No recent distributions yet.</div>';
+        return;
+      }
+      listEl.innerHTML = '';
+      drips.forEach(p => {
+        const row = document.createElement('a');
+        row.className = 'podrip-row';
+        row.href = 'https://solscan.io/tx/' + p.txSig;
+        row.target = '_blank';
+        row.rel = 'noopener';
+        row.innerHTML = `
+          <span class="podrip-icon">💧</span>
+          <span class="podrip-amount">${fmtSol(p.amountSol)} SOL</span>
+          <span class="podrip-time">${timeAgo(p.timestamp)}</span>
+          <span class="podrip-link">View TX ↗</span>
+        `;
+        listEl.appendChild(row);
+      });
+    }catch(e){
+      console.error('[podrip]', e);
+      listEl.innerHTML = '<div class="podrip-loading">Could not load distributions.</div>';
+    }
+  }
+  load();
+  setInterval(load, 60000);
+})();
+
+
+// =====================================================
+// WHAT'S DRIPPING — events feed
+// =====================================================
+(function(){
+  const listEl = document.getElementById('drippingList');
+  if(!listEl) return;
+
+  function fmtCountdown(ms){
+    if(ms <= 0) return 'starting now';
+    const s = Math.floor(ms / 1000);
+    if(s < 60) return s + 's';
+    const m = Math.floor(s / 60);
+    if(m < 60) return m + 'm';
+    const h = Math.floor(m / 60);
+    if(h < 24) return h + 'h ' + (m % 60) + 'm';
+    return Math.floor(h / 24) + 'd ' + (h % 24) + 'h';
+  }
+  function eventIcon(type){
+    if(type === 'space') return '🎙️';
+    if(type === 'ama')   return '💬';
+    if(type === 'launch') return '🚀';
+    return '📡';
+  }
+
+  async function load(){
+    try{
+      const r = await fetch('/api/events', { cache: 'no-store' });
+      const d = await r.json();
+      if(d.configured === false || !d.events || d.events.length === 0){
+        listEl.innerHTML = '<div class="dripping-empty">Nothing scheduled right now. Check back soon.</div>';
+        return;
+      }
+      listEl.innerHTML = '';
+      d.events.forEach(ev => {
+        const item = document.createElement('div');
+        item.className = 'dripping-item' + (ev.status === 'live' ? ' live' : '');
+        const badge = ev.status === 'live'
+          ? '<span class="dripping-badge live">🔴 LIVE</span>'
+          : '<span class="dripping-badge upcoming">⏰ ' + fmtCountdown(ev.start - Date.now()) + '</span>';
+        const cta = ev.link
+          ? '<a class="dripping-cta" href="' + ev.link + '" target="_blank" rel="noopener">' + (ev.status === 'live' ? 'Join Now ↗' : 'Details ↗') + '</a>'
+          : '';
+        const img = ev.image
+          ? '<img class="dripping-img" src="' + ev.image + '" alt="" onerror="this.style.display=\'none\'" />'
+          : '';
+        item.innerHTML = `
+          ${badge}
+          ${img}
+          <div class="dripping-content">
+            <div class="dripping-title">${eventIcon(ev.type)} ${ev.title}</div>
+            <div class="dripping-meta">${new Date(ev.start).toLocaleString()}</div>
+          </div>
+          ${cta}
+        `;
+        listEl.appendChild(item);
+      });
+    }catch(e){
+      console.error('[events]', e);
+    }
+  }
+  load();
+  setInterval(load, 30000);
+})();
+
+
+// =====================================================
+// FEED DRIPPY easter egg
+// =====================================================
+(function(){
+  const target = document.getElementById('feedDrippy');
+  if(!target) return;
+  const burst = document.getElementById('feedDrippyBurst');
+  const treats = ['🦴','🍖','🌭','🍗','💧','🔥','💎'];
+  let clickCount = 0;
+
+  target.addEventListener('click', (e) => {
+    clickCount++;
+    // Bark on every 5th click
+    if(clickCount % 5 === 0){
+      target.classList.remove('bark');
+      void target.offsetWidth; // restart animation
+      target.classList.add('bark');
+      setTimeout(() => target.classList.remove('bark'), 800);
+    }
+    // Treat fly
+    if(burst){
+      const treat = document.createElement('div');
+      treat.className = 'treat';
+      treat.textContent = treats[Math.floor(Math.random() * treats.length)];
+      const rect = target.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      treat.style.left = x + 'px';
+      treat.style.top = y + 'px';
+      const dx = (Math.random() - 0.5) * 120;
+      const dy = -40 - Math.random() * 30;
+      treat.style.setProperty('--dx', dx + 'px');
+      treat.style.setProperty('--dy', dy + 'px');
+      burst.appendChild(treat);
+      setTimeout(() => treat.remove(), 1500);
+    }
+    // Secret unlock at 25 clicks
+    if(clickCount === 25){
+      const secret = document.createElement('div');
+      secret.textContent = '🐕 THE DRIPPY DECREES: YOU ARE OF THE PACK 🐕';
+      secret.style.cssText = `
+        position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+        background:linear-gradient(135deg,#f5c542,#a259ff);
+        color:#000;font-family:'Bowlby One',sans-serif;font-size:22px;
+        padding:24px 32px;border-radius:14px;z-index:9999;
+        box-shadow:0 0 60px rgba(245,197,66,.6);
+        animation:barkPop 3s ease-out forwards;
+        text-align:center;
+      `;
+      document.body.appendChild(secret);
+      setTimeout(() => secret.remove(), 3500);
+    }
+  });
+})();
+
+
+// =====================================================
+// ADMIN PANEL — discreet event management
+// =====================================================
+(function(){
+  const link = document.getElementById('adminLink');
+  const modal = document.getElementById('adminModal');
+  if(!link || !modal) return;
+
+  const closeBtn = document.getElementById('adminClose');
+  const loginView = document.getElementById('adminLogin');
+  const panelView = document.getElementById('adminPanel');
+  const pwdInput = document.getElementById('adminPwd');
+  const loginBtn = document.getElementById('adminLoginBtn');
+  const loginError = document.getElementById('adminLoginError');
+  const logoutBtn = document.getElementById('adminLogout');
+
+  const evTitle = document.getElementById('evTitle');
+  const evType = document.getElementById('evType');
+  const evDuration = document.getElementById('evDuration');
+  const evStart = document.getElementById('evStart');
+  const evLink = document.getElementById('evLink');
+  const evImage = document.getElementById('evImage');
+  const postBtn = document.getElementById('evPostBtn');
+  const evStatus = document.getElementById('evStatus');
+  const adminEventList = document.getElementById('adminEventList');
+
+  const STORAGE_KEY = 'drippyAdminKey';
+
+  function openModal(){ modal.classList.add('show'); checkAuth(); }
+  function closeModal(){ modal.classList.remove('show'); loginError.textContent=''; pwdInput.value=''; }
+
+  function checkAuth(){
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if(saved){
+      loginView.style.display = 'none';
+      panelView.style.display = 'block';
+      loadEventList();
+      // Pre-fill the start time picker with "now"
+      if(evStart && !evStart.value){
+        const now = new Date(Date.now() - new Date().getTimezoneOffset() * 60000);
+        evStart.value = now.toISOString().slice(0,16);
+      }
+    } else {
+      loginView.style.display = 'block';
+      panelView.style.display = 'none';
+      setTimeout(() => pwdInput?.focus(), 50);
+    }
+  }
+
+  async function tryLogin(){
+    const pwd = pwdInput.value.trim();
+    if(!pwd){ loginError.textContent='Enter a key'; return; }
+    // Test key by calling a no-op (list) — keys only validated on write actions,
+    // so we test with a harmless ZCARD call via "del" with no id (which will 400
+    // but only if the key is valid, otherwise 401).
+    try{
+      const r = await fetch('/api/events?action=del&key=' + encodeURIComponent(pwd));
+      if(r.status === 401){
+        loginError.textContent = 'Invalid key';
+        return;
+      }
+      // Any other status means the key was accepted
+      localStorage.setItem(STORAGE_KEY, pwd);
+      loginError.textContent = '';
+      checkAuth();
+    }catch(e){
+      loginError.textContent = 'Connection error';
+    }
+  }
+
+  function logout(){
+    localStorage.removeItem(STORAGE_KEY);
+    checkAuth();
+  }
+
+  async function postEvent(){
+    const key = localStorage.getItem(STORAGE_KEY);
+    if(!key){ evStatus.textContent='Not logged in'; evStatus.className='admin-status error'; return; }
+    const title = evTitle.value.trim();
+    if(!title){ evStatus.textContent='Title is required'; evStatus.className='admin-status error'; return; }
+    if(!evStart.value){ evStatus.textContent='Pick a start time'; evStatus.className='admin-status error'; return; }
+
+    postBtn.disabled = true;
+    postBtn.textContent = 'Posting...';
+    evStatus.className = 'admin-status';
+    evStatus.textContent = '';
+
+    try{
+      const payload = {
+        key,
+        action: 'add',
+        title,
+        type: evType.value,
+        start: new Date(evStart.value).toISOString(),
+        duration_min: parseInt(evDuration.value, 10) || 60,
+        link: evLink.value.trim(),
+        image: evImage.value.trim()
+      };
+      const r = await fetch('/api/events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const d = await r.json();
+      if(d.ok){
+        evStatus.textContent = '✓ Event posted';
+        evStatus.className = 'admin-status';
+        evTitle.value = '';
+        evLink.value = '';
+        evImage.value = '';
+        loadEventList();
+        // Refresh public events feed
+        const list = document.getElementById('drippingList');
+        if(list){
+          // Trigger a reload on the public feed by re-fetching
+          fetch('/api/events', { cache: 'no-store' }).then(r => r.json()).then(d2 => {
+            if(d2.events && d2.events.length){
+              window.dispatchEvent(new CustomEvent('drippyEventsUpdated'));
+            }
+          });
+        }
+      } else {
+        evStatus.textContent = d.error || 'Failed';
+        evStatus.className = 'admin-status error';
+      }
+    }catch(e){
+      evStatus.textContent = 'Error: ' + e.message;
+      evStatus.className = 'admin-status error';
+    }finally{
+      postBtn.disabled = false;
+      postBtn.textContent = '📡 Post Event';
+    }
+  }
+
+  async function loadEventList(){
+    try{
+      const r = await fetch('/api/events', { cache: 'no-store' });
+      const d = await r.json();
+      const evs = d.events || [];
+      if(evs.length === 0){
+        adminEventList.innerHTML = '<div class="admin-empty">No scheduled events</div>';
+        return;
+      }
+      adminEventList.innerHTML = '';
+      evs.forEach(ev => {
+        const item = document.createElement('div');
+        item.className = 'admin-event-item';
+        const when = new Date(ev.start).toLocaleString();
+        const statusBadge = ev.status === 'live' ? ' 🔴' : '';
+        item.innerHTML = `
+          <div class="admin-event-info">
+            <div class="admin-event-title">${ev.title}${statusBadge}</div>
+            <div class="admin-event-time">${when}</div>
+          </div>
+          <button class="admin-event-del" data-id="${ev.id}">Delete</button>
+        `;
+        adminEventList.appendChild(item);
+      });
+      // Wire delete buttons
+      adminEventList.querySelectorAll('.admin-event-del').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          if(!confirm('Delete this event?')) return;
+          const id = btn.getAttribute('data-id');
+          const key = localStorage.getItem(STORAGE_KEY);
+          try{
+            const r = await fetch('/api/events', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ key, action: 'del', id })
+            });
+            if(r.ok){
+              loadEventList();
+            }
+          }catch(_){}
+        });
+      });
+    }catch(e){
+      adminEventList.innerHTML = '<div class="admin-empty">Could not load events</div>';
+    }
+  }
+
+  // Wire up
+  link.addEventListener('click', (e) => { e.preventDefault(); openModal(); });
+  closeBtn.addEventListener('click', closeModal);
+  modal.addEventListener('click', (e) => { if(e.target === modal) closeModal(); });
+  loginBtn.addEventListener('click', tryLogin);
+  pwdInput.addEventListener('keydown', (e) => { if(e.key === 'Enter') tryLogin(); });
+  logoutBtn.addEventListener('click', logout);
+  postBtn.addEventListener('click', postEvent);
+})();
+
+
+// =====================================================
+// SHARE CARD GENERATOR
+// =====================================================
+(function(){
+  const shareBtn = document.getElementById('dqShareBtn');
+  const modal = document.getElementById('shareModal');
+  const closeBtn = document.getElementById('shareClose');
+  const downloadBtn = document.getElementById('shareDownload');
+  const tweetBtn = document.getElementById('shareTweet');
+  const canvas = document.getElementById('shareCanvas');
+  if(!shareBtn || !modal || !canvas) return;
+
+  function fmtSol(n){
+    n = Number(n || 0);
+    if(n < 0.001) return n.toFixed(6);
+    if(n < 1) return n.toFixed(4);
+    return n.toLocaleString('en-US', { maximumFractionDigits: 3 });
+  }
+  function fmtTokens(n){
+    n = Number(n || 0);
+    if(n >= 1e6) return (n/1e6).toFixed(2) + 'M';
+    if(n >= 1e3) return (n/1e3).toFixed(1) + 'K';
+    return Math.round(n).toLocaleString();
+  }
+
+  function renderCard(){
+    const d = window._dripWalletData;
+    if(!d) return;
+
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+
+    // Background gradient
+    const bg = ctx.createLinearGradient(0, 0, W, H);
+    bg.addColorStop(0, '#1a0a2e');
+    bg.addColorStop(0.5, '#0a0610');
+    bg.addColorStop(1, '#3a1a5e');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, W, H);
+
+    // Gold border
+    ctx.strokeStyle = '#f5c542';
+    ctx.lineWidth = 8;
+    ctx.strokeRect(20, 20, W-40, H-40);
+
+    // Title
+    ctx.fillStyle = '#ffd966';
+    ctx.font = 'bold 60px "Bowlby One", system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('$DRIPPY STATS', W/2, 110);
+
+    // Subtitle
+    ctx.fillStyle = '#a259ff';
+    ctx.font = 'bold 26px monospace';
+    ctx.fillText('DrippyRewards.com', W/2, 150);
+
+    // Total earned BIG
+    ctx.fillStyle = '#ffd966';
+    ctx.font = 'bold 36px monospace';
+    ctx.fillText('TOTAL SOL EARNED', W/2, 220);
+    ctx.fillStyle = '#fff5c0';
+    ctx.font = 'bold 84px "Bowlby One", system-ui, sans-serif';
+    ctx.fillText(fmtSol(d.totalReceivedSol) + ' SOL', W/2, 310);
+
+    // Stats grid
+    const statsY = 400;
+    const stats = [
+      { label: 'DISTRIBUTIONS', value: (d.distributionCount || 0).toLocaleString() },
+      { label: 'CURRENT BAG', value: fmtTokens(d.currentHoldings?.uiAmount || 0) },
+      { label: 'BURNED', value: fmtTokens(d.burner?.tokensBurned || 0) },
+      { label: 'BURN WEIGHT', value: (d.burner?.burnWeightSharePct || 0).toFixed(2) + '%' }
+    ];
+    const colW = W / 2;
+    stats.forEach((s, i) => {
+      const col = i % 2;
+      const row = Math.floor(i / 2);
+      const x = colW * col + colW / 2;
+      const y = statsY + row * 130;
+      ctx.fillStyle = '#a259ff';
+      ctx.font = 'bold 22px monospace';
+      ctx.fillText(s.label, x, y);
+      ctx.fillStyle = '#f5c542';
+      ctx.font = 'bold 44px "Bowlby One", system-ui, sans-serif';
+      ctx.fillText(s.value, x, y + 50);
+    });
+
+    // Footer tagline
+    ctx.fillStyle = '#fff5c0';
+    ctx.font = 'bold 32px "Bowlby One", system-ui, sans-serif';
+    ctx.fillText('PAID. EVERY 30 MINUTES.', W/2, H - 50);
+  }
+
+  shareBtn.addEventListener('click', () => {
+    renderCard();
+    modal.classList.add('show');
+    // Update tweet URL
+    if(tweetBtn){
+      const d = window._dripWalletData;
+      const earned = d ? fmtSol(d.totalReceivedSol) : '0';
+      const text = `I've earned ${earned} SOL just by holding $DRIPPY 🐕💧\n\nEvery 30 minutes the dog pays. Burn weight earns 2x forever.\n\nCheck your bag → drippyrewards.com`;
+      tweetBtn.href = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(text);
+    }
+  });
+  closeBtn.addEventListener('click', () => modal.classList.remove('show'));
+  modal.addEventListener('click', (e) => { if(e.target === modal) modal.classList.remove('show'); });
+  downloadBtn.addEventListener('click', () => {
+    const link = document.createElement('a');
+    link.download = 'drippy-stats.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  });
+})();
+
+
+// =====================================================
+// HOLDER COUNT — live stats cell
+// =====================================================
+(function(){
+  async function load(){
+    try{
+      const r = await fetch('/api/holders', { cache: 'no-store' });
+      const d = await r.json();
+      const cell = document.querySelector('[data-key="holders"]');
+      if(!cell) return;
+      const v = cell.querySelector('.v');
+      if(d.count != null){
+        v.textContent = d.count.toLocaleString();
+        cell.classList.remove('loading');
+      } else {
+        v.textContent = '—';
+      }
+    }catch(e){
+      console.error('[holders]', e);
+    }
+  }
+  load();
+  setInterval(load, 5 * 60 * 1000); // refresh every 5 min
+})();
+
 
 // =====================================================
 // FAQ ACCORDION
@@ -2838,32 +4128,24 @@ function setCell(key, value, cls){
 // Track values across loaders so we can cross-compute (price × supply for MC)
 let _liveData = {
   priceUsd: null,
-  totalSupply: 1_000_000_000, // Drippy is fixed 1B supply — confirm from on-chain later
+  circulatingSupply: null, // on-chain current supply — ALREADY reflects burns
   burnedTokens: null,
   burnedPct: null
 };
 
 function recomputeMarketCap(){
-  // Market cap = price × circulating supply
-  // Circulating = totalSupply - burnedTokens
-  // If we have all three, compute and override DexScreener's MC.
+  // Market cap = price × circulating supply.
+  // IMPORTANT: the on-chain "current supply" reported by the RPC already has
+  // burned tokens removed (a burn reduces total supply on-chain). So we do NOT
+  // subtract burns again — that would double-count. Circulating = current supply.
   if(_liveData.priceUsd == null) return;
-  if(_liveData.totalSupply == null) return;
+  if(_liveData.circulatingSupply == null) return;
 
-  let circulating;
-  if(_liveData.burnedTokens != null){
-    circulating = _liveData.totalSupply - _liveData.burnedTokens;
-  } else if(_liveData.burnedPct != null){
-    circulating = _liveData.totalSupply * (1 - _liveData.burnedPct / 100);
-  } else {
-    circulating = _liveData.totalSupply;
-  }
-
+  const circulating = _liveData.circulatingSupply;
   if(!isFinite(circulating) || circulating <= 0) return;
 
   const mc = _liveData.priceUsd * circulating;
   setCell('mcap', fmtUsd(mc));
-  // Display circulating with full comma formatting (more useful for a fixed-supply token)
   setCell('supply', Math.round(circulating).toLocaleString('en-US'));
 }
 
@@ -2910,7 +4192,7 @@ async function loadDexScreener(){
     setCell('liq',  fmtUsd(pair.liquidity?.usd));
 
     // Don't trust DexScreener's MC — recompute from price × circulating ourselves.
-    if(_liveData.totalSupply != null){
+    if(_liveData.circulatingSupply != null){
       recomputeMarketCap();
     } else {
       setCell('mcap', fmtUsd(pair.marketCap || pair.fdv));
@@ -2963,18 +4245,19 @@ async function loadSupply(){
     const amt = Number(res?.value?.uiAmount);
     if(!isFinite(amt)){
       console.warn('[supply] unexpected response shape', res);
-      // Fall back to 1B (Drippy's known total)
-      _liveData.totalSupply = 1_000_000_000;
+      // Fall back to known post-burn estimate
+      _liveData.circulatingSupply = 936_828_287;
       recomputeMarketCap();
       return;
     }
-    _liveData.totalSupply = amt;
-    // Don't update supply cell here — recomputeMarketCap will set circulating
+    // getTokenSupply returns the CURRENT on-chain supply — burns are already
+    // subtracted from it on-chain. This IS the circulating supply.
+    _liveData.circulatingSupply = amt;
     recomputeMarketCap();
   }catch(e){
     console.warn('[supply] all RPCs failed:', e.message);
-    // Use known total supply as fallback
-    _liveData.totalSupply = 1_000_000_000;
+    // Fallback: known current (post-burn) supply
+    _liveData.circulatingSupply = 936_828_287;
     recomputeMarketCap();
   }
 }
@@ -3235,18 +4518,10 @@ async function loadDistribution(){
       burnedCell.classList.remove('loading');
     }
 
-    // Feed burn data into _liveData for accurate market cap + circulating supply
-    // Drippy uses 9 decimals — Forge's raw value is in base units (× 10^9)
-    if(d.tokensBurnedExact != null){
-      _liveData.burnedTokens = d.tokensBurnedExact;
-    } else if(d.tokensBurnedRaw){
-      _liveData.burnedTokens = Number(d.tokensBurnedRaw) / 1e9;
-    }
-    if(d.totalSupplyBurnedPct != null){
-      _liveData.burnedPct = d.totalSupplyBurnedPct;
-    }
-    // Force totalSupply to known 1B (Drippy's fixed supply) so circ always computes
-    if(_liveData.totalSupply == null) _liveData.totalSupply = 1_000_000_000;
+    // Note: circulating supply / market cap are computed purely from the on-chain
+    // current supply (see loadSupply + recomputeMarketCap). Burn totals are NOT
+    // subtracted here — the on-chain supply already reflects every burn. Feeding
+    // burn data into the MC calc again would double-count it.
     recomputeMarketCap();
 
     // Update Burn Stats card with full comma-formatted numbers
@@ -3367,6 +4642,71 @@ function copyAddr(srcId, btnId){
   }
 }
 </script>
+
+<!-- ADMIN MODAL — discreet event management -->
+<div class="admin-modal" id="adminModal">
+  <div class="admin-modal-inner">
+    <button class="admin-close" id="adminClose" aria-label="Close">✕</button>
+
+    <!-- LOGIN VIEW -->
+    <div id="adminLogin">
+      <div class="admin-title">🔐 Admin Access</div>
+      <input type="password" id="adminPwd" class="admin-input" placeholder="Enter admin key" autocomplete="off"/>
+      <button class="admin-btn primary" id="adminLoginBtn">Unlock</button>
+      <div class="admin-error" id="adminLoginError"></div>
+    </div>
+
+    <!-- AUTHENTICATED VIEW -->
+    <div id="adminPanel" style="display:none">
+      <div class="admin-title">📡 Manage Events</div>
+
+      <div class="admin-section">
+        <div class="admin-section-title">Post New Event</div>
+        <div class="admin-form">
+          <input type="text" id="evTitle" class="admin-input" placeholder="Event title (e.g. X Space with the Pack)" />
+          <div class="admin-row">
+            <select id="evType" class="admin-input admin-select">
+              <option value="space">🎙️ X Space</option>
+              <option value="ama">💬 AMA</option>
+              <option value="launch">🚀 Launch</option>
+              <option value="event">📡 Event</option>
+            </select>
+            <input type="number" id="evDuration" class="admin-input" placeholder="Duration (min)" value="60" min="5" max="720"/>
+          </div>
+          <input type="datetime-local" id="evStart" class="admin-input"/>
+          <input type="text" id="evLink" class="admin-input" placeholder="Event link (Space URL, etc) — optional"/>
+          <input type="text" id="evImage" class="admin-input" placeholder="Image URL — optional (paste image link)"/>
+          <button class="admin-btn primary" id="evPostBtn">📡 Post Event</button>
+          <div class="admin-status" id="evStatus"></div>
+        </div>
+      </div>
+
+      <div class="admin-section">
+        <div class="admin-section-title">Currently Scheduled</div>
+        <div class="admin-event-list" id="adminEventList">
+          <div class="admin-empty">Loading...</div>
+        </div>
+      </div>
+
+      <button class="admin-btn ghost" id="adminLogout">Log Out</button>
+    </div>
+  </div>
+</div>
+
+<!-- SHARE CARD MODAL -->
+<div class="share-modal" id="shareModal">
+  <div class="share-modal-inner">
+    <div class="share-modal-title">🃏 Your DripQuests Card</div>
+    <div class="share-card-preview">
+      <canvas id="shareCanvas" class="share-card-canvas" width="800" height="800"></canvas>
+    </div>
+    <div class="share-modal-actions">
+      <button class="share-download-btn" id="shareDownload">📥 Download</button>
+      <a class="share-tweet-btn" id="shareTweet" target="_blank" rel="noopener">𝕏 Tweet It</a>
+      <button class="share-close-btn" id="shareClose">Close</button>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>
