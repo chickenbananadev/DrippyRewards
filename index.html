@@ -1350,11 +1350,55 @@ h2 .red{color:var(--crimson);text-shadow:3px 3px 0 #000}
   100%{opacity:0;transform:translate(-50%, -110%) scale(.95) rotate(1deg)}
 }
 
-/* ========== DRAMATIC CRASH at 30 clicks ========== */
+/* ========== EXTREME 8-SECOND CRASH at 30 clicks ========== */
 
-/* Phase 1: Glitch — RGB shift, scan lines, screen tear */
+/* Phase 1 — White flash like a real GPU crash */
+.crash-white-flash{
+  position:fixed;inset:0;
+  background:#fff;
+  z-index:10001;pointer-events:none;
+  animation:whiteFlash .5s ease-out forwards;
+}
+@keyframes whiteFlash{
+  0%{opacity:0}
+  10%{opacity:1}
+  30%{opacity:.8}
+  100%{opacity:0}
+}
+
+/* Phase 5 — Gold flash on recovery */
+.crash-gold-flash{
+  position:fixed;inset:0;
+  background:radial-gradient(circle, rgba(255,217,102,.85), transparent 70%);
+  z-index:10001;pointer-events:none;
+  animation:goldRecoverFlash .5s ease-out forwards;
+  mix-blend-mode:screen;
+}
+@keyframes goldRecoverFlash{
+  0%{opacity:0}
+  20%{opacity:1}
+  100%{opacity:0}
+}
+
+/* Phase 1 — VIOLENT impact shake (way stronger) */
+.drippy-impact{
+  animation:impactShake .4s ease-out;
+}
+@keyframes impactShake{
+  0%,100%{transform:translate(0,0) scale(1)}
+  10%{transform:translate(-18px,10px) scale(1.02) rotate(-1.2deg)}
+  20%{transform:translate(20px,-12px) scale(.98) rotate(1deg)}
+  30%{transform:translate(-15px,8px) scale(1.01) rotate(-.8deg)}
+  40%{transform:translate(14px,-14px) scale(.99) rotate(.9deg)}
+  50%{transform:translate(-12px,10px) scale(1.01) rotate(-.6deg)}
+  60%{transform:translate(15px,-8px) scale(.99) rotate(.5deg)}
+  70%{transform:translate(-10px,12px) rotate(-.4deg)}
+  80%{transform:translate(11px,-6px) rotate(.3deg)}
+}
+
+/* Glitch — intensified RGB shift + scan lines + tearing */
 .drippy-glitch{
-  animation:bodyShake .3s ease-in-out 3, glitchHue .15s infinite;
+  animation:bodyShake .25s ease-in-out 4, glitchHue .12s infinite;
   position:relative;
 }
 .drippy-glitch::before{
@@ -1364,17 +1408,17 @@ h2 .red{color:var(--crimson);text-shadow:3px 3px 0 #000}
   z-index:9997;
   background:
     repeating-linear-gradient(0deg,
-      rgba(255,77,109,.08) 0,
-      rgba(255,77,109,.08) 2px,
+      rgba(255,77,109,.14) 0,
+      rgba(255,77,109,.14) 2px,
       transparent 2px,
       transparent 4px),
     repeating-linear-gradient(0deg,
-      rgba(0,217,255,.06) 0,
-      rgba(0,217,255,.06) 1px,
+      rgba(0,217,255,.1) 0,
+      rgba(0,217,255,.1) 1px,
       transparent 1px,
       transparent 3px);
   mix-blend-mode:screen;
-  animation:scanlineMove .15s infinite linear;
+  animation:scanlineMove .12s infinite linear;
 }
 .drippy-glitch::after{
   content:'';
@@ -1383,18 +1427,18 @@ h2 .red{color:var(--crimson);text-shadow:3px 3px 0 #000}
   z-index:9996;
   background:linear-gradient(180deg,
     transparent 0%,
-    transparent 48%,
-    rgba(255,255,255,.15) 49%,
+    transparent 47%,
+    rgba(255,255,255,.25) 49%,
     transparent 51%,
     transparent 100%);
-  animation:tearMove .4s infinite linear;
+  animation:tearMove .3s infinite linear;
 }
 @keyframes glitchHue{
-  0%,100%{filter:hue-rotate(0deg)}
-  20%{filter:hue-rotate(15deg) contrast(1.15)}
-  40%{filter:hue-rotate(-20deg) contrast(1.05)}
-  60%{filter:hue-rotate(10deg) saturate(1.3)}
-  80%{filter:hue-rotate(-10deg) brightness(1.1)}
+  0%,100%{filter:hue-rotate(0deg) contrast(1)}
+  20%{filter:hue-rotate(35deg) contrast(1.3) saturate(1.4)}
+  40%{filter:hue-rotate(-45deg) contrast(1.15) brightness(1.1)}
+  60%{filter:hue-rotate(25deg) saturate(1.5)}
+  80%{filter:hue-rotate(-25deg) brightness(1.2) contrast(1.2)}
 }
 @keyframes scanlineMove{
   0%{transform:translateY(0)}
@@ -1403,6 +1447,45 @@ h2 .red{color:var(--crimson);text-shadow:3px 3px 0 #000}
 @keyframes tearMove{
   0%{transform:translateY(-100vh)}
   100%{transform:translateY(100vh)}
+}
+
+/* Strobing — flashes white/red while chaos peaks */
+.drippy-strobing::before{
+  content:'';
+  position:fixed;inset:0;
+  pointer-events:none;
+  z-index:9994;
+  background:#fff;
+  mix-blend-mode:overlay;
+  animation:strobePulse .25s infinite;
+}
+@keyframes strobePulse{
+  0%,100%{opacity:0;background:#fff}
+  20%{opacity:.6;background:#fff}
+  40%{opacity:0}
+  60%{opacity:.5;background:#ff3366}
+  80%{opacity:0}
+}
+
+/* Static — pixel noise overlay */
+.drippy-static::after{
+  content:'';
+  position:fixed;inset:0;
+  pointer-events:none;
+  z-index:9995;
+  background-image:
+    radial-gradient(rgba(255,255,255,.18) 1px, transparent 1px),
+    radial-gradient(rgba(255,255,255,.1) 1px, transparent 1px);
+  background-size:3px 3px, 5px 5px;
+  background-position:0 0, 1px 2px;
+  animation:staticShift .08s infinite;
+  mix-blend-mode:screen;
+}
+@keyframes staticShift{
+  0%{transform:translate(0,0)}
+  25%{transform:translate(1px,-1px)}
+  50%{transform:translate(-1px,1px)}
+  75%{transform:translate(1px,1px)}
 }
 
 /* Fake OS-style error dialogs */
@@ -1456,30 +1539,30 @@ h2 .red{color:var(--crimson);text-shadow:3px 3px 0 #000}
 }
 @keyframes errorPop{
   0%{opacity:0;transform:scale(.4) rotate(-15deg)}
-  60%{opacity:1;transform:scale(1.1) rotate(2deg)}
+  60%{opacity:1;transform:scale(1.12) rotate(2deg)}
   100%{opacity:1;transform:scale(1) rotate(-1deg)}
 }
 
-/* Phase 2: Crash meltdown body shake */
+/* Phase 2: Body shake during meltdown — stronger */
 .drippy-meltdown{
   overflow:hidden !important;
-  animation:bodyShake .4s ease-in-out;
+  animation:bodyShake .35s ease-in-out 2;
 }
 @keyframes bodyShake{
   0%,100%{transform:translate(0,0)}
-  10%{transform:translate(-10px,5px) rotate(-.6deg)}
-  20%{transform:translate(8px,-4px) rotate(.5deg)}
-  30%{transform:translate(-6px,3px) rotate(-.4deg)}
-  40%{transform:translate(5px,-5px) rotate(.6deg)}
-  50%{transform:translate(-7px,4px) rotate(-.5deg)}
-  60%{transform:translate(6px,-3px) rotate(.4deg)}
-  70%{transform:translate(-4px,5px) rotate(-.3deg)}
-  80%{transform:translate(5px,-2px) rotate(.3deg)}
+  10%{transform:translate(-12px,6px) rotate(-.7deg)}
+  20%{transform:translate(10px,-5px) rotate(.6deg)}
+  30%{transform:translate(-8px,4px) rotate(-.5deg)}
+  40%{transform:translate(7px,-6px) rotate(.7deg)}
+  50%{transform:translate(-9px,5px) rotate(-.6deg)}
+  60%{transform:translate(8px,-4px) rotate(.5deg)}
+  70%{transform:translate(-5px,6px) rotate(-.4deg)}
+  80%{transform:translate(6px,-3px) rotate(.4deg)}
 }
 
 /* Sections tumble + shatter */
 .drippy-falling{
-  animation:legoTumble 2.5s cubic-bezier(.55,.05,.7,.4) forwards;
+  animation:legoTumble 2.2s cubic-bezier(.55,.05,.7,.4) forwards;
   animation-delay:var(--md, 0s);
   transform-origin:50% 50%;
   position:relative;
@@ -1491,17 +1574,17 @@ h2 .red{color:var(--crimson);text-shadow:3px 3px 0 #000}
     opacity:1;
     filter:none;
   }
-  15%{
-    transform:translate(calc(var(--mx, 0px) * .15), 30px) rotate(calc(var(--mr, 0deg) * .2)) scale(.98);
-    filter:hue-rotate(20deg);
+  12%{
+    transform:translate(calc(var(--mx, 0px) * .12), 35px) rotate(calc(var(--mr, 0deg) * .15)) scale(.96);
+    filter:hue-rotate(30deg) brightness(1.1);
   }
   60%{
     opacity:1;
   }
   100%{
-    transform:translate(var(--mx, 0px), var(--my, 800px)) rotate(var(--mr, 30deg)) scale(.65);
+    transform:translate(var(--mx, 0px), var(--my, 800px)) rotate(var(--mr, 30deg)) scale(.6);
     opacity:0;
-    filter:hue-rotate(60deg) blur(2px);
+    filter:hue-rotate(90deg) blur(3px);
   }
 }
 
@@ -1524,11 +1607,11 @@ h2 .red{color:var(--crimson);text-shadow:3px 3px 0 #000}
 }
 
 .drippy-recovering{
-  animation:bodyBounce .6s ease-out;
+  animation:bodyBounce .7s ease-out;
 }
 @keyframes bodyBounce{
-  0%{transform:scale(.93)}
-  50%{transform:scale(1.03)}
+  0%{transform:scale(.88)}
+  50%{transform:scale(1.05)}
   100%{transform:scale(1)}
 }
 
@@ -1558,13 +1641,29 @@ h2 .red{color:var(--crimson);text-shadow:3px 3px 0 #000}
   100%{transform:translateY(110vh) rotate(720deg);opacity:1}
 }
 
-/* Phase 3: Dead screen — "browser crashed" */
+/* Glass shards — falling triangles for extra debris */
+.glass-shard{
+  position:absolute;top:-30px;
+  width:0;height:0;
+  border-left:8px solid transparent;
+  border-right:8px solid transparent;
+  border-bottom:16px solid rgba(255,255,255,.7);
+  filter:drop-shadow(0 0 4px rgba(255,255,255,.5));
+  animation:shardFall linear forwards;
+}
+@keyframes shardFall{
+  0%{transform:translateY(-30px) rotate(0);opacity:0}
+  10%{opacity:1}
+  100%{transform:translateY(110vh) rotate(1080deg);opacity:.4}
+}
+
+/* Phase 3: BSOD-style dead screen — pure black with terminal panic */
 .crash-dead-screen{
   position:fixed;inset:0;
   background:#000;
   z-index:9999;
   display:grid;place-items:center;
-  animation:deadFadeIn .4s ease-out forwards;
+  animation:deadFadeIn .3s ease-out forwards;
   font-family:'Courier New', 'Monaco', monospace;
 }
 @keyframes deadFadeIn{
@@ -1572,62 +1671,109 @@ h2 .red{color:var(--crimson);text-shadow:3px 3px 0 #000}
   to{opacity:1}
 }
 .crash-dead-screen.crash-dead-exit{
-  animation:deadFadeOut .4s ease-out forwards;
+  animation:deadFadeOut .5s ease-out forwards;
 }
 @keyframes deadFadeOut{
   to{opacity:0}
 }
 .crash-dead-inner{
   text-align:center;
-  max-width:90%;
+  max-width:90%;width:620px;
   color:#0f0;
   text-shadow:0 0 8px rgba(0,255,0,.6);
   padding:20px;
+  position:relative;
 }
 .crash-dead-emoji{
-  font-size:80px;
+  font-size:90px;
   margin-bottom:20px;
-  animation:deadPulse 2s ease-in-out infinite;
-  filter:drop-shadow(0 0 20px rgba(255,255,255,.4));
+  animation:deadPulse 1.5s ease-in-out infinite;
+  filter:drop-shadow(0 0 30px rgba(255,255,255,.5));
 }
 @keyframes deadPulse{
   0%,100%{transform:scale(1);opacity:.9}
-  50%{transform:scale(1.1);opacity:1}
+  50%{transform:scale(1.15);opacity:1}
 }
 .crash-dead-title{
-  font-size:28px;letter-spacing:.18em;
+  font-size:34px;letter-spacing:.22em;
   color:#ff4d6d;
-  text-shadow:0 0 15px rgba(255,77,109,.7);
-  margin-bottom:8px;
+  text-shadow:0 0 18px rgba(255,77,109,.9), 0 0 40px rgba(255,77,109,.4);
+  margin-bottom:6px;
   font-weight:bold;
+  animation:titleFlicker 2s infinite;
+}
+@keyframes titleFlicker{
+  0%,93%,100%{opacity:1}
+  95%{opacity:.5}
+  97%{opacity:1}
 }
 .crash-dead-sub{
   font-size:14px;
   color:rgba(255,255,255,.7);
-  margin-bottom:24px;
+  margin-bottom:18px;
 }
 .crash-dead-trace{
   text-align:left;
-  background:rgba(0,40,0,.4);
-  border:1px solid rgba(0,255,0,.3);
-  padding:18px 20px;
+  background:rgba(0,40,0,.5);
+  border:1px solid rgba(0,255,0,.4);
+  padding:14px 18px;
   font-size:12px;
-  line-height:1.6;
+  line-height:1.55;
   color:#0f0;
   white-space:pre-wrap;
-  max-width:520px;margin:0 auto;
+  max-width:520px;
+  min-height:280px;
+  margin:0 auto;
   border-radius:4px;
+  text-shadow:0 0 6px rgba(0,255,0,.5);
 }
-.crash-dead-spinner{
-  margin:24px auto 0;
-  width:32px;height:32px;
-  border:3px solid rgba(255,255,255,.2);
-  border-top-color:#0f0;
-  border-radius:50%;
-  animation:deadSpin 1s linear infinite;
+.crash-loadbar{
+  margin:14px auto 8px;max-width:520px;
+  height:8px;
+  background:rgba(0,40,0,.6);
+  border:1px solid rgba(0,255,0,.4);
+  border-radius:2px;
+  overflow:hidden;
 }
-@keyframes deadSpin{
-  to{transform:rotate(360deg)}
+.crash-loadbar-fill{
+  height:100%;width:0%;
+  background:linear-gradient(90deg, #0f0, #80ff80);
+  box-shadow:0 0 10px rgba(0,255,0,.7);
+  transition:width .15s ease-out;
+}
+.crash-dead-meta{
+  font-size:10px;
+  color:rgba(0,255,0,.55);
+  letter-spacing:.04em;
+  margin-top:6px;
+}
+
+/* Recovery message */
+.crash-recovered{
+  position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  text-align:center;
+  z-index:2;
+  animation:recoveredPop .4s ease-out forwards;
+}
+.crash-recovered-text{
+  font-size:32px;
+  color:#0f0;
+  text-shadow:0 0 20px rgba(0,255,0,.9);
+  letter-spacing:.15em;
+  font-weight:bold;
+  margin-bottom:8px;
+}
+.crash-recovered-sub{
+  font-size:14px;
+  color:#0f0;
+  letter-spacing:.2em;
+  opacity:.8;
+}
+@keyframes recoveredPop{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(.4)}
+  60%{opacity:1;transform:translate(-50%,-50%) scale(1.1)}
+  100%{opacity:1;transform:translate(-50%,-50%) scale(1)}
 }
 
 /* 100-click reveal banner */
@@ -4474,52 +4620,68 @@ setTimeout(() => {
     }
   });
 
-  // ----- DRAMATIC CRASH sequence: site completely "crashes" then rebuilds -----
+  // ----- EXTREME 8-SECOND CRASH SEQUENCE -----
   function triggerMeltdown(target, burst, treats){
     const body = document.body;
     if(body.classList.contains('drippy-meltdown')) return;
 
-    // Phase 1: GLITCH START (0 - 0.5s) — RGB shift, scan lines, screen tear
-    body.classList.add('drippy-glitch');
+    // === PHASE 1: IMPACT (0 – 0.5s) — white flash + violent shake + glitch start ===
+    // White flash overlay (like a real GPU crash)
+    const flash = document.createElement('div');
+    flash.className = 'crash-white-flash';
+    body.appendChild(flash);
+    setTimeout(() => flash.remove(), 600);
 
-    // Spawn fake error dialogs in random positions for max chaos
+    body.classList.add('drippy-glitch', 'drippy-impact');
+
+    // Fake error popups — 4 spawn immediately, more added later
     const errorMsgs = [
       { title: '⚠️ DRIPPY.EXE', body: 'has stopped responding' },
       { title: '💀 FATAL ERROR', body: 'pack_overflow detected' },
       { title: '🐕 SYSTEM ERROR', body: 'too much drip detected' },
       { title: '🔥 RUNTIME ERROR', body: 'unauthorized burn event' },
-      { title: '⚡ KERNEL PANIC', body: 'memory leak in /var/sol' }
+      { title: '⚡ KERNEL PANIC', body: 'memory leak in /var/sol' },
+      { title: '🚨 CRITICAL', body: 'GoodBoy.exe overflow' },
+      { title: '⚠️ WARNING', body: 'paw count exceeded limit' },
+      { title: '💥 ABORT', body: 'cannot allocate enough treats' },
+      { title: '🐾 SYS FAULT', body: 'tail wagging too fast' },
+      { title: '☠️ FATAL', body: 'good boy detection failed' }
     ];
     const errorBoxes = [];
     errorMsgs.forEach((msg, i) => {
-      const box = document.createElement('div');
-      box.className = 'crash-error-box';
-      box.innerHTML = `
-        <div class="crash-error-title">${msg.title}</div>
-        <div class="crash-error-body">${msg.body}</div>
-        <div class="crash-error-buttons">
-          <button>End Task</button>
-          <button>Cancel</button>
-          <button>Cry</button>
-        </div>
-      `;
-      box.style.left = (10 + Math.random() * 60) + 'vw';
-      box.style.top = (15 + Math.random() * 50) + 'vh';
-      box.style.animationDelay = (0.15 + i * 0.12) + 's';
-      body.appendChild(box);
-      errorBoxes.push(box);
+      setTimeout(() => {
+        const box = document.createElement('div');
+        box.className = 'crash-error-box';
+        box.innerHTML = `
+          <div class="crash-error-title">${msg.title}</div>
+          <div class="crash-error-body">${msg.body}</div>
+          <div class="crash-error-buttons">
+            <button>End Task</button>
+            <button>Cancel</button>
+            <button>Cry</button>
+          </div>
+        `;
+        box.style.left = (5 + Math.random() * 70) + 'vw';
+        box.style.top = (10 + Math.random() * 60) + 'vh';
+        body.appendChild(box);
+        errorBoxes.push(box);
+      }, i * 110);
     });
 
-    // Phase 2: SHATTER (0.5 - 2s) — sections break apart and fall
+    // === PHASE 2: TOTAL CHAOS (0.5 – 2.5s) — shatter + flash strobes + static ===
     setTimeout(() => {
+      body.classList.add('drippy-strobing'); // red/white flash strobe
+      body.classList.add('drippy-static'); // pixel static overlay
+
+      // Sections shatter into multiple visual chunks before falling
       const blocks = document.querySelectorAll(
         'section, footer, .marquee, nav, .dist-wrap, .live-wrap'
       );
       blocks.forEach((b, i) => {
-        const angle = (Math.random() - 0.5) * 180;
-        const offsetX = (Math.random() - 0.5) * 900;
-        const offsetY = 600 + Math.random() * 800;
-        const delay = Math.random() * 0.4;
+        const angle = (Math.random() - 0.5) * 240;
+        const offsetX = (Math.random() - 0.5) * 1100;
+        const offsetY = 700 + Math.random() * 900;
+        const delay = Math.random() * 0.5;
         b.style.setProperty('--mx', offsetX + 'px');
         b.style.setProperty('--my', offsetY + 'px');
         b.style.setProperty('--mr', angle + 'deg');
@@ -4528,26 +4690,37 @@ setTimeout(() => {
       });
       body.classList.add('drippy-meltdown');
 
-      // Spawn raining Lego bricks
+      // MUCH more falling debris — Legos + glass shards
       const legoOverlay = document.createElement('div');
       legoOverlay.className = 'lego-overlay';
-      const legoColors = ['#f5c542','#a259ff','#ff4d6d','#3eddb6','#fff5c0','#1a8cd8','#ffd966','#ff8800'];
-      for(let i = 0; i < 50; i++){
+      const legoColors = ['#f5c542','#a259ff','#ff4d6d','#3eddb6','#fff5c0','#1a8cd8','#ffd966','#ff8800','#ff3366'];
+      // Legos
+      for(let i = 0; i < 80; i++){
         const lego = document.createElement('div');
         lego.className = 'lego-brick';
         lego.style.left = (Math.random() * 100) + 'vw';
         lego.style.background = legoColors[Math.floor(Math.random() * legoColors.length)];
-        lego.style.width = (14 + Math.random() * 34) + 'px';
-        lego.style.height = (10 + Math.random() * 18) + 'px';
+        lego.style.width = (12 + Math.random() * 36) + 'px';
+        lego.style.height = (8 + Math.random() * 20) + 'px';
         lego.style.animationDelay = (Math.random() * 2.5) + 's';
-        lego.style.animationDuration = (1.6 + Math.random() * 1.8) + 's';
+        lego.style.animationDuration = (1.4 + Math.random() * 2) + 's';
         legoOverlay.appendChild(lego);
+      }
+      // Glass shards (rotating triangles)
+      for(let i = 0; i < 25; i++){
+        const shard = document.createElement('div');
+        shard.className = 'glass-shard';
+        shard.style.left = (Math.random() * 100) + 'vw';
+        shard.style.animationDelay = (Math.random() * 2) + 's';
+        shard.style.animationDuration = (1.4 + Math.random() * 1.6) + 's';
+        shard.style.transform = `rotate(${Math.random() * 360}deg) scale(${.5 + Math.random()})`;
+        legoOverlay.appendChild(shard);
       }
       body.appendChild(legoOverlay);
 
-      // Phase 3: DEAD SCREEN (2.5 - 6.5s) — black screen with fake stack trace
+      // === PHASE 3: TOTAL DEATH (2.5 – 7s) — BSOD-style void ===
       setTimeout(() => {
-        body.classList.remove('drippy-glitch');
+        body.classList.remove('drippy-glitch', 'drippy-impact', 'drippy-strobing', 'drippy-static');
         errorBoxes.forEach(b => b.remove());
 
         const deadScreen = document.createElement('div');
@@ -4555,76 +4728,122 @@ setTimeout(() => {
         deadScreen.innerHTML = `
           <div class="crash-dead-inner">
             <div class="crash-dead-emoji">💀</div>
-            <div class="crash-dead-title">SITE NOT RESPONDING</div>
-            <div class="crash-dead-sub">Drippy.exe has encountered a fatal error.</div>
-            <pre class="crash-dead-trace">
-Stack trace:
-  at PackOverflow.distribute (drippy.js:420:69)
-  at Wallet.eatTheDip (sol.js:1337:0)
-  at GoodBoy.fetchTooHard (paws.js:99:99)
-  at Drippy.bark&lt;anonymous&gt; (woof.js:1:1)
-
-ERROR_CODE: 0xDEADD06
-DUMP: /var/log/too_much_drip.log
-
-Attempting recovery in <span id="crashCountdown">5</span>...</div>
-            <div class="crash-dead-spinner"></div>
+            <div class="crash-dead-title">KERNEL PANIC</div>
+            <div class="crash-dead-sub">drippy.exe has encountered a fatal exception</div>
+            <pre class="crash-dead-trace" id="crashTerm"></pre>
+            <div class="crash-loadbar"><div class="crash-loadbar-fill" id="crashLoadFill"></div></div>
+            <div class="crash-dead-meta">ERROR_CODE: 0xDEADD06 · DUMP: /var/log/too_much_drip.log</div>
           </div>
         `;
         body.appendChild(deadScreen);
 
-        // Countdown
-        let countdown = 5;
-        const cdEl = deadScreen.querySelector('#crashCountdown');
-        const cdInterval = setInterval(() => {
-          countdown--;
-          if(cdEl && countdown >= 0) cdEl.textContent = countdown;
-          if(countdown <= 0) clearInterval(cdInterval);
-        }, 1000);
+        // Type out terminal lines one by one — looks like a real crash log
+        const lines = [
+          'FATAL EXCEPTION 0xDEADD06',
+          'KERNEL PANIC: too_much_drip in drippy.exe',
+          '',
+          'Loaded modules:',
+          '  [F] sol.dll',
+          '  [F] paws.dll',
+          '  [F] woof.sys',
+          '  [F] bones.dll',
+          '  [F] tail.dll',
+          '',
+          'Stack trace:',
+          '  at PackOverflow.distribute (drippy.js:420:69)',
+          '  at Wallet.eatTheDip (sol.js:1337:0)',
+          '  at GoodBoy.fetchTooHard (paws.js:99:99)',
+          '  at Drippy.bark<anonymous> (woof.js:1:1)',
+          '',
+          'Memory dump in progress...',
+          'Calling 911.',
+          'Calling mom.',
+          'Reticulating splines...',
+          '',
+          'Attempting recovery in 4...'
+        ];
+        const term = deadScreen.querySelector('#crashTerm');
+        let lineIdx = 0;
+        const typeInterval = setInterval(() => {
+          if(lineIdx < lines.length){
+            term.textContent += lines[lineIdx] + '\n';
+            lineIdx++;
+          } else {
+            clearInterval(typeInterval);
+          }
+        }, 80);
 
-        // Phase 4: RESTART (6.5s+) — fade out dead screen, sections fly back
+        // Animate the loading bar fill across the dead phase
+        const loadFill = deadScreen.querySelector('#crashLoadFill');
+        let loadPct = 0;
+        const loadInterval = setInterval(() => {
+          loadPct = Math.min(100, loadPct + (Math.random() * 4 + 1));
+          if(loadFill) loadFill.style.width = loadPct + '%';
+        }, 90);
+
+        // === PHASE 4: REBOOT (7 – 7.5s) ===
         setTimeout(() => {
-          clearInterval(cdInterval);
-          deadScreen.classList.add('crash-dead-exit');
+          clearInterval(typeInterval);
+          clearInterval(loadInterval);
 
+          // Show "recovered" message briefly
+          const recovered = document.createElement('div');
+          recovered.className = 'crash-recovered';
+          recovered.innerHTML = `
+            <div class="crash-recovered-text">✓ DRIPPY.EXE RECOVERED</div>
+            <div class="crash-recovered-sub">REBUILDING PACK...</div>
+          `;
+          deadScreen.appendChild(recovered);
+
+          // === PHASE 5: SNAP BACK (7.5 – 8s) ===
           setTimeout(() => {
-            const allBlocks = document.querySelectorAll('section, footer, .marquee, nav, .dist-wrap, .live-wrap');
-            allBlocks.forEach(b => {
-              b.classList.remove('drippy-falling');
-              b.classList.add('drippy-snapback');
-            });
-            body.classList.remove('drippy-meltdown');
-            body.classList.add('drippy-recovering');
+            deadScreen.classList.add('crash-dead-exit');
 
-            // Drippy delivers the punch line
-            setTimeout(() => {
-              const punchline = document.createElement('div');
-              punchline.className = 'drippy-bubble';
-              punchline.textContent = 'Did I do that? 🐕';
-              const rect = target.getBoundingClientRect();
-              punchline.style.left = (rect.left + rect.width / 2) + 'px';
-              punchline.style.top = (rect.top + window.scrollY - 60) + 'px';
-              document.body.appendChild(punchline);
-              setTimeout(() => punchline.remove(), 4500);
-            }, 700);
+            // Gold flash on return
+            const goldFlash = document.createElement('div');
+            goldFlash.className = 'crash-gold-flash';
+            body.appendChild(goldFlash);
+            setTimeout(() => goldFlash.remove(), 500);
 
-            // Cleanup
             setTimeout(() => {
+              const allBlocks = document.querySelectorAll('section, footer, .marquee, nav, .dist-wrap, .live-wrap');
               allBlocks.forEach(b => {
-                b.classList.remove('drippy-snapback');
-                b.style.removeProperty('--mx');
-                b.style.removeProperty('--my');
-                b.style.removeProperty('--mr');
-                b.style.removeProperty('--md');
+                b.classList.remove('drippy-falling');
+                b.classList.add('drippy-snapback');
               });
-              body.classList.remove('drippy-recovering');
-              legoOverlay.remove();
-              deadScreen.remove();
-            }, 1400);
-          }, 400);
-        }, 4000); // dead screen visible for 4s
-      }, 2000); // shatter visible for 2s before dead screen
-    }, 500); // glitch visible for 0.5s before shatter
+              body.classList.remove('drippy-meltdown');
+              body.classList.add('drippy-recovering');
+
+              // Drippy delivers the cocky punch line
+              setTimeout(() => {
+                const punchline = document.createElement('div');
+                punchline.className = 'drippy-bubble';
+                punchline.textContent = 'You broke my site. Worth it. 🐕';
+                const rect = target.getBoundingClientRect();
+                punchline.style.left = (rect.left + rect.width / 2) + 'px';
+                punchline.style.top = (rect.top + window.scrollY - 60) + 'px';
+                document.body.appendChild(punchline);
+                setTimeout(() => punchline.remove(), 4500);
+              }, 800);
+
+              // Cleanup
+              setTimeout(() => {
+                allBlocks.forEach(b => {
+                  b.classList.remove('drippy-snapback');
+                  b.style.removeProperty('--mx');
+                  b.style.removeProperty('--my');
+                  b.style.removeProperty('--mr');
+                  b.style.removeProperty('--md');
+                });
+                body.classList.remove('drippy-recovering');
+                legoOverlay.remove();
+                deadScreen.remove();
+              }, 1500);
+            }, 300);
+          }, 500);
+        }, 4500); // dead screen 4.5s
+      }, 2000); // shatter 2s
+    }, 500); // glitch 0.5s
   }
 })();
 
