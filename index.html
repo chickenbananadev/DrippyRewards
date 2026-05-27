@@ -1192,6 +1192,102 @@ h2 .red{color:var(--crimson);text-shadow:3px 3px 0 #000}
   100%{opacity:0;transform:translate(-50%, -110%) scale(.95) rotate(1deg)}
 }
 
+/* ========== MELTDOWN at 100 clicks ========== */
+.drippy-meltdown{
+  overflow:hidden !important;
+  animation:bodyShake .4s ease-in-out;
+}
+@keyframes bodyShake{
+  0%,100%{transform:translate(0,0)}
+  10%{transform:translate(-8px,4px) rotate(-.5deg)}
+  20%{transform:translate(6px,-3px) rotate(.4deg)}
+  30%{transform:translate(-5px,2px) rotate(-.3deg)}
+  40%{transform:translate(4px,-4px) rotate(.5deg)}
+  50%{transform:translate(-6px,3px) rotate(-.4deg)}
+  60%{transform:translate(5px,-2px) rotate(.3deg)}
+  70%{transform:translate(-3px,4px) rotate(-.2deg)}
+  80%{transform:translate(4px,-1px) rotate(.2deg)}
+}
+
+/* Each block tumbles with its own random vars (set in JS) */
+.drippy-falling{
+  animation:legoTumble 4s cubic-bezier(.55,.05,.7,.4) forwards;
+  animation-delay:var(--md, 0s);
+  transform-origin:50% 50%;
+  position:relative;
+  z-index:1;
+}
+@keyframes legoTumble{
+  0%{
+    transform:translate(0,0) rotate(0) scale(1);
+    opacity:1;
+  }
+  15%{
+    transform:translate(calc(var(--mx, 0px) * .2), 20px) rotate(calc(var(--mr, 0deg) * .25)) scale(.98);
+  }
+  60%{
+    opacity:1;
+  }
+  100%{
+    transform:translate(var(--mx, 0px), var(--my, 600px)) rotate(var(--mr, 30deg)) scale(.85);
+    opacity:0;
+  }
+}
+
+.drippy-snapback{
+  animation:legoSnap .8s cubic-bezier(.18,.89,.32,1.28) forwards;
+  transform-origin:50% 50%;
+}
+@keyframes legoSnap{
+  0%{
+    transform:translate(var(--mx, 0px), calc(var(--my, 600px) * -1)) rotate(calc(var(--mr, 0deg) * -1)) scale(.6);
+    opacity:0;
+  }
+  60%{
+    opacity:1;
+  }
+  100%{
+    transform:translate(0,0) rotate(0) scale(1);
+    opacity:1;
+  }
+}
+
+.drippy-recovering{
+  animation:bodyBounce .5s ease-out;
+}
+@keyframes bodyBounce{
+  0%{transform:scale(.96)}
+  50%{transform:scale(1.02)}
+  100%{transform:scale(1)}
+}
+
+/* Falling Lego brick overlay during meltdown */
+.lego-overlay{
+  position:fixed;inset:0;
+  pointer-events:none;z-index:9998;
+  overflow:hidden;
+}
+.lego-brick{
+  position:absolute;top:-30px;
+  border-radius:3px;
+  box-shadow:0 2px 0 rgba(0,0,0,.4), inset 0 -3px 0 rgba(0,0,0,.25);
+  animation:legoFall linear forwards;
+}
+.lego-brick::before{
+  /* The signature Lego stud on top */
+  content:'';
+  position:absolute;left:25%;top:-4px;
+  width:30%;height:7px;
+  background:inherit;
+  border-radius:50%;
+  box-shadow:0 1px 0 rgba(0,0,0,.3);
+}
+@keyframes legoFall{
+  0%{transform:translateY(-30px) rotate(0);opacity:0}
+  10%{opacity:1}
+  100%{transform:translateY(110vh) rotate(720deg);opacity:1}
+}
+
 /* 100-click reveal banner */
 .drippy-reveal{
   position:fixed;top:50%;left:50%;
@@ -1937,16 +2033,48 @@ footer a:hover{text-decoration:underline}
 }
 
 /* ============================================================
-   INTRO SPLASH — 2.5s gold-drip reveal
+   INTRO SPLASH — bigger, punchier reveal
    ============================================================ */
 .intro{
   position:fixed;inset:0;z-index:9999;
-  background:radial-gradient(ellipse at center, #1a0a2e 0%, #000 80%);
+  background:radial-gradient(ellipse at center, #1a0a2e 0%, #000 70%);
   display:grid;place-items:center;
   overflow:hidden;
-  animation:introExit .8s ease-in 2s forwards;
+  animation:introExit .8s ease-in 2.8s forwards;
 }
 .intro.done{display:none}
+
+/* Pulsing spotlight behind logo */
+.intro::before{
+  content:'';
+  position:absolute;left:50%;top:50%;
+  width:600px;height:600px;
+  transform:translate(-50%,-50%) scale(0);
+  background:radial-gradient(circle, rgba(245,197,66,.35) 0%, rgba(162,89,255,.2) 35%, transparent 70%);
+  filter:blur(20px);
+  animation:spotlightPulse 2.6s ease-out .4s forwards;
+  pointer-events:none;
+}
+@keyframes spotlightPulse{
+  0%{transform:translate(-50%,-50%) scale(0);opacity:0}
+  30%{transform:translate(-50%,-50%) scale(1);opacity:1}
+  100%{transform:translate(-50%,-50%) scale(1.6);opacity:0}
+}
+
+/* Gold flash at logo impact moment */
+.intro::after{
+  content:'';
+  position:absolute;inset:0;
+  background:radial-gradient(circle at center, rgba(255,217,102,.7), transparent 50%);
+  opacity:0;
+  animation:goldFlash .35s ease-out 1.1s forwards;
+  pointer-events:none;mix-blend-mode:screen;
+}
+@keyframes goldFlash{
+  0%{opacity:0}
+  40%{opacity:1}
+  100%{opacity:0}
+}
 
 .intro-drips{position:absolute;inset:0;pointer-events:none;overflow:hidden}
 .intro-drips i{
@@ -1958,6 +2086,10 @@ footer a:hover{text-decoration:underline}
   animation:dropFall linear infinite;
   opacity:.85;
 }
+.intro-drips i.purple-drip{
+  background:linear-gradient(to bottom, transparent, #c98aff, var(--purple));
+  filter:drop-shadow(0 0 12px rgba(162,89,255,.55));
+}
 @keyframes dropFall{
   0%{transform:translateY(-100px) scaleY(.6);opacity:0}
   15%{opacity:1}
@@ -1966,23 +2098,48 @@ footer a:hover{text-decoration:underline}
 
 .intro-logo{
   position:relative;z-index:2;text-align:center;
-  animation:logoIn 1.1s cubic-bezier(.2,.7,.2,1) .3s both;
+  animation:logoIn 1.1s cubic-bezier(.2,.7,.2,1) .3s both,
+            logoShake .12s ease-out 1.1s 2;
 }
 .intro-paw{
   width:78px;height:78px;
   color:var(--gold-bright);
   filter:drop-shadow(0 0 24px rgba(245,197,66,.6));
   margin:0 auto 18px;display:block;
-  animation:pawWiggle 1.4s ease-in-out .8s infinite;
+  animation:pawDrop 1s cubic-bezier(.34,1.56,.64,1) .2s both,
+            pawWiggle 1.4s ease-in-out 1.4s infinite;
+}
+@keyframes pawDrop{
+  0%{opacity:0;transform:translateY(-80px) scale(.4) rotate(-20deg)}
+  60%{transform:translateY(8px) scale(1.15) rotate(5deg)}
+  100%{opacity:1;transform:translateY(0) scale(1) rotate(0)}
 }
 .intro-word{
   font-family:var(--display);
-  font-size:clamp(56px, 12vw, 130px);
+  font-size:clamp(56px, 13vw, 140px);
   line-height:1;letter-spacing:.02em;
+  margin:0;
+  display:inline-flex;gap:2px;
+}
+.intro-word span{
+  display:inline-block;
   background:linear-gradient(180deg, var(--gold-pale), var(--gold-bright) 50%, var(--gold) 100%);
   -webkit-background-clip:text;background-clip:text;color:transparent;
-  filter:drop-shadow(3px 3px 0 rgba(0,0,0,.7)) drop-shadow(0 0 40px rgba(245,197,66,.45));
-  margin:0;
+  filter:drop-shadow(3px 3px 0 rgba(0,0,0,.7)) drop-shadow(0 0 40px rgba(245,197,66,.5));
+  opacity:0;
+  transform:translateY(40px) scale(.4) rotate(-12deg);
+  animation:letterDrop .7s cubic-bezier(.34,1.56,.64,1) forwards;
+}
+.intro-word span:nth-child(1){animation-delay:.5s}
+.intro-word span:nth-child(2){animation-delay:.62s}
+.intro-word span:nth-child(3){animation-delay:.74s}
+.intro-word span:nth-child(4){animation-delay:.86s}
+.intro-word span:nth-child(5){animation-delay:.98s}
+.intro-word span:nth-child(6){animation-delay:1.1s}
+@keyframes letterDrop{
+  0%{opacity:0;transform:translateY(-80px) scale(.4) rotate(-15deg)}
+  60%{opacity:1;transform:translateY(8px) scale(1.15) rotate(4deg)}
+  100%{opacity:1;transform:translateY(0) scale(1) rotate(0)}
 }
 .intro-tag{
   display:block;margin-top:14px;
@@ -1990,12 +2147,35 @@ footer a:hover{text-decoration:underline}
   letter-spacing:.4em;text-transform:uppercase;
   color:var(--gold-bright);
   opacity:0;
-  animation:tagIn .8s ease-out 1.0s forwards;
+  animation:tagIn .8s ease-out 1.6s forwards;
+  text-shadow:0 0 12px rgba(245,197,66,.45);
+}
+.intro-woof{
+  position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%) scale(0) rotate(-12deg);
+  font-family:var(--display);
+  font-size:clamp(36px, 8vw, 80px);
+  color:var(--gold-bright);
+  text-shadow:4px 4px 0 #1a0a2e, 0 0 30px rgba(255,217,102,.7);
+  letter-spacing:.06em;
+  z-index:3;pointer-events:none;
+  animation:woofPop .9s ease-out 1.9s forwards;
+}
+@keyframes woofPop{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(0) rotate(-15deg)}
+  30%{opacity:1;transform:translate(-50%,-50%) scale(1.3) rotate(5deg)}
+  60%{transform:translate(-50%,-50%) scale(1.1) rotate(0)}
+  100%{opacity:0;transform:translate(-50%,-150%) scale(.9) rotate(0)}
 }
 @keyframes logoIn{
   0%{opacity:0;transform:translateY(20px) scale(.92);filter:blur(6px)}
   60%{filter:blur(0)}
   100%{opacity:1;transform:translateY(0) scale(1);filter:blur(0)}
+}
+@keyframes logoShake{
+  0%,100%{transform:translateY(0)}
+  25%{transform:translateY(-3px) translateX(2px)}
+  75%{transform:translateY(2px) translateX(-2px)}
 }
 @keyframes tagIn{
   to{opacity:.95}
@@ -2010,9 +2190,14 @@ footer a:hover{text-decoration:underline}
 
 .intro-curtain{
   position:absolute;inset:0;
-  background:linear-gradient(to top, transparent 0%, #000 50%);
+  background:linear-gradient(to top,
+    transparent 0%,
+    rgba(245,197,66,.05) 30%,
+    rgba(162,89,255,.35) 55%,
+    #1a0a2e 75%,
+    #000 100%);
   transform:translateY(100%);
-  animation:curtain 1s cubic-bezier(.65,0,.35,1) 1.6s forwards;
+  animation:curtain 1s cubic-bezier(.65,0,.35,1) 2.4s forwards;
   pointer-events:none;
 }
 @keyframes curtain{
@@ -2280,9 +2465,10 @@ body.intro-done .ambient-drips{opacity:.55}
         <ellipse cx="65" cy="22" rx="8" ry="11"/>
       </g>
     </svg>
-    <h1 class="intro-word">DRIPPY</h1>
+    <h1 class="intro-word"><span>D</span><span>R</span><span>I</span><span>P</span><span>P</span><span>Y</span></h1>
     <span class="intro-tag">The Solana Dividend Dog</span>
   </div>
+  <div class="intro-woof">WOOF!</div>
   <div class="intro-curtain"></div>
 </div>
 
@@ -2966,8 +3152,74 @@ body.intro-done .ambient-drips{opacity:.55}
   <p>Launched on <a href="https://forgepad.fun/" target="_blank" rel="noopener">Forgepad.fun</a></p>
   <p class="woof">WOOF.</p>
   <p class="disclaimer">$DRIPPY is a memecoin. This is not financial advice. Crypto is highly volatile and you can lose everything. Only spend what you can afford to lose. Drippy is a good dog but he is still a dog.</p>
-  <p class="footer-admin"><a role="button" tabindex="0" id="adminLink">· admin ·</a></p>
+  <p class="footer-admin"><a role="button" tabindex="0" id="adminLink" onclick="document.getElementById('adminModal').classList.add('show'); if(window.checkAdminAuth) window.checkAdminAuth(); return false;">· admin ·</a></p>
 </footer>
+
+<!-- ADMIN MODAL — discreet event management -->
+<div class="admin-modal" id="adminModal">
+  <div class="admin-modal-inner">
+    <button class="admin-close" id="adminClose" aria-label="Close">✕</button>
+
+    <!-- LOGIN VIEW -->
+    <div id="adminLogin">
+      <div class="admin-title">🔐 Admin Access</div>
+      <input type="password" id="adminPwd" class="admin-input" placeholder="Enter admin key" autocomplete="off"/>
+      <button class="admin-btn primary" id="adminLoginBtn">Unlock</button>
+      <div class="admin-error" id="adminLoginError"></div>
+    </div>
+
+    <!-- AUTHENTICATED VIEW -->
+    <div id="adminPanel" style="display:none">
+      <div class="admin-title">📡 Manage Events</div>
+
+      <div class="admin-section">
+        <div class="admin-section-title">Post New Event</div>
+        <div class="admin-form">
+          <input type="text" id="evTitle" class="admin-input" placeholder="Event title (e.g. X Space with the Pack)" />
+          <div class="admin-row">
+            <select id="evType" class="admin-input admin-select">
+              <option value="space">🎙️ X Space</option>
+              <option value="ama">💬 AMA</option>
+              <option value="launch">🚀 Launch</option>
+              <option value="event">📡 Event</option>
+            </select>
+            <input type="number" id="evDuration" class="admin-input" placeholder="Duration (min)" value="60" min="5" max="720"/>
+          </div>
+          <input type="datetime-local" id="evStart" class="admin-input"/>
+          <input type="text" id="evLink" class="admin-input" placeholder="Event link (Space URL, etc) — optional"/>
+          <input type="text" id="evImage" class="admin-input" placeholder="Image URL — optional (paste image link)"/>
+          <button class="admin-btn primary" id="evPostBtn">📡 Post Event</button>
+          <div class="admin-status" id="evStatus"></div>
+        </div>
+      </div>
+
+      <div class="admin-section">
+        <div class="admin-section-title">Currently Scheduled</div>
+        <div class="admin-event-list" id="adminEventList">
+          <div class="admin-empty">Loading...</div>
+        </div>
+      </div>
+
+      <button class="admin-btn ghost" id="adminLogout">Log Out</button>
+    </div>
+  </div>
+</div>
+
+<!-- SHARE CARD MODAL -->
+<div class="share-modal" id="shareModal">
+  <div class="share-modal-inner">
+    <div class="share-modal-title">🃏 Your DripQuests Card</div>
+    <div class="share-card-preview">
+      <canvas id="shareCanvas" class="share-card-canvas" width="800" height="800"></canvas>
+    </div>
+    <div class="share-modal-actions">
+      <button class="share-download-btn" id="shareDownload">📥 Download</button>
+      <a class="share-tweet-btn" id="shareTweet" target="_blank" rel="noopener">𝕏 Tweet It</a>
+      <button class="share-close-btn" id="shareClose">Close</button>
+    </div>
+  </div>
+</div>
+
 
 <script>
 // =====================================================
@@ -3027,20 +3279,23 @@ setTimeout(() => {
 })();
 
 // =====================================================
-// INTRO SPLASH — 2.5s gold-drip reveal then site appears
+// INTRO SPLASH — punchy reveal with letter-by-letter logo
 // =====================================================
 (function(){
   // intro-running class is already on body (pre-applied to prevent FOUC)
-  // Spawn a handful of falling drips behind the logo
+  // Spawn more drips with varied sizes/colors so the rain feels rich
   const wrap = document.getElementById('introDrips');
   if(wrap){
-    const count = 14;
+    const count = 28;
     for(let i = 0; i < count; i++){
       const d = document.createElement('i');
       d.style.left = (Math.random() * 100) + '%';
-      d.style.animationDuration = (1 + Math.random() * 1.2) + 's';
-      d.style.animationDelay = (Math.random() * 0.6) + 's';
-      d.style.transform = `scale(${0.6 + Math.random() * 0.8})`;
+      d.style.animationDuration = (0.9 + Math.random() * 1.4) + 's';
+      d.style.animationDelay = (Math.random() * 0.8) + 's';
+      const scale = 0.5 + Math.random() * 1.0;
+      d.style.transform = `scale(${scale})`;
+      // ~25% chance of being a purple drip for color variety
+      if(Math.random() < 0.25) d.classList.add('purple-drip');
       wrap.appendChild(d);
     }
   }
@@ -3052,7 +3307,7 @@ setTimeout(() => {
     if(intro){
       setTimeout(() => { intro.style.display = 'none'; }, 1000);
     }
-  }, 2500);
+  }, 3300);
 })();
 
 // =====================================================
@@ -3735,32 +3990,89 @@ setTimeout(() => {
       setTimeout(() => treat.remove(), 1500);
     }
 
-    // Big reveal at 100 clicks
+    // 100 clicks: WHOLE PAGE MELTDOWN 🧱
     if(clickCount === 100){
-      const secret = document.createElement('div');
-      secret.textContent = '🐕 OF THE PACK 🐕';
-      secret.className = 'drippy-reveal';
-      document.body.appendChild(secret);
-      setTimeout(() => secret.remove(), 4000);
-      // Drop a treat shower
-      if(burst){
-        for(let i = 0; i < 18; i++){
-          setTimeout(() => {
-            const t = document.createElement('div');
-            t.className = 'treat';
-            t.textContent = treats[Math.floor(Math.random() * treats.length)];
-            const rect = target.getBoundingClientRect();
-            t.style.left = (Math.random() * rect.width) + 'px';
-            t.style.top = (Math.random() * rect.height * .4) + 'px';
-            t.style.setProperty('--dx', ((Math.random() - 0.5) * 200) + 'px');
-            t.style.setProperty('--dy', '-80px');
-            burst.appendChild(t);
-            setTimeout(() => t.remove(), 1500);
-          }, i * 80);
-        }
-      }
+      triggerMeltdown(target, burst, treats);
     }
   });
+
+  // ----- Meltdown sequence: whole page tumbles like Legos, then snaps back -----
+  function triggerMeltdown(target, burst, treats){
+    const body = document.body;
+    if(body.classList.contains('drippy-meltdown')) return; // prevent double-trigger
+
+    // Get every visible top-level section + nav + marquee + footer
+    // We'll give each its own random tumble. CSS variables drive the angles + offsets.
+    const blocks = document.querySelectorAll(
+      'section, footer, .marquee, nav, .dist-wrap, .live-wrap'
+    );
+    blocks.forEach((b, i) => {
+      const angle = (Math.random() - 0.5) * 90;       // -45° to 45°
+      const offsetX = (Math.random() - 0.5) * 600;     // px drift
+      const offsetY = 200 + Math.random() * 600;       // px drop
+      const delay = Math.random() * 0.35;              // staggered fall
+      b.style.setProperty('--mx', offsetX + 'px');
+      b.style.setProperty('--my', offsetY + 'px');
+      b.style.setProperty('--mr', angle + 'deg');
+      b.style.setProperty('--md', delay + 's');
+      b.classList.add('drippy-falling');
+    });
+
+    // Trigger the body-level shake + meltdown class
+    body.classList.add('drippy-meltdown');
+
+    // Spawn falling Lego-style colored blocks across the screen
+    const legoOverlay = document.createElement('div');
+    legoOverlay.className = 'lego-overlay';
+    const legoColors = ['#f5c542','#a259ff','#ff4d6d','#3eddb6','#fff5c0','#1a8cd8','#ffd966'];
+    for(let i = 0; i < 28; i++){
+      const lego = document.createElement('div');
+      lego.className = 'lego-brick';
+      lego.style.left = (Math.random() * 100) + 'vw';
+      lego.style.background = legoColors[Math.floor(Math.random() * legoColors.length)];
+      lego.style.width = (16 + Math.random() * 28) + 'px';
+      lego.style.height = (10 + Math.random() * 16) + 'px';
+      lego.style.animationDelay = (Math.random() * 1.2) + 's';
+      lego.style.animationDuration = (1.8 + Math.random() * 1.5) + 's';
+      legoOverlay.appendChild(lego);
+    }
+    body.appendChild(legoOverlay);
+
+    // After 4 seconds, snap everything back into place
+    setTimeout(() => {
+      blocks.forEach(b => {
+        b.classList.remove('drippy-falling');
+        b.classList.add('drippy-snapback');
+      });
+      body.classList.remove('drippy-meltdown');
+      body.classList.add('drippy-recovering');
+
+      // Drippy delivers the punch line
+      setTimeout(() => {
+        const punchline = document.createElement('div');
+        punchline.className = 'drippy-bubble';
+        punchline.textContent = 'Did I do that? 🐕';
+        const rect = target.getBoundingClientRect();
+        punchline.style.left = (rect.left + rect.width / 2) + 'px';
+        punchline.style.top = (rect.top + window.scrollY - 60) + 'px';
+        document.body.appendChild(punchline);
+        setTimeout(() => punchline.remove(), 4200);
+      }, 500);
+
+      // Cleanup
+      setTimeout(() => {
+        blocks.forEach(b => {
+          b.classList.remove('drippy-snapback');
+          b.style.removeProperty('--mx');
+          b.style.removeProperty('--my');
+          b.style.removeProperty('--mr');
+          b.style.removeProperty('--md');
+        });
+        body.classList.remove('drippy-recovering');
+        legoOverlay.remove();
+      }, 1200);
+    }, 4000);
+  }
 })();
 
 
@@ -3794,6 +4106,9 @@ setTimeout(() => {
 
   function openModal(){ modal.classList.add('show'); checkAuth(); }
   function closeModal(){ modal.classList.remove('show'); loginError.textContent=''; pwdInput.value=''; }
+
+  // Expose globally so the inline onclick fallback in the footer can call it
+  window.checkAdminAuth = checkAuth;
 
   function checkAuth(){
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -4811,71 +5126,6 @@ function copyAddr(srcId, btnId){
   }
 }
 </script>
-
-<!-- ADMIN MODAL — discreet event management -->
-<div class="admin-modal" id="adminModal">
-  <div class="admin-modal-inner">
-    <button class="admin-close" id="adminClose" aria-label="Close">✕</button>
-
-    <!-- LOGIN VIEW -->
-    <div id="adminLogin">
-      <div class="admin-title">🔐 Admin Access</div>
-      <input type="password" id="adminPwd" class="admin-input" placeholder="Enter admin key" autocomplete="off"/>
-      <button class="admin-btn primary" id="adminLoginBtn">Unlock</button>
-      <div class="admin-error" id="adminLoginError"></div>
-    </div>
-
-    <!-- AUTHENTICATED VIEW -->
-    <div id="adminPanel" style="display:none">
-      <div class="admin-title">📡 Manage Events</div>
-
-      <div class="admin-section">
-        <div class="admin-section-title">Post New Event</div>
-        <div class="admin-form">
-          <input type="text" id="evTitle" class="admin-input" placeholder="Event title (e.g. X Space with the Pack)" />
-          <div class="admin-row">
-            <select id="evType" class="admin-input admin-select">
-              <option value="space">🎙️ X Space</option>
-              <option value="ama">💬 AMA</option>
-              <option value="launch">🚀 Launch</option>
-              <option value="event">📡 Event</option>
-            </select>
-            <input type="number" id="evDuration" class="admin-input" placeholder="Duration (min)" value="60" min="5" max="720"/>
-          </div>
-          <input type="datetime-local" id="evStart" class="admin-input"/>
-          <input type="text" id="evLink" class="admin-input" placeholder="Event link (Space URL, etc) — optional"/>
-          <input type="text" id="evImage" class="admin-input" placeholder="Image URL — optional (paste image link)"/>
-          <button class="admin-btn primary" id="evPostBtn">📡 Post Event</button>
-          <div class="admin-status" id="evStatus"></div>
-        </div>
-      </div>
-
-      <div class="admin-section">
-        <div class="admin-section-title">Currently Scheduled</div>
-        <div class="admin-event-list" id="adminEventList">
-          <div class="admin-empty">Loading...</div>
-        </div>
-      </div>
-
-      <button class="admin-btn ghost" id="adminLogout">Log Out</button>
-    </div>
-  </div>
-</div>
-
-<!-- SHARE CARD MODAL -->
-<div class="share-modal" id="shareModal">
-  <div class="share-modal-inner">
-    <div class="share-modal-title">🃏 Your DripQuests Card</div>
-    <div class="share-card-preview">
-      <canvas id="shareCanvas" class="share-card-canvas" width="800" height="800"></canvas>
-    </div>
-    <div class="share-modal-actions">
-      <button class="share-download-btn" id="shareDownload">📥 Download</button>
-      <a class="share-tweet-btn" id="shareTweet" target="_blank" rel="noopener">𝕏 Tweet It</a>
-      <button class="share-close-btn" id="shareClose">Close</button>
-    </div>
-  </div>
-</div>
 
 </body>
 </html>
