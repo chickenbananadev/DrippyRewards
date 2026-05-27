@@ -4109,18 +4109,18 @@ setTimeout(() => {
 // =====================================================
 (function(){
   const QUESTS = [
-    { id: 'join',          img: 'assets/quests/quest-join-pack.png',       icon: '🐕', name: 'Join the Pack',    desc: 'Hold any amount of $DRIPPY',     check: (d) => (d.currentHoldings?.uiAmount || 0) > 0 },
-    { id: 'diamond_start', img: 'assets/quests/quest-diamond-starter.png', icon: '💎', name: 'Diamond Starter',  desc: 'Hold 1M+ $DRIPPY',                check: (d) => (d.currentHoldings?.uiAmount || 0) >= 1_000_000 },
-    { id: 'whale',         img: 'assets/quests/quest-whale.png',           icon: '🐋', name: 'Whale Status',     desc: 'Hold 10M+ $DRIPPY',               check: (d) => (d.currentHoldings?.uiAmount || 0) >= 10_000_000 },
-    { id: 'first_drip',    img: 'assets/quests/quest-first-drip.png',      icon: '💧', name: 'First Drip',       desc: 'Receive your first payout',       check: (d) => (d.distributionCount || 0) >= 1 },
-    { id: 'veteran',       img: 'assets/quests/quest-veteran.png',         icon: '🌊', name: 'Drip Veteran',     desc: 'Receive 50+ payouts',             check: (d) => (d.distributionCount || 0) >= 50 },
-    { id: 'legend',        img: 'assets/quests/quest-legend.png',          icon: '🏆', name: 'Drip Legend',      desc: 'Receive 100+ payouts',            check: (d) => (d.distributionCount || 0) >= 100 },
-    { id: 'init_burn',     img: 'assets/quests/quest-initiate-burn.png',   icon: '🔥', name: 'Initiate the Burn',desc: 'Burn any $DRIPPY',                check: (d) => (d.burner?.burnEvents || 0) >= 1 },
-    { id: 'burn_boss',     img: 'assets/quests/quest-burn-boss.png',       icon: '🔥', name: 'Burn Boss',        desc: 'Burn 1M+ $DRIPPY total',          check: (d) => (d.burner?.tokensBurned || 0) >= 1_000_000 },
-    { id: 'inferno',       img: 'assets/quests/quest-inferno.png',         icon: '⚡', name: 'Inferno',          desc: '5+ separate burn events',          check: (d) => (d.burner?.burnEvents || 0) >= 5 },
-    { id: 'earned_pt1',    img: 'assets/quests/quest-earned-01.png',       icon: '📈', name: 'Earned 0.1 SOL',   desc: 'Earn 0.1+ total SOL',             check: (d) => (d.totalReceivedSol || 0) >= 0.1 },
-    { id: 'earned_pt5',    img: 'assets/quests/quest-earned-05.png',       icon: '🌟', name: 'Half a SOL',       desc: 'Earn 0.5+ total SOL',             check: (d) => (d.totalReceivedSol || 0) >= 0.5 },
-    { id: 'earned_1',      img: 'assets/quests/quest-earned-1.png',        icon: '👑', name: 'SOL Millionaire',  desc: 'Earn 1+ total SOL',               check: (d) => (d.totalReceivedSol || 0) >= 1 }
+    { id: 'join',          img: 'assets/quest-join-pack.png',       icon: '🐕', name: 'Join the Pack',    desc: 'Hold any amount of $DRIPPY',     check: (d) => (d.currentHoldings?.uiAmount || 0) > 0 },
+    { id: 'diamond_start', img: 'assets/quest-diamond-starter.png', icon: '💎', name: 'Diamond Starter',  desc: 'Hold 1M+ $DRIPPY',                check: (d) => (d.currentHoldings?.uiAmount || 0) >= 1_000_000 },
+    { id: 'whale',         img: 'assets/quest-whale.png',           icon: '🐋', name: 'Whale Status',     desc: 'Hold 10M+ $DRIPPY',               check: (d) => (d.currentHoldings?.uiAmount || 0) >= 10_000_000 },
+    { id: 'first_drip',    img: 'assets/quest-first-drip.png',      icon: '💧', name: 'First Drip',       desc: 'Receive your first payout',       check: (d) => (d.distributionCount || 0) >= 1 },
+    { id: 'veteran',       img: 'assets/quest-veteran.png',         icon: '🌊', name: 'Drip Veteran',     desc: 'Receive 50+ payouts',             check: (d) => (d.distributionCount || 0) >= 50 },
+    { id: 'legend',        img: 'assets/quest-legend.png',          icon: '🏆', name: 'Drip Legend',      desc: 'Receive 100+ payouts',            check: (d) => (d.distributionCount || 0) >= 100 },
+    { id: 'init_burn',     img: 'assets/quest-initiate-burn.png',   icon: '🔥', name: 'Initiate the Burn',desc: 'Burn any $DRIPPY',                check: (d) => (d.burner?.burnEvents || 0) >= 1 },
+    { id: 'burn_boss',     img: 'assets/quest-burn-boss.png',       icon: '🔥', name: 'Burn Boss',        desc: 'Burn 1M+ $DRIPPY total',          check: (d) => (d.burner?.tokensBurned || 0) >= 1_000_000 },
+    { id: 'inferno',       img: 'assets/quest-inferno.png',         icon: '⚡', name: 'Inferno',          desc: '5+ separate burn events',          check: (d) => (d.burner?.burnEvents || 0) >= 5 },
+    { id: 'earned_pt1',    img: 'assets/quest-earned-01.png',       icon: '📈', name: 'Earned 0.1 SOL',   desc: 'Earn 0.1+ total SOL',             check: (d) => (d.totalReceivedSol || 0) >= 0.1 },
+    { id: 'earned_pt5',    img: 'assets/quest-earned-05.png',       icon: '🌟', name: 'Half a SOL',       desc: 'Earn 0.5+ total SOL',             check: (d) => (d.totalReceivedSol || 0) >= 0.5 },
+    { id: 'earned_1',      img: 'assets/quest-earned-1.png',        icon: '👑', name: 'SOL Millionaire',  desc: 'Earn 1+ total SOL',               check: (d) => (d.totalReceivedSol || 0) >= 1 }
   ];
 
   // Tier thresholds rebalanced for 12 quests total
