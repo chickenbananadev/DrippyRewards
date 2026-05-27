@@ -7,8 +7,7 @@
 
 const REDIS_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
 const REDIS_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
-// Auto-generated secret - bake into Vercel env var as DRIPPY_EVENTS_SECRET
-const SECRET = process.env.DRIPPY_EVENTS_SECRET || 'DR1PPY_pa4k_4D5m_kEy_2026_xZq8vN3wQ7';
+const SECRET = process.env.DRIPPY_EVENTS_SECRET || '2026Drippyrewards';
 
 const EVENTS_KEY = 'drippy:events:list'; // sorted set: member=event JSON, score=startTime
 
