@@ -1,11 +1,13 @@
 // /api/leaderboard.js
-// Returns the top burners recorded in the Upstash Redis sorted set.
+// Returns top burners OR top earners from Upstash Redis.
+// Usage: /api/leaderboard?type=burn (default) | /api/leaderboard?type=earn
 
 const REDIS_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
 const REDIS_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
 
-const LB_KEY = 'drippy:burn:leaderboard';
-const META_PREFIX = 'drippy:burn:meta:';
+const LB_BURN_KEY = 'drippy:burn:leaderboard';
+const LB_EARN_KEY = 'drippy:earn:leaderboard';
+const META_PREFIX = 'drippy:meta:';
 
 async function redis(command){
   if(!REDIS_URL || !REDIS_TOKEN) return null;
@@ -19,15 +21,9 @@ async function redis(command){
       },
       body: JSON.stringify(stringCmd)
     });
-    if(!r.ok){
-      console.error('[redis] HTTP', r.status, await r.text());
-      return null;
-    }
+    if(!r.ok){ console.error('[redis] HTTP', r.status); return null; }
     const j = await r.json();
-    if(j.error){
-      console.error('[redis] cmd error:', j.error);
-      return null;
-    }
+    if(j.error){ console.error('[redis] err:', j.error); return null; }
     return j.result;
   }catch(e){
     console.error('[redis]', e.message);
@@ -48,36 +44,34 @@ module.exports = async (req, res) => {
     return;
   }
 
+  const type = (req.query.type || 'burn').toLowerCase();
+  const key = type === 'earn' ? LB_EARN_KEY : LB_BURN_KEY;
+
   try {
     const limit = Math.min(parseInt(req.query.limit, 10) || 15, 50);
+    const total = Number(await redis(['ZCARD', key])) || 0;
 
-    // ZCARD — total members in the sorted set
-    const total = Number(await redis(['ZCARD', LB_KEY])) || 0;
-
-    // ZRANGE with REV + WITHSCORES — top N members, highest score first.
-    // (ZRANGE ... REV is the modern form; works on current Upstash.)
-    let raw = await redis(['ZRANGE', LB_KEY, '0', String(limit - 1), 'REV', 'WITHSCORES']);
-
-    // Fallback to legacy ZREVRANGE if the above returns nothing
+    let raw = await redis(['ZRANGE', key, '0', String(limit - 1), 'REV', 'WITHSCORES']);
     if (!raw || raw.length === 0) {
-      raw = await redis(['ZREVRANGE', LB_KEY, '0', String(limit - 1), 'WITHSCORES']);
+      raw = await redis(['ZREVRANGE', key, '0', String(limit - 1), 'WITHSCORES']);
     }
-
     if (!raw || raw.length === 0) {
-      res.status(200).json({ configured: true, entries: [], total: total });
+      res.status(200).json({ configured: true, type, entries: [], total });
       return;
     }
 
-    // raw is a flat array: [member, score, member, score, ...]
     const entries = [];
     for (let i = 0; i < raw.length; i += 2) {
       const wallet = raw[i];
       const score = Number(raw[i + 1]);
       if (!wallet) continue;
-      entries.push({ wallet: wallet, tokensBurned: score, rank: (entries.length) + 1 });
+      const entry = { wallet, rank: entries.length + 1 };
+      if (type === 'earn') entry.totalReceivedSol = score / 1e9; // lamports → SOL
+      else                  entry.tokensBurned = score;
+      entries.push(entry);
     }
 
-    // Fetch metadata for each wallet
+    // Pull display metadata
     await Promise.all(entries.map(async (e) => {
       const metaStr = await redis(['GET', META_PREFIX + e.wallet]);
       if (metaStr) {
@@ -85,19 +79,14 @@ module.exports = async (req, res) => {
           const meta = JSON.parse(metaStr);
           e.burnEvents = meta.burnEvents || 0;
           e.burnWeightSharePct = meta.burnWeightSharePct || 0;
-          e.totalReceivedSol = meta.totalReceivedSol || 0;
-          // Prefer the precise stored value over the rounded score
-          if (meta.tokensBurned) e.tokensBurned = meta.tokensBurned;
+          e.distributionCount = meta.distributionCount || 0;
+          if (type === 'burn' && meta.tokensBurned) e.tokensBurned = meta.tokensBurned;
+          if (type === 'earn' && meta.totalReceivedSol != null) e.totalReceivedSol = meta.totalReceivedSol;
         } catch(_) {}
       }
     }));
 
-    res.status(200).json({
-      configured: true,
-      entries: entries,
-      total: total,
-      fetchedAt: new Date().toISOString()
-    });
+    res.status(200).json({ configured: true, type, entries, total, fetchedAt: new Date().toISOString() });
   } catch (err) {
     console.error('[leaderboard] error:', err);
     res.status(500).json({ error: err.message || 'Unknown error', entries: [], total: 0 });
