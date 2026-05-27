@@ -20,7 +20,6 @@
 
 <!-- Jupiter Plugin — Solana swap aggregator widget (current as of 2026) -->
 <script src="https://plugin.jup.ag/plugin-v1.js" data-preload defer></script>
-<script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
 
 <style>
 :root{
@@ -442,6 +441,45 @@ nav .cta-mini:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 #000}
 
 /* ========== SECTIONS ========== */
 section{position:relative;padding:90px 32px;z-index:2}
+
+/* Subtle gradient dividers — sections flow into each other instead of slamming */
+section + section::before{
+  content:'';
+  position:absolute;top:0;left:50%;
+  width:min(720px, 80%);
+  transform:translateX(-50%);
+  height:1px;
+  background:linear-gradient(90deg, transparent 0%, rgba(245,197,66,.18) 35%, rgba(162,89,255,.22) 65%, transparent 100%);
+  pointer-events:none;
+}
+/* Soft glow ambience between sections — gives the page a sense of depth */
+section:nth-of-type(odd)::after{
+  content:'';
+  position:absolute;left:0;right:0;bottom:-1px;height:120px;
+  background:radial-gradient(ellipse at 50% 0%, rgba(162,89,255,.04), transparent 70%);
+  pointer-events:none;z-index:1;
+}
+
+/* Smooth scroll for nav anchors */
+html{scroll-behavior:smooth}
+
+/* Reveal-on-scroll for major sections */
+@media (prefers-reduced-motion: no-preference){
+  section{
+    opacity:0;transform:translateY(20px);
+    animation:sectionReveal .9s ease-out forwards;
+    animation-timeline:view();
+    animation-range:entry 0% entry 50%;
+  }
+  /* Fallback for browsers without animation-timeline: just show */
+  @supports not (animation-timeline: view()){
+    section{opacity:1;transform:none;animation:none}
+  }
+}
+@keyframes sectionReveal{
+  from{opacity:0;transform:translateY(20px)}
+  to{opacity:1;transform:translateY(0)}
+}
 .container{max-width:1280px;margin:0 auto}
 .eyebrow{
   font-family:var(--mono);font-size:12px;letter-spacing:.32em;
@@ -1115,15 +1153,83 @@ h2 .red{color:var(--crimson);text-shadow:3px 3px 0 #000}
   100%{opacity:0;transform:scale(1) rotate(-5deg) translateY(-40px)}
 }
 
+/* Speech bubble that appears every 20 clicks */
+.drippy-bubble{
+  position:absolute;
+  transform:translate(-50%, -100%);
+  background:linear-gradient(135deg, #fff5c0, #ffd966);
+  color:#1a0a2e;
+  font-family:'Permanent Marker', cursive, sans-serif;
+  font-size:17px;line-height:1.35;
+  padding:14px 18px;
+  border-radius:14px;
+  border:3px solid #0a0610;
+  box-shadow:6px 6px 0 #0a0610, 0 0 30px rgba(245,197,66,.45);
+  max-width:280px;text-align:center;
+  z-index:9999;pointer-events:none;
+  animation:bubblePop 4.2s ease-out forwards;
+}
+.drippy-bubble::after{
+  content:'';
+  position:absolute;left:50%;bottom:-14px;transform:translateX(-50%);
+  border-left:12px solid transparent;
+  border-right:12px solid transparent;
+  border-top:14px solid #0a0610;
+}
+.drippy-bubble::before{
+  content:'';
+  position:absolute;left:50%;bottom:-10px;transform:translateX(-50%);
+  border-left:10px solid transparent;
+  border-right:10px solid transparent;
+  border-top:11px solid #ffd966;
+  z-index:1;
+}
+@keyframes bubblePop{
+  0%{opacity:0;transform:translate(-50%, -80%) scale(.6) rotate(-3deg)}
+  10%{opacity:1;transform:translate(-50%, -100%) scale(1.05) rotate(-1deg)}
+  18%{transform:translate(-50%, -100%) scale(1) rotate(0)}
+  85%{opacity:1;transform:translate(-50%, -100%) scale(1) rotate(0)}
+  100%{opacity:0;transform:translate(-50%, -110%) scale(.95) rotate(1deg)}
+}
+
+/* 100-click reveal banner */
+.drippy-reveal{
+  position:fixed;top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  background:linear-gradient(135deg, #f5c542 0%, #ffd966 35%, #a259ff 100%);
+  color:#0a0610;
+  font-family:'Bowlby One', sans-serif;
+  font-size:42px;letter-spacing:.04em;
+  padding:32px 44px;
+  border-radius:18px;
+  border:4px solid #0a0610;
+  box-shadow:0 0 80px rgba(245,197,66,.7), 0 20px 60px rgba(0,0,0,.6);
+  text-align:center;text-shadow:2px 2px 0 rgba(255,255,255,.5);
+  z-index:10000;pointer-events:none;
+  animation:revealPop 4s ease-out forwards;
+}
+@keyframes revealPop{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(.3) rotate(-8deg)}
+  15%{opacity:1;transform:translate(-50%,-50%) scale(1.15) rotate(2deg)}
+  25%{transform:translate(-50%,-50%) scale(1) rotate(0)}
+  75%{opacity:1;transform:translate(-50%,-50%) scale(1) rotate(0)}
+  100%{opacity:0;transform:translate(-50%,-50%) scale(.9) rotate(0)}
+}
+@media (max-width:540px){
+  .drippy-reveal{font-size:26px;padding:22px 28px}
+  .drippy-bubble{font-size:14px;max-width:240px}
+}
+
 /* ========== ADMIN MODAL ========== */
 .footer-admin{
   margin-top:18px;
-  font-size:10px;opacity:.25;
+  font-size:11px;opacity:.4;
   transition:opacity .2s ease;
+  letter-spacing:.2em;
 }
-.footer-admin:hover{opacity:.6}
+.footer-admin:hover{opacity:.85}
 .footer-admin a{
-  color:rgba(246,233,196,.4);
+  color:rgba(246,233,196,.55);
   text-decoration:none;
   letter-spacing:.3em;
   cursor:pointer;
@@ -2277,6 +2383,136 @@ body.intro-done .ambient-drips{opacity:.55}
   </div>
 </div>
 
+<!-- LIVE DASHBOARD: SWAP + CHART -->
+<section class="dashboard" id="trade">
+  <div class="container">
+    <div class="eyebrow">Trade Live</div>
+    <h2>Buy. <span class="purple">Swap.</span> <span class="gold">Track.</span></h2>
+    <p class="dashboard-sub">Direct on-chain. No middlemen. No nonsense.</p>
+
+    <div class="dashboard-grid">
+      <!-- SWAP PANEL — Jupiter Terminal (real on-site swap) -->
+      <div class="swap-panel">
+        <div class="panel-header">
+          <span class="panel-tag">SWAP $DRIPPY</span>
+          <span class="panel-source">Powered by Jupiter</span>
+        </div>
+        <div class="swap-frame" id="swapFrame">
+          <div id="jupiter-terminal" class="jupiter-container"></div>
+          <div class="swap-fallback" id="swapFallback">
+            <div class="fb-inner">
+              <span class="fb-icon">⚒️</span>
+              <h3>Loading Swap...</h3>
+              <p>If the swap doesn't appear in a few seconds, you can also use ForgeSwap directly.</p>
+              <a class="btn btn-primary" href="https://www.forgeswap.fun/" target="_blank" rel="noopener">⚒️ Open ForgeSwap →</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CHART PANEL -->
+      <div class="chart-panel" id="chart">
+        <div class="panel-header">
+          <span class="panel-tag">LIVE CHART</span>
+          <span class="panel-source">
+            DEXTools ·
+            <a href="https://dexscreener.com/solana/3ohceht4kcjkysrtn4mysd2zwgkwz1cinualvtcchqmz" target="_blank" rel="noopener" class="chart-fullbtn-inline">📊 Full Chart ↗</a>
+          </span>
+        </div>
+        <div class="chart-frame" id="chartFrame">
+          <div class="chart-loading" id="chartLoading">
+            <div class="chart-spinner"></div>
+            <span class="chart-loading-text">LOADING LIVE CHART</span>
+          </div>
+          <iframe
+            id="dextools-widget"
+            title="DEXTools Trading Chart"
+            src="https://www.dextools.io/widget-chart/en/solana/pe-light/3oHcEHT4kCJkYSRTn4MysD2ZWgKWZ1cinUALVTCChQMz?theme=dark&chartType=1&chartResolution=15&drawingToolbars=false&showTradeHistory=true&chartInUsd=true&headerColor=1F2937&tvPlatformColor=1F2937&tvPaneColor=1F2937&tradeHistoryColor=1F2937"
+            loading="eager"
+            allow="clipboard-write"
+            onload="document.getElementById('chartFrame').classList.add('loaded')"
+          ></iframe>
+        </div>
+      </div>
+    </div>
+
+    <div class="dashboard-links">
+      <a href="https://www.forgeswap.fun/" target="_blank" rel="noopener">⚒️ ForgeSwap</a>
+      <a href="https://forgepad.fun/token/EPRZgmvU4aTQ4UaC4bywgNvxJ5YmhuKqM1bx3gw4DRPY" target="_blank" rel="noopener">🚀 Forgepad</a>
+      <a href="https://dexscreener.com/solana/3ohceht4kcjkysrtn4mysd2zwgkwz1cinualvtcchqmz" target="_blank" rel="noopener">📊 DexScreener</a>
+      <a href="https://solscan.io/token/EPRZgmvU4aTQ4UaC4bywgNvxJ5YmhuKqM1bx3gw4DRPY" target="_blank" rel="noopener">🔍 Solscan</a>
+    </div>
+  </div>
+</section>
+
+<!-- MANIFESTO -->
+<section class="manifesto">
+  <h2>We Don't Wait For <span class="gold">Opportunities.</span><br>We <span class="purple">Create</span> Them.</h2>
+  <span class="manifesto-tag">— legends build legacies</span>
+</section>
+
+<!-- LEGEND -->
+<section class="legend" id="legend">
+  <div class="container">
+    <div class="eyebrow">Chapter One</div>
+    <h2>The Legend of <span class="gold">Drippy</span></h2>
+    <div class="legend-grid">
+      <div class="legend-art" id="feedDrippy" title="Click me!">
+        <img src="assets/drippy-hangar.jpg" alt="Drippy at the hangar" />
+        <div class="feed-drippy-burst" id="feedDrippyBurst"></div>
+      </div>
+      <div class="legend-text">
+        <p>In the glittering underbelly of Solana, where blocks fly faster than fire hydrants and every wallet dreams of getting rich, there lived a dog who refused to chase tails. His name was <strong>Drippy</strong>.</p>
+
+        <p>He wasn't born special. Just a scruffy street dog with one floppy ear and a coat that somehow always looked fresh out the wash. But Drippy had a nose for something the rest of the pack missed: the hidden rhythm inside the blockchain itself.</p>
+
+        <p>One moonlit night, during the wildest memecoin frenzy Solana had ever seen, Drippy slipped past the guards of a forgotten liquidity pool and stuck his snout straight into the smart contract. What he found wasn't bones or treats. It was pure, liquid code, a 5% tax mechanism so elegant it made the chain itself hum.</p>
+
+        <p>But Drippy wasn't done. He dug deeper. With a joyful bark, he rewrote part of the contract with his paw:</p>
+
+        <div class="legend-quote">
+          "Every time someone buys or sells, 5% drips back into the pool. Every 30 minutes, that pool rains SOL straight into the wallets of the loyal pack. And for those who prove their loyalty by burning their tokens, the drip becomes twice as strong. Forever."
+        </div>
+
+        <p>From that moment, burning became <strong>sacred</strong> in the Pack. When a holder burns $DRIPPY, those tokens don't just vanish, they become eternal fuel for the drip. The burner receives 2x rewards on the burned amount for the rest of time, even if they hold zero tokens afterward.</p>
+
+        <p>Drippy now roams the chain like a true legend. Every buy and sell feeds the drip. Every burn makes it more powerful. He doesn't care if the market is green or red, the rewards keep flowing like water from a fire hydrant that never runs dry.</p>
+
+        <p><strong>Holders aren't just investors. They're the Pack. And the ones who burn? They become Drippy's Chosen.</strong></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT DRIPS -->
+<section class="drips-section" id="mechanics">
+  <div class="container">
+    <div class="eyebrow">The Mechanics</div>
+    <h2>How The <span class="gold">Drip</span> Works</h2>
+
+    <div class="drip-cards">
+      <div class="drip-card">
+        <div class="num">1</div>
+        <h3>Buy &amp; Sell Tax</h3>
+        <p>Every buy and every sell pays a 5% tax. No exceptions. No exemptions. The tax is the lifeblood of the pool, and the pool is the heart of the Pack.</p>
+        <span class="stat">5%</span>
+      </div>
+      <div class="drip-card">
+        <div class="num">2</div>
+        <h3>Auto-Converted to SOL</h3>
+        <p>100% of that tax gets converted to SOL automatically by the contract. No team wallets. No multisig delays. Just pure, liquid SOL piling up for the pack.</p>
+        <span class="stat">100%</span>
+      </div>
+      <div class="drip-card">
+        <div class="num">3</div>
+        <h3>Rains Every 30 Min</h3>
+        <p>The pool dumps SOL directly into holder wallets every half hour. No claiming. No gas. No hassle. Sleep, eat, scroll, get paid.</p>
+        <span class="stat">30:00</span>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- DISTRIBUTION STATS CARD — Forge tracked rewards -->
 <div class="dist-wrap">
   <div class="dist-card">
@@ -2340,6 +2576,18 @@ body.intro-done .ambient-drips{opacity:.55}
     </div>
   </div>
 </div>
+
+<!-- PROOF OF DRIP wall -->
+<section class="podrip" id="proofofdrip">
+  <div class="container">
+    <div class="eyebrow">On-Chain Truth</div>
+    <h2>Proof of <span class="purple">Drip</span></h2>
+    <p class="podrip-intro">Every distribution is verifiable on Solana. Here are the most recent payouts.</p>
+    <div class="podrip-list" id="podripList">
+      <div class="podrip-loading">Loading recent distributions...</div>
+    </div>
+  </div>
+</section>
 
 <!-- WALLET CHECKER -->
 <section class="wallet-checker" id="checker">
@@ -2469,12 +2717,6 @@ body.intro-done .ambient-drips{opacity:.55}
   </div>
 </section>
 
-<!-- MANIFESTO -->
-<section class="manifesto">
-  <h2>We Don't Wait For <span class="gold">Opportunities.</span><br>We <span class="purple">Create</span> Them.</h2>
-  <span class="manifesto-tag">— legends build legacies</span>
-</section>
-
 <!-- WHAT'S DRIPPING — events feed -->
 <section class="dripping" id="whatsdripping">
   <div class="container">
@@ -2483,142 +2725,6 @@ body.intro-done .ambient-drips{opacity:.55}
     <p class="dripping-intro">X Spaces, AMAs, and announcements from the pack.</p>
     <div class="dripping-list" id="drippingList">
       <div class="dripping-empty">Nothing scheduled right now. Check back soon.</div>
-    </div>
-  </div>
-</section>
-
-<!-- PROOF OF DRIP wall -->
-<section class="podrip" id="proofofdrip">
-  <div class="container">
-    <div class="eyebrow">On-Chain Truth</div>
-    <h2>Proof of <span class="purple">Drip</span></h2>
-    <p class="podrip-intro">Every distribution is verifiable on Solana. Here are the most recent payouts.</p>
-    <div class="podrip-list" id="podripList">
-      <div class="podrip-loading">Loading recent distributions...</div>
-    </div>
-  </div>
-</section>
-
-<!-- LIVE DASHBOARD: SWAP + CHART -->
-<section class="dashboard" id="trade">
-  <div class="container">
-    <div class="eyebrow">Trade Live</div>
-    <h2>Buy. <span class="purple">Swap.</span> <span class="gold">Track.</span></h2>
-    <p class="dashboard-sub">Direct on-chain. No middlemen. No nonsense.</p>
-
-    <div class="dashboard-grid">
-      <!-- SWAP PANEL — Jupiter Terminal (real on-site swap) -->
-      <div class="swap-panel">
-        <div class="panel-header">
-          <span class="panel-tag">SWAP $DRIPPY</span>
-          <span class="panel-source">Powered by Jupiter</span>
-        </div>
-        <div class="swap-frame" id="swapFrame">
-          <div id="jupiter-terminal" class="jupiter-container"></div>
-          <div class="swap-fallback" id="swapFallback">
-            <div class="fb-inner">
-              <span class="fb-icon">⚒️</span>
-              <h3>Loading Swap...</h3>
-              <p>If the swap doesn't appear in a few seconds, you can also use ForgeSwap directly.</p>
-              <a class="btn btn-primary" href="https://www.forgeswap.fun/" target="_blank" rel="noopener">⚒️ Open ForgeSwap →</a>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- CHART PANEL -->
-      <div class="chart-panel" id="chart">
-        <div class="panel-header">
-          <span class="panel-tag">LIVE CHART</span>
-          <span class="panel-source">
-            DEXTools ·
-            <a href="https://dexscreener.com/solana/3ohceht4kcjkysrtn4mysd2zwgkwz1cinualvtcchqmz" target="_blank" rel="noopener" class="chart-fullbtn-inline">📊 Full Chart ↗</a>
-          </span>
-        </div>
-        <div class="chart-frame" id="chartFrame">
-          <div class="chart-loading" id="chartLoading">
-            <div class="chart-spinner"></div>
-            <span class="chart-loading-text">LOADING LIVE CHART</span>
-          </div>
-          <iframe
-            id="dextools-widget"
-            title="DEXTools Trading Chart"
-            src="https://www.dextools.io/widget-chart/en/solana/pe-light/3oHcEHT4kCJkYSRTn4MysD2ZWgKWZ1cinUALVTCChQMz?theme=dark&chartType=1&chartResolution=15&drawingToolbars=false&showTradeHistory=true&chartInUsd=true&headerColor=1F2937&tvPlatformColor=1F2937&tvPaneColor=1F2937&tradeHistoryColor=1F2937"
-            loading="eager"
-            allow="clipboard-write"
-            onload="document.getElementById('chartFrame').classList.add('loaded')"
-          ></iframe>
-        </div>
-      </div>
-    </div>
-
-    <div class="dashboard-links">
-      <a href="https://www.forgeswap.fun/" target="_blank" rel="noopener">⚒️ ForgeSwap</a>
-      <a href="https://forgepad.fun/token/EPRZgmvU4aTQ4UaC4bywgNvxJ5YmhuKqM1bx3gw4DRPY" target="_blank" rel="noopener">🚀 Forgepad</a>
-      <a href="https://dexscreener.com/solana/3ohceht4kcjkysrtn4mysd2zwgkwz1cinualvtcchqmz" target="_blank" rel="noopener">📊 DexScreener</a>
-      <a href="https://solscan.io/token/EPRZgmvU4aTQ4UaC4bywgNvxJ5YmhuKqM1bx3gw4DRPY" target="_blank" rel="noopener">🔍 Solscan</a>
-    </div>
-  </div>
-</section>
-
-<!-- LEGEND -->
-<section class="legend" id="legend">
-  <div class="container">
-    <div class="eyebrow">Chapter One</div>
-    <h2>The Legend of <span class="gold">Drippy</span></h2>
-    <div class="legend-grid">
-      <div class="legend-art" id="feedDrippy" title="Click me!">
-        <img src="assets/drippy-hangar.jpg" alt="Drippy at the hangar" />
-        <div class="feed-drippy-burst" id="feedDrippyBurst"></div>
-      </div>
-      <div class="legend-text">
-        <p>In the glittering underbelly of Solana, where blocks fly faster than fire hydrants and every wallet dreams of getting rich, there lived a dog who refused to chase tails. His name was <strong>Drippy</strong>.</p>
-
-        <p>He wasn't born special. Just a scruffy street dog with one floppy ear and a coat that somehow always looked fresh out the wash. But Drippy had a nose for something the rest of the pack missed: the hidden rhythm inside the blockchain itself.</p>
-
-        <p>One moonlit night, during the wildest memecoin frenzy Solana had ever seen, Drippy slipped past the guards of a forgotten liquidity pool and stuck his snout straight into the smart contract. What he found wasn't bones or treats. It was pure, liquid code, a 5% tax mechanism so elegant it made the chain itself hum.</p>
-
-        <p>But Drippy wasn't done. He dug deeper. With a joyful bark, he rewrote part of the contract with his paw:</p>
-
-        <div class="legend-quote">
-          "Every time someone buys or sells, 5% drips back into the pool. Every 30 minutes, that pool rains SOL straight into the wallets of the loyal pack. And for those who prove their loyalty by burning their tokens, the drip becomes twice as strong. Forever."
-        </div>
-
-        <p>From that moment, burning became <strong>sacred</strong> in the Pack. When a holder burns $DRIPPY, those tokens don't just vanish, they become eternal fuel for the drip. The burner receives 2x rewards on the burned amount for the rest of time, even if they hold zero tokens afterward.</p>
-
-        <p>Drippy now roams the chain like a true legend. Every buy and sell feeds the drip. Every burn makes it more powerful. He doesn't care if the market is green or red, the rewards keep flowing like water from a fire hydrant that never runs dry.</p>
-
-        <p><strong>Holders aren't just investors. They're the Pack. And the ones who burn? They become Drippy's Chosen.</strong></p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- HOW IT DRIPS -->
-<section class="drips-section" id="mechanics">
-  <div class="container">
-    <div class="eyebrow">The Mechanics</div>
-    <h2>How The <span class="gold">Drip</span> Works</h2>
-
-    <div class="drip-cards">
-      <div class="drip-card">
-        <div class="num">1</div>
-        <h3>Buy &amp; Sell Tax</h3>
-        <p>Every buy and every sell pays a 5% tax. No exceptions. No exemptions. The tax is the lifeblood of the pool, and the pool is the heart of the Pack.</p>
-        <span class="stat">5%</span>
-      </div>
-      <div class="drip-card">
-        <div class="num">2</div>
-        <h3>Auto-Converted to SOL</h3>
-        <p>100% of that tax gets converted to SOL automatically by the contract. No team wallets. No multisig delays. Just pure, liquid SOL piling up for the pack.</p>
-        <span class="stat">100%</span>
-      </div>
-      <div class="drip-card">
-        <div class="num">3</div>
-        <h3>Rains Every 30 Min</h3>
-        <p>The pool dumps SOL directly into holder wallets every half hour. No claiming. No gas. No hassle. Sleep, eat, scroll, get paid.</p>
-        <span class="stat">30:00</span>
-      </div>
     </div>
   </div>
 </section>
@@ -2815,23 +2921,6 @@ body.intro-done .ambient-drips{opacity:.55}
   </div>
 </section>
 
-<!-- X TIMELINE EMBED -->
-<section class="xfeed" id="xfeed">
-  <div class="container">
-    <div class="eyebrow">Latest Drips</div>
-    <h2>From The <span class="gold">@drippyrewards</span> Feed</h2>
-    <div class="xfeed-frame">
-      <a class="twitter-timeline"
-         data-theme="dark"
-         data-chrome="noheader nofooter transparent"
-         data-tweet-limit="5"
-         href="https://twitter.com/drippyrewards">
-        Posts by @drippyrewards
-      </a>
-    </div>
-  </div>
-</section>
-
 <!-- THE PACK / SOCIALS -->
 <section class="pack" id="pack">
   <div class="container">
@@ -2876,7 +2965,7 @@ body.intro-done .ambient-drips{opacity:.55}
   <p>Launched on <a href="https://forgepad.fun/" target="_blank" rel="noopener">Forgepad.fun</a></p>
   <p class="woof">WOOF.</p>
   <p class="disclaimer">$DRIPPY is a memecoin. This is not financial advice. Crypto is highly volatile and you can lose everything. Only spend what you can afford to lose. Drippy is a good dog but he is still a dog.</p>
-  <p class="footer-admin"><a href="#" id="adminLink">·</a></p>
+  <p class="footer-admin"><a href="#" id="adminLink">· admin ·</a></p>
 </footer>
 
 <script>
@@ -3541,55 +3630,134 @@ setTimeout(() => {
 
 // =====================================================
 // FEED DRIPPY easter egg
+// 30 lines (cocky / wise / absurd), fires every 20 clicks
+// Big reveal at 100 clicks
 // =====================================================
 (function(){
   const target = document.getElementById('feedDrippy');
   if(!target) return;
   const burst = document.getElementById('feedDrippyBurst');
-  const treats = ['🦴','🍖','🌭','🍗','💧','🔥','💎'];
+  const treats = ['🦴','🍖','🌭','🍗','💧','🔥','💎','⭐','✨'];
   let clickCount = 0;
+
+  const DRIPPY_LINES = [
+    // Cocky
+    "I made 4 SOL while you were clicking me. 🐕",
+    "Other dogs fetch. I distribute SOL.",
+    "I don't chase tails. Tails chase ME.",
+    "While you pet me, the pack eats. 💰",
+    "My worst day pays better than your best stock pick.",
+    "Bark bark bark = bullish in dog.",
+    "I'm not a memecoin. I'm a paycheck with fur.",
+    "I sniffed the chart. It smells like up. 📈",
+    "Diamond hands? I have diamond paws.",
+    "My contract is so clean, it bathes itself.",
+    // Wise
+    "Burn your bags. Eat forever. 🔥",
+    "The pack who holds together drips together.",
+    "Patience is a virtue. SOL is the reward.",
+    "Diamond hands aren't born. They're earned in red candles.",
+    "Every burn lights the way for the next.",
+    "Hold the line. The drips will come.",
+    "Conviction outlasts panic. Always has.",
+    "The chart breathes. So should you.",
+    "Loyalty in. Rewards out. Forever.",
+    "Time in the market beats timing the market. Even for dogs.",
+    // Absurd
+    "I once burned a million tokens. The fire said thank you. 🔥",
+    "I dreamed I was a cat. I sold immediately.",
+    "My favorite indicator is vibes.",
+    "I tried to bark at the moon. It bought a bag.",
+    "I have 9 lives. 8 of them are in $DRIPPY.",
+    "I trained a squirrel to do TA. He's now my analyst.",
+    "I ate the dip. Tasted like profit.",
+    "Yesterday I sneezed and the chart pumped 12%.",
+    "If you can read this, you're already of the pack.",
+    "I'm not a financial advisor. I'm a dog. With great taste."
+  ];
+
+  function showLine(text){
+    const bubble = document.createElement('div');
+    bubble.className = 'drippy-bubble';
+    bubble.textContent = text;
+    document.body.appendChild(bubble);
+    // Position it near the target image
+    const rect = target.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const top = rect.top + window.scrollY - 60;
+    bubble.style.left = cx + 'px';
+    bubble.style.top = top + 'px';
+    setTimeout(() => bubble.remove(), 4200);
+  }
+
+  // Track which lines we've shown to reduce repeats
+  const _shownLines = new Set();
+  function randomUnseen(){
+    if(_shownLines.size >= DRIPPY_LINES.length) _shownLines.clear();
+    let line;
+    do {
+      line = DRIPPY_LINES[Math.floor(Math.random() * DRIPPY_LINES.length)];
+    } while(_shownLines.has(line));
+    _shownLines.add(line);
+    return line;
+  }
 
   target.addEventListener('click', (e) => {
     clickCount++;
+
     // Bark on every 5th click
     if(clickCount % 5 === 0){
       target.classList.remove('bark');
-      void target.offsetWidth; // restart animation
+      void target.offsetWidth;
       target.classList.add('bark');
       setTimeout(() => target.classList.remove('bark'), 800);
     }
-    // Treat fly
+
+    // Speech bubble line on every 20th click
+    if(clickCount % 20 === 0){
+      showLine(randomUnseen());
+    }
+
+    // Treat fly on every click
     if(burst){
       const treat = document.createElement('div');
       treat.className = 'treat';
       treat.textContent = treats[Math.floor(Math.random() * treats.length)];
       const rect = target.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      treat.style.left = x + 'px';
-      treat.style.top = y + 'px';
-      const dx = (Math.random() - 0.5) * 120;
+      treat.style.left = (e.clientX - rect.left) + 'px';
+      treat.style.top = (e.clientY - rect.top) + 'px';
+      const dx = (Math.random() - 0.5) * 140;
       const dy = -40 - Math.random() * 30;
       treat.style.setProperty('--dx', dx + 'px');
       treat.style.setProperty('--dy', dy + 'px');
       burst.appendChild(treat);
       setTimeout(() => treat.remove(), 1500);
     }
-    // Secret unlock at 25 clicks
-    if(clickCount === 25){
+
+    // Big reveal at 100 clicks
+    if(clickCount === 100){
       const secret = document.createElement('div');
-      secret.textContent = '🐕 THE DRIPPY DECREES: YOU ARE OF THE PACK 🐕';
-      secret.style.cssText = `
-        position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
-        background:linear-gradient(135deg,#f5c542,#a259ff);
-        color:#000;font-family:'Bowlby One',sans-serif;font-size:22px;
-        padding:24px 32px;border-radius:14px;z-index:9999;
-        box-shadow:0 0 60px rgba(245,197,66,.6);
-        animation:barkPop 3s ease-out forwards;
-        text-align:center;
-      `;
+      secret.textContent = '🐕 OF THE PACK 🐕';
+      secret.className = 'drippy-reveal';
       document.body.appendChild(secret);
-      setTimeout(() => secret.remove(), 3500);
+      setTimeout(() => secret.remove(), 4000);
+      // Drop a treat shower
+      if(burst){
+        for(let i = 0; i < 18; i++){
+          setTimeout(() => {
+            const t = document.createElement('div');
+            t.className = 'treat';
+            t.textContent = treats[Math.floor(Math.random() * treats.length)];
+            const rect = target.getBoundingClientRect();
+            t.style.left = (Math.random() * rect.width) + 'px';
+            t.style.top = (Math.random() * rect.height * .4) + 'px';
+            t.style.setProperty('--dx', ((Math.random() - 0.5) * 200) + 'px');
+            t.style.setProperty('--dy', '-80px');
+            burst.appendChild(t);
+            setTimeout(() => t.remove(), 1500);
+          }, i * 80);
+        }
+      }
     }
   });
 })();
