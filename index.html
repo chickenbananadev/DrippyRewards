@@ -1932,6 +1932,79 @@ h2 .red{color:var(--crimson);text-shadow:3px 3px 0 #000}
   margin-top:14px;
 }
 .admin-btn.ghost:hover{color:var(--cream)}
+
+/* Event image upload UI */
+.admin-image-group{
+  display:flex;flex-direction:column;gap:8px;
+  padding:10px 12px;
+  background:rgba(10,6,16,.4);
+  border:1px solid rgba(212,164,49,.18);
+  border-radius:8px;
+}
+.admin-image-label{
+  font-family:var(--mono);font-size:11px;
+  color:rgba(246,233,196,.6);
+  letter-spacing:.06em;text-transform:uppercase;
+}
+.admin-image-row{
+  display:flex;align-items:center;gap:10px;
+}
+.admin-file-btn{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:8px 14px;
+  background:linear-gradient(135deg, rgba(245,197,66,.18), rgba(162,89,255,.12));
+  border:1.5px solid rgba(245,197,66,.5);
+  color:var(--gold-glow);
+  font-family:var(--mono);font-size:12px;font-weight:bold;
+  border-radius:6px;cursor:pointer;
+  letter-spacing:.04em;
+  transition:all .2s ease;
+}
+.admin-file-btn:hover{
+  background:linear-gradient(135deg, rgba(245,197,66,.3), rgba(162,89,255,.18));
+  transform:translateY(-1px);
+}
+.admin-file-btn:active{transform:translateY(0)}
+.admin-file-status{
+  font-family:var(--mono);font-size:11px;
+  color:rgba(246,233,196,.55);
+  flex:1;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.admin-file-status.uploading{color:var(--gold-bright)}
+.admin-file-status.success{color:var(--green)}
+.admin-file-status.error{color:#ff6b6b}
+.admin-image-divider{
+  text-align:center;
+  font-family:var(--mono);font-size:10px;
+  color:rgba(246,233,196,.35);
+  letter-spacing:.1em;text-transform:uppercase;
+  padding:4px 0;
+  position:relative;
+}
+.admin-image-divider::before,
+.admin-image-divider::after{
+  content:'';
+  position:absolute;top:50%;
+  width:30%;height:1px;
+  background:rgba(212,164,49,.15);
+}
+.admin-image-divider::before{left:0}
+.admin-image-divider::after{right:0}
+.admin-image-preview{
+  display:none;
+  margin-top:4px;
+  border-radius:6px;
+  overflow:hidden;
+  border:1px solid rgba(212,164,49,.2);
+}
+.admin-image-preview.show{display:block}
+.admin-image-preview img{
+  width:100%;
+  max-height:160px;
+  object-fit:cover;
+  display:block;
+}
 .admin-error{
   color:#ff6b6b;
   font-family:var(--mono);font-size:12px;
@@ -3749,7 +3822,20 @@ body.intro-done .ambient-drips{opacity:.55}
           </div>
           <input type="datetime-local" id="evStart" class="admin-input"/>
           <input type="text" id="evLink" class="admin-input" placeholder="Event link (Space URL, etc) — optional"/>
-          <input type="text" id="evImage" class="admin-input" placeholder="Image URL — optional (paste image link)"/>
+
+          <!-- Event image: upload OR URL paste -->
+          <div class="admin-image-group">
+            <div class="admin-image-label">Event Image (optional)</div>
+            <div class="admin-image-row">
+              <label class="admin-file-btn" for="evImageFile">📷 Choose File</label>
+              <input type="file" id="evImageFile" accept="image/*" hidden/>
+              <span class="admin-file-status" id="evImageFileStatus">No file chosen</span>
+            </div>
+            <div class="admin-image-divider">or paste a URL</div>
+            <input type="text" id="evImage" class="admin-input" placeholder="https://..."/>
+            <div class="admin-image-preview" id="evImagePreview"></div>
+          </div>
+
           <button class="admin-btn primary" id="evPostBtn">📡 Post Event</button>
           <div class="admin-status" id="evStatus"></div>
         </div>
@@ -4915,6 +5001,9 @@ setTimeout(() => {
   const evStart = document.getElementById('evStart');
   const evLink = document.getElementById('evLink');
   const evImage = document.getElementById('evImage');
+  const evImageFile = document.getElementById('evImageFile');
+  const evImageFileStatus = document.getElementById('evImageFileStatus');
+  const evImagePreview = document.getElementById('evImagePreview');
   const postBtn = document.getElementById('evPostBtn');
   const evStatus = document.getElementById('evStatus');
   const adminEventList = document.getElementById('adminEventList');
@@ -4971,6 +5060,97 @@ setTimeout(() => {
     checkAuth();
   }
 
+  // === Image upload handling (Vercel Blob) ===
+  let pendingUploadedUrl = null;
+
+  function setImagePreview(url){
+    if(!evImagePreview) return;
+    if(url){
+      evImagePreview.innerHTML = `<img src="${url}" alt="Preview"/>`;
+      evImagePreview.classList.add('show');
+    } else {
+      evImagePreview.innerHTML = '';
+      evImagePreview.classList.remove('show');
+    }
+  }
+
+  if(evImage){
+    // Live preview when URL is typed/pasted
+    evImage.addEventListener('input', () => {
+      const url = evImage.value.trim();
+      // Clear any uploaded file state if they switch to URL mode
+      if(url && pendingUploadedUrl && url !== pendingUploadedUrl){
+        pendingUploadedUrl = null;
+        if(evImageFile) evImageFile.value = '';
+        if(evImageFileStatus){
+          evImageFileStatus.textContent = 'No file chosen';
+          evImageFileStatus.className = 'admin-file-status';
+        }
+      }
+      setImagePreview(url || null);
+    });
+  }
+
+  if(evImageFile){
+    evImageFile.addEventListener('change', async (e) => {
+      const file = e.target.files && e.target.files[0];
+      if(!file) return;
+      const key = localStorage.getItem(STORAGE_KEY);
+      if(!key){
+        if(evImageFileStatus){
+          evImageFileStatus.textContent = 'Not logged in';
+          evImageFileStatus.className = 'admin-file-status error';
+        }
+        return;
+      }
+
+      // Size check (4MB cap matches API)
+      if(file.size > 4 * 1024 * 1024){
+        if(evImageFileStatus){
+          evImageFileStatus.textContent = `File too large (${(file.size/1024/1024).toFixed(1)}MB, max 4MB)`;
+          evImageFileStatus.className = 'admin-file-status error';
+        }
+        evImageFile.value = '';
+        return;
+      }
+
+      if(evImageFileStatus){
+        evImageFileStatus.textContent = `Uploading ${file.name}...`;
+        evImageFileStatus.className = 'admin-file-status uploading';
+      }
+
+      try{
+        const res = await fetch('/api/upload-image', {
+          method: 'POST',
+          headers: {
+            'Content-Type': file.type || 'application/octet-stream',
+            'X-Filename': file.name,
+            'X-Admin-Secret': key
+          },
+          body: file
+        });
+        const data = await res.json();
+        if(!res.ok || !data.url){
+          throw new Error(data.error || 'upload failed');
+        }
+        pendingUploadedUrl = data.url;
+        evImage.value = data.url;
+        setImagePreview(data.url);
+        if(evImageFileStatus){
+          evImageFileStatus.textContent = `✓ ${file.name} uploaded`;
+          evImageFileStatus.className = 'admin-file-status success';
+        }
+      }catch(err){
+        console.error('[upload]', err);
+        if(evImageFileStatus){
+          evImageFileStatus.textContent = `Upload failed: ${err.message}`;
+          evImageFileStatus.className = 'admin-file-status error';
+        }
+        pendingUploadedUrl = null;
+      }
+    });
+  }
+
   async function postEvent(){
     const key = localStorage.getItem(STORAGE_KEY);
     if(!key){ evStatus.textContent='Not logged in'; evStatus.className='admin-status error'; return; }
@@ -5006,11 +5186,17 @@ setTimeout(() => {
         evTitle.value = '';
         evLink.value = '';
         evImage.value = '';
+        if(evImageFile) evImageFile.value = '';
+        if(evImageFileStatus){
+          evImageFileStatus.textContent = 'No file chosen';
+          evImageFileStatus.className = 'admin-file-status';
+        }
+        setImagePreview(null);
+        pendingUploadedUrl = null;
         loadEventList();
         // Refresh public events feed
         const list = document.getElementById('drippingList');
         if(list){
-          // Trigger a reload on the public feed by re-fetching
           fetch('/api/events', { cache: 'no-store' }).then(r => r.json()).then(d2 => {
             if(d2.events && d2.events.length){
               window.dispatchEvent(new CustomEvent('drippyEventsUpdated'));
