@@ -1,20 +1,22 @@
 // /api/wallet.js
-// Proxies Forge's per-wallet distribution endpoint, AND records the wallet's
-// burn stats into an Upstash Redis sorted set so we can build a leaderboard.
+// Returns wallet stats for the $DRIPPY token.
 //
-// Usage: /api/wallet?address=<SOLANA_WALLET_ADDRESS>
+// Important: Forge's `currentHoldings.uiAmount` is unreliable (returns 2x the
+// real balance for wallets that hold AND have burned). We fetch the TRUE
+// on-chain balance from Helius RPC and pass it as `currentHoldings` (and
+// expose Forge's number separately as `rewardWeight` for transparency).
 
 const TOKEN_MINT = 'EPRZgmvU4aTQ4UaC4bywgNvxJ5YmhuKqM1bx3gw4DRPY';
+const HELIUS_KEY = process.env.HELIUS_API_KEY || 'c3f500f3-db28-4d44-994f-0fa0e0ebd510';
 
-// Upstash Redis REST API — credentials injected by the Vercel integration.
 const REDIS_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
 const REDIS_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
 
-const LB_KEY = 'drippy:burn:leaderboard';   // sorted set: member=wallet, score=tokensBurned
-const META_PREFIX = 'drippy:burn:meta:';    // per-wallet detail (JSON string)
+const LB_KEY = 'drippy:burn:leaderboard';
+const LB_EARN_KEY = 'drippy:earn:leaderboard';
+const META_PREFIX = 'drippy:meta:';
 
-// Minimal Redis REST helper. Upstash expects every element of the command
-// array to be a STRING — numbers must be stringified or the command misbehaves.
+// --- Redis helper -------------------------------------------------------
 async function redis(command){
   if(!REDIS_URL || !REDIS_TOKEN) return null;
   try{
@@ -43,6 +45,43 @@ async function redis(command){
   }
 }
 
+// --- On-chain balance via Helius RPC ------------------------------------
+async function getOnChainBalance(owner){
+  try{
+    const url = 'https://mainnet.helius-rpc.com/?api-key=' + HELIUS_KEY;
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'getTokenAccountsByOwner',
+        params: [
+          owner,
+          { mint: TOKEN_MINT },
+          { encoding: 'jsonParsed' }
+        ]
+      })
+    });
+    if(!r.ok){
+      console.error('[helius] HTTP', r.status);
+      return null;
+    }
+    const j = await r.json();
+    const accounts = j?.result?.value || [];
+    let total = 0;
+    accounts.forEach(acc => {
+      const ui = acc?.account?.data?.parsed?.info?.tokenAmount?.uiAmount;
+      if(typeof ui === 'number') total += ui;
+    });
+    return total;
+  }catch(e){
+    console.error('[helius]', e.message);
+    return null;
+  }
+}
+
+// --- Main handler -------------------------------------------------------
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
@@ -60,20 +99,34 @@ module.exports = async (req, res) => {
   }
 
   try {
+    // Fire Forge and Helius in parallel
     const forgeUrl = 'https://forgepad.fun/api/distributions/wallet/' + address + '?contract=' + TOKEN_MINT;
-    const r = await fetch(forgeUrl, {
-      headers: { 'Accept': 'application/json', 'User-Agent': 'DrippyRewards-Site/1.0' }
-    });
+    const [forgeRes, onChainBalance] = await Promise.all([
+      fetch(forgeUrl, { headers: { 'Accept': 'application/json', 'User-Agent': 'DrippyRewards-Site/1.0' } }),
+      getOnChainBalance(address)
+    ]);
 
-    if (r.status === 404) {
-      res.status(200).json({ found: false, wallet: address, message: 'No distributions found for this wallet' });
+    if (forgeRes.status === 404) {
+      res.status(200).json({
+        found: false,
+        wallet: address,
+        currentHoldings: { uiAmount: onChainBalance || 0 },
+        message: 'No distributions found for this wallet'
+      });
       return;
     }
-    if (!r.ok) { res.status(r.status).json({ error: 'Forge returned ' + r.status }); return; }
+    if (!forgeRes.ok) { res.status(forgeRes.status).json({ error: 'Forge returned ' + forgeRes.status }); return; }
 
-    const data = await r.json();
+    const data = await forgeRes.json();
     const lamportsToSol = (n) => Number(n || 0) / 1e9;
     const burner = data.burnerStats || {};
+
+    // Real wallet balance comes from Helius. Forge's number is exposed as
+    // "rewardWeight" — what Forge uses to compute reward distribution shares.
+    const realHoldings = onChainBalance != null
+      ? onChainBalance
+      : (data.currentHoldings?.uiAmount || 0);
+    const forgeWeightedHoldings = data.currentHoldings?.uiAmount || 0;
 
     const formatted = {
       found: true,
@@ -92,7 +145,10 @@ module.exports = async (req, res) => {
         status: d.status,
         txSig: d.txSig
       })),
-      currentHoldings: data.currentHoldings ? { uiAmount: data.currentHoldings.uiAmount || 0 } : { uiAmount: 0 },
+      // TRUE on-chain balance — what shows in the wallet
+      currentHoldings: { uiAmount: realHoldings },
+      // Forge's number — the burn-weighted reward share value
+      rewardWeight: forgeWeightedHoldings,
       burner: {
         enabled: !!burner.burnToEarnEnabled,
         tokensBurned: burner.tokensBurnedUi || 0,
@@ -102,31 +158,41 @@ module.exports = async (req, res) => {
       fetchedAt: new Date().toISOString()
     };
 
-    // ---- Leaderboard: record this wallet if it has burned ----
-    let rank = null;
+    // ---- Leaderboards: record this wallet ----
+    let burnRank = null;
+    let earnRank = null;
+
+    // Burn leaderboard — only if they've actually burned
     if (formatted.burner.burnEvents > 0 && formatted.burner.tokensBurned > 0) {
-      // Score must be an integer-ish string for ZADD. Round to whole tokens.
-      const score = Math.round(formatted.burner.tokensBurned);
-
-      // ZADD key score member  — adds or updates this wallet in the sorted set.
-      // GT flag is NOT used so a re-check always refreshes the score.
-      await redis(['ZADD', LB_KEY, score, address]);
-
-      // Store display metadata for this wallet
-      await redis(['SET', META_PREFIX + address, JSON.stringify({
-        burnEvents: formatted.burner.burnEvents,
-        burnWeightSharePct: formatted.burner.burnWeightSharePct,
-        tokensBurned: formatted.burner.tokensBurned,
-        totalReceivedSol: formatted.totalReceivedSol,
-        updatedAt: Date.now()
-      })]);
-
-      // ZREVRANK key member — 0-based rank, highest score first
-      const rankResult = await redis(['ZREVRANK', LB_KEY, address]);
-      if (rankResult != null) rank = Number(rankResult) + 1;
+      const burnScore = Math.round(formatted.burner.tokensBurned);
+      await redis(['ZADD', LB_KEY, burnScore, address]);
+      const r = await redis(['ZREVRANK', LB_KEY, address]);
+      if (r != null) burnRank = Number(r) + 1;
     }
 
-    formatted.leaderboardRank = rank;
+    // Earn leaderboard — track everyone with any distributions
+    if (formatted.totalReceivedSol > 0) {
+      // Use lamports for precision (Redis ZADD needs integer-ish score)
+      const earnScore = Math.round(Number(formatted.totalReceivedLamports) || 0);
+      await redis(['ZADD', LB_EARN_KEY, earnScore, address]);
+      const r = await redis(['ZREVRANK', LB_EARN_KEY, address]);
+      if (r != null) earnRank = Number(r) + 1;
+    }
+
+    // Persist display metadata (used by leaderboard endpoint)
+    await redis(['SET', META_PREFIX + address, JSON.stringify({
+      burnEvents: formatted.burner.burnEvents,
+      burnWeightSharePct: formatted.burner.burnWeightSharePct,
+      tokensBurned: formatted.burner.tokensBurned,
+      totalReceivedSol: formatted.totalReceivedSol,
+      currentHoldings: realHoldings,
+      distributionCount: formatted.distributionCount,
+      updatedAt: Date.now()
+    })]);
+
+    formatted.leaderboardRank = burnRank;     // backwards-compat alias
+    formatted.burnRank = burnRank;
+    formatted.earnRank = earnRank;
 
     res.status(200).json(formatted);
   } catch (err) {
