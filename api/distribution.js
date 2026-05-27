@@ -10,7 +10,7 @@ module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  res.setHeader('Cache-Control', 's-maxage=30, stale-while-revalidate=60');
+  res.setHeader('Cache-Control', 's-maxage=10, stale-while-revalidate=30');
 
   if (req.method === 'OPTIONS') {
     res.status(204).end();
