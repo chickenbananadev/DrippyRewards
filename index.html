@@ -2063,14 +2063,19 @@ h2 .red{color:var(--crimson);text-shadow:3px 3px 0 #000}
 
 /* ========== EVENT IMAGES (in the public events feed) ========== */
 .dripping-item{position:relative}
+.dripping-item.has-img{
+  flex-wrap:wrap;
+}
 .dripping-img{
-  width:60px;height:60px;flex-shrink:0;
-  border-radius:8px;
+  width:100%;max-width:680px;height:auto;max-height:320px;
+  flex-shrink:0;order:10;
+  border-radius:10px;
   object-fit:cover;
   border:1.5px solid rgba(212,164,49,.35);
+  margin-top:12px;
 }
 @media (max-width:540px){
-  .dripping-img{width:48px;height:48px}
+  .dripping-img{max-height:200px}
 }
 
 /* ========== SHARE CARD MODAL ========== */
@@ -4607,7 +4612,7 @@ setTimeout(() => {
       listEl.innerHTML = '';
       d.events.forEach(ev => {
         const item = document.createElement('div');
-        item.className = 'dripping-item' + (ev.status === 'live' ? ' live' : '');
+        item.className = 'dripping-item' + (ev.status === 'live' ? ' live' : '') + (ev.image ? ' has-img' : '');
         const badge = ev.status === 'live'
           ? '<span class="dripping-badge live">🔴 LIVE</span>'
           : '<span class="dripping-badge upcoming">⏰ ' + fmtCountdown(ev.start - Date.now()) + '</span>';
@@ -4634,6 +4639,7 @@ setTimeout(() => {
   }
   load();
   setInterval(load, 30000);
+  window.addEventListener('drippyEventsUpdated', load);
 })();
 
 
