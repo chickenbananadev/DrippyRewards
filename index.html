@@ -1115,16 +1115,54 @@ h2 .red{color:var(--crimson);text-shadow:3px 3px 0 #000}
   display:block;
   transition:transform .35s ease, filter .35s ease;
 }
-.dq-tile.locked .dq-tile-art img{
-  filter:grayscale(95%) brightness(.4) blur(1px);
+/* Locked tile — full mystery design, character art hidden */
+.dq-tile.locked .dq-tile-art{
+  background:
+    radial-gradient(circle at 50% 30%, rgba(245,197,66,.06), transparent 65%),
+    linear-gradient(135deg, #0a0610 0%, #1a0a2e 50%, #0a0610 100%);
+  border-color:rgba(245,197,66,.18);
+  position:relative;
+  overflow:hidden;
 }
-.dq-tile.locked .dq-tile-art::after{
-  content:'🔒';
+.dq-tile.locked .dq-tile-art::before{
+  /* Subtle moving shimmer to hint there's something there */
+  content:'';
   position:absolute;inset:0;
-  display:grid;place-items:center;
-  font-size:36px;
-  color:rgba(255,255,255,.5);
-  text-shadow:0 0 12px rgba(0,0,0,.7);
+  background:linear-gradient(115deg,
+    transparent 30%,
+    rgba(245,197,66,.05) 50%,
+    transparent 70%);
+  animation:mysteryShimmer 3.5s ease-in-out infinite;
+  pointer-events:none;
+}
+@keyframes mysteryShimmer{
+  0%,100%{transform:translateX(-30%)}
+  50%{transform:translateX(30%)}
+}
+.dq-tile-mystery{
+  position:absolute;inset:0;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  gap:8px;
+  z-index:1;
+}
+.dq-tile-mystery-lock{
+  font-size:42px;
+  color:rgba(245,197,66,.55);
+  text-shadow:0 0 14px rgba(245,197,66,.4);
+  filter:drop-shadow(0 0 6px rgba(0,0,0,.6));
+  animation:lockBob 4s ease-in-out infinite;
+}
+@keyframes lockBob{
+  0%,100%{transform:translateY(0) rotate(0)}
+  50%{transform:translateY(-2px) rotate(-2deg)}
+}
+.dq-tile-mystery-q{
+  font-family:var(--display, 'Bowlby One', sans-serif);
+  font-size:28px;
+  letter-spacing:.15em;
+  color:rgba(162,89,255,.55);
+  text-shadow:0 0 12px rgba(162,89,255,.4);
 }
 .dq-tile.unlocked .dq-tile-art{
   border-color:var(--gold);
@@ -4303,10 +4341,17 @@ setTimeout(() => {
       const isUnlocked = walletData ? !!q.check(walletData) : false;
       const tile = document.createElement('div');
       tile.className = 'dq-tile' + (isUnlocked ? ' unlocked' : ' locked');
+      // Only render the actual Drippy image if unlocked. Locked tiles show a
+      // mystery placeholder — quest name + description visible, but the
+      // character art stays hidden until earned. Big reveal moment on unlock.
+      const artInner = isUnlocked
+        ? `<img src="${q.img}" alt="${q.name}" loading="lazy" />`
+        : `<div class="dq-tile-mystery">
+             <div class="dq-tile-mystery-lock">🔒</div>
+             <div class="dq-tile-mystery-q">???</div>
+           </div>`;
       tile.innerHTML = `
-        <div class="dq-tile-art">
-          <img src="${q.img}" alt="${q.name}" loading="lazy" />
-        </div>
+        <div class="dq-tile-art">${artInner}</div>
         <div class="dq-tile-name">${q.name}</div>
         <div class="dq-tile-desc">${q.desc}</div>
       `;
@@ -5229,7 +5274,7 @@ setTimeout(() => {
     // Stats grid — 2x2
     const stats = [
       { label: 'DISTRIBUTIONS', value: (d.distributionCount || 0).toLocaleString() },
-      { label: 'HOLDING',       value: fmtTokens(d.currentHoldings?.uiAmount || 0) },
+      { label: 'IN THE PACK',   value: (d.daysHolding != null) ? (d.daysHolding === 0 ? 'TODAY' : d.daysHolding === 1 ? '1 DAY' : d.daysHolding + ' DAYS') : 'HOLDER ✓' },
       { label: 'BURNED',        value: fmtTokens(d.burner?.tokensBurned || 0) },
       { label: 'BURN WEIGHT',   value: (d.burner?.burnWeightSharePct || 0).toFixed(2) + '%' }
     ];
