@@ -81,6 +81,88 @@ async function getOnChainBalance(owner){
   }
 }
 
+// --- First-acquired timestamp via Helius -------------------------------
+// Finds the earliest signature for the wallet's DRPY token account, which
+// approximates "first acquired" — fine enough for a "days in the pack"
+// counter. Cached in Redis per-wallet (24h) to avoid hammering Helius.
+async function getFirstDripDate(owner){
+  // Try cache first
+  const cacheKey = META_PREFIX + 'firstdrip:' + owner;
+  try{
+    const cached = await redis(['GET', cacheKey]);
+    if(cached){
+      const ts = Number(cached);
+      if(ts > 0) return ts;
+    }
+  }catch(_){}
+
+  try{
+    // Step 1: find the wallet's DRPY token account address
+    const url = 'https://mainnet.helius-rpc.com/?api-key=' + HELIUS_KEY;
+    const accRes = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0', id: 1,
+        method: 'getTokenAccountsByOwner',
+        params: [owner, { mint: TOKEN_MINT }, { encoding: 'jsonParsed' }]
+      })
+    });
+    if(!accRes.ok) return null;
+    const accJ = await accRes.json();
+    const tokenAccounts = (accJ?.result?.value || []).map(a => a.pubkey);
+    if(!tokenAccounts.length) return null;
+
+    // Step 2: for each token account, find the OLDEST signature
+    // We paginate to the end (before = oldest) to get the first ever tx
+    let earliest = null;
+    for(const acc of tokenAccounts){
+      let before = null;
+      let oldestForThisAcc = null;
+      // Walk back through pages until no more results — capped at 5 pages to
+      // protect against runaway wallets
+      for(let page = 0; page < 5; page++){
+        const params = before ? { before, limit: 1000 } : { limit: 1000 };
+        const sigRes = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            jsonrpc: '2.0', id: 1,
+            method: 'getSignaturesForAddress',
+            params: [acc, params]
+          })
+        });
+        if(!sigRes.ok) break;
+        const sigJ = await sigRes.json();
+        const sigs = sigJ?.result || [];
+        if(!sigs.length) break;
+        // Sigs come back newest-first; take the last one
+        const last = sigs[sigs.length - 1];
+        if(last?.blockTime) oldestForThisAcc = last.blockTime;
+        // If we got a full page, paginate
+        if(sigs.length === 1000){
+          before = last.signature;
+        } else {
+          break; // last page
+        }
+      }
+      if(oldestForThisAcc != null){
+        if(earliest == null || oldestForThisAcc < earliest) earliest = oldestForThisAcc;
+      }
+    }
+
+    if(earliest != null){
+      // Cache for 24 hours
+      await redis(['SET', cacheKey, String(earliest), 'EX', '86400']);
+      return earliest; // unix seconds
+    }
+    return null;
+  }catch(e){
+    console.error('[helius-firstdrip]', e.message);
+    return null;
+  }
+}
+
 // --- Main handler -------------------------------------------------------
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -99,18 +181,28 @@ module.exports = async (req, res) => {
   }
 
   try {
-    // Fire Forge and Helius in parallel
+    // Fire Forge, Helius balance, and Helius first-drip in parallel
     const forgeUrl = 'https://forgepad.fun/api/distributions/wallet/' + address + '?contract=' + TOKEN_MINT;
-    const [forgeRes, onChainBalance] = await Promise.all([
+    const [forgeRes, onChainBalance, firstDripTs] = await Promise.all([
       fetch(forgeUrl, { headers: { 'Accept': 'application/json', 'User-Agent': 'DrippyRewards-Site/1.0' } }),
-      getOnChainBalance(address)
+      getOnChainBalance(address),
+      getFirstDripDate(address)
     ]);
+
+    // Compute days-holding from first-drip timestamp (if found)
+    let daysHolding = null;
+    if(firstDripTs && typeof firstDripTs === 'number'){
+      const nowSec = Math.floor(Date.now() / 1000);
+      daysHolding = Math.max(0, Math.floor((nowSec - firstDripTs) / 86400));
+    }
 
     if (forgeRes.status === 404) {
       res.status(200).json({
         found: false,
         wallet: address,
         currentHoldings: { uiAmount: onChainBalance || 0 },
+        daysHolding,
+        firstDripTimestamp: firstDripTs,
         message: 'No distributions found for this wallet'
       });
       return;
@@ -149,6 +241,9 @@ module.exports = async (req, res) => {
       currentHoldings: { uiAmount: realHoldings },
       // Forge's number — the burn-weighted reward share value
       rewardWeight: forgeWeightedHoldings,
+      // Days since this wallet first acquired DRPY (may be null if Helius failed)
+      daysHolding,
+      firstDripTimestamp: firstDripTs,
       burner: {
         enabled: !!burner.burnToEarnEnabled,
         tokensBurned: burner.tokensBurnedUi || 0,
