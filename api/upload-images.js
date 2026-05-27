@@ -1,17 +1,12 @@
 // /api/upload-image.js
 // Uploads an image file to Vercel Blob storage and returns its public URL.
 // Used by the admin panel for posting events with images.
-//
-// Requires the BLOB_READ_WRITE_TOKEN env var (auto-set by Vercel when you
-// enable Blob storage in the project's Storage tab).
 
 const ADMIN_SECRET = process.env.DRIPPY_EVENTS_SECRET || '2026Drippyrewards';
-
-// Vercel Blob has a put() function but their SDK requires the package.
-// To stay zero-deps we POST directly to their REST API.
 const BLOB_TOKEN = process.env.BLOB_READ_WRITE_TOKEN;
 const BLOB_API = 'https://blob.vercel-storage.com';
 
+// Vercel Node.js runtime — disable body parsing so we get the raw stream
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -20,53 +15,43 @@ module.exports = async (req, res) => {
 
   if (req.method === 'OPTIONS') { res.status(204).end(); return; }
   if (req.method !== 'POST') {
-    res.status(405).json({ error: 'POST only' });
-    return;
+    return res.status(405).json({ error: 'POST only' });
   }
 
-  // Auth — same admin secret as events.js
   const secret = req.headers['x-admin-secret'] || req.query.secret;
   if (secret !== ADMIN_SECRET) {
-    res.status(401).json({ error: 'unauthorized' });
-    return;
+    return res.status(401).json({ error: 'unauthorized' });
   }
 
   if (!BLOB_TOKEN) {
-    res.status(500).json({
-      error: 'Vercel Blob not configured. Enable Blob storage in Vercel project settings (Storage tab) and redeploy.'
+    return res.status(500).json({
+      error: 'Vercel Blob not configured. Enable Blob storage in Vercel project settings.'
     });
-    return;
   }
 
-  // Filename from header (sanitized) — fall back to a timestamp
-  const rawName = req.headers['x-filename'] || 'image';
-  // Strip path bits + non-safe chars
+  const rawName = req.headers['x-filename'] || ('image_' + Date.now());
   const safeName = String(rawName).replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 80);
-  const ts = Date.now();
-  const blobPath = 'events/' + ts + '-' + safeName;
+  const blobPath = 'events/' + Date.now() + '-' + safeName;
+  const contentType = (req.headers['content-type'] || 'image/jpeg').split(';')[0].trim();
 
   try {
-    // Collect the raw body (binary)
-    const chunks = [];
-    for await (const chunk of req) chunks.push(chunk);
-    const body = Buffer.concat(chunks);
+    // Read body into buffer using Promise — avoids ReadableStream close issues
+    const body = await new Promise((resolve, reject) => {
+      const chunks = [];
+      req.on('data', chunk => chunks.push(chunk));
+      req.on('end', () => resolve(Buffer.concat(chunks)));
+      req.on('error', reject);
+    });
 
-    if (body.length === 0) {
-      res.status(400).json({ error: 'empty body' });
-      return;
+    if (!body || body.length === 0) {
+      return res.status(400).json({ error: 'empty body — no file received' });
     }
-    // 8 MB cap — Vercel serverless functions have a 4.5MB request body limit
-    // on Hobby plan; we'll be a bit conservative
     if (body.length > 4 * 1024 * 1024) {
-      res.status(413).json({ error: 'file too large (4 MB max)' });
-      return;
+      return res.status(413).json({ error: 'file too large (4 MB max)' });
     }
 
-    // Upload to Vercel Blob via REST API
-    const blobUrl = BLOB_API + '/' + encodeURIComponent(blobPath);
-    const contentType = req.headers['content-type'] || 'application/octet-stream';
-
-    const uploadRes = await fetch(blobUrl, {
+    // PUT to Vercel Blob REST API
+    const uploadRes = await fetch(`${BLOB_API}/${encodeURIComponent(blobPath)}`, {
       method: 'PUT',
       headers: {
         'Authorization': 'Bearer ' + BLOB_TOKEN,
@@ -80,17 +65,15 @@ module.exports = async (req, res) => {
     if (!uploadRes.ok) {
       const errText = await uploadRes.text();
       console.error('[blob] upload failed:', uploadRes.status, errText);
-      res.status(502).json({
+      return res.status(502).json({
         error: 'Blob upload failed',
         status: uploadRes.status,
-        detail: errText.slice(0, 200)
+        detail: errText.slice(0, 300)
       });
-      return;
     }
 
     const result = await uploadRes.json();
-    // result.url is the public URL we want
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       url: result.url || result.downloadUrl,
       pathname: result.pathname || blobPath
@@ -98,6 +81,9 @@ module.exports = async (req, res) => {
 
   } catch (err) {
     console.error('[upload-image]', err);
-    res.status(500).json({ error: 'upload failed', detail: err.message });
+    return res.status(500).json({ error: 'upload failed', detail: err.message });
   }
 };
+
+// Tell Vercel NOT to pre-parse the body — we need the raw stream
+module.exports.config = { api: { bodyParser: false } };
