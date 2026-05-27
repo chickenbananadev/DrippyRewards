@@ -442,44 +442,166 @@ nav .cta-mini:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 #000}
 /* ========== SECTIONS ========== */
 section{position:relative;padding:90px 32px;z-index:2}
 
-/* Subtle gradient dividers — sections flow into each other instead of slamming */
+/* Bold gradient divider between sections — clearly visible separation */
 section + section::before{
   content:'';
   position:absolute;top:0;left:50%;
-  width:min(720px, 80%);
+  width:min(720px, 85%);
   transform:translateX(-50%);
-  height:1px;
-  background:linear-gradient(90deg, transparent 0%, rgba(245,197,66,.18) 35%, rgba(162,89,255,.22) 65%, transparent 100%);
+  height:2px;
+  background:linear-gradient(90deg,
+    transparent 0%,
+    rgba(245,197,66,.5) 25%,
+    rgba(162,89,255,.6) 50%,
+    rgba(245,197,66,.5) 75%,
+    transparent 100%);
+  pointer-events:none;
+  box-shadow:0 0 16px rgba(245,197,66,.3);
+}
+/* Glowing dot accent in the center of each divider */
+section + section::after{
+  content:'◆';
+  position:absolute;top:-9px;left:50%;
+  transform:translateX(-50%);
+  color:var(--gold-bright);
+  font-size:14px;
+  text-shadow:0 0 12px rgba(245,197,66,.7), 0 0 24px rgba(162,89,255,.4);
   pointer-events:none;
 }
-/* Soft glow ambience between sections — gives the page a sense of depth */
-section:nth-of-type(odd)::after{
-  content:'';
-  position:absolute;left:0;right:0;bottom:-1px;height:120px;
-  background:radial-gradient(ellipse at 50% 0%, rgba(162,89,255,.04), transparent 70%);
-  pointer-events:none;z-index:1;
+/* Ambient purple/gold radial glow between every section */
+section:nth-of-type(odd){
+  background-image:radial-gradient(ellipse 80% 60% at 50% 100%, rgba(162,89,255,.05), transparent 70%);
+}
+section:nth-of-type(even){
+  background-image:radial-gradient(ellipse 80% 60% at 50% 0%, rgba(245,197,66,.04), transparent 70%);
 }
 
-/* Smooth scroll for nav anchors */
+/* Smooth scroll */
 html{scroll-behavior:smooth}
 
-/* Reveal-on-scroll for major sections */
+/* Reveal-on-scroll */
 @media (prefers-reduced-motion: no-preference){
   section{
-    opacity:0;transform:translateY(20px);
-    animation:sectionReveal .9s ease-out forwards;
+    opacity:0;transform:translateY(30px);
+    animation:sectionReveal 1s ease-out forwards;
     animation-timeline:view();
     animation-range:entry 0% entry 50%;
   }
-  /* Fallback for browsers without animation-timeline: just show */
   @supports not (animation-timeline: view()){
     section{opacity:1;transform:none;animation:none}
   }
 }
 @keyframes sectionReveal{
-  from{opacity:0;transform:translateY(20px)}
+  from{opacity:0;transform:translateY(30px)}
   to{opacity:1;transform:translateY(0)}
 }
+
+/* === SCROLL PROGRESS BAR === */
+.scroll-progress{
+  position:fixed;top:0;left:0;
+  height:3px;width:0%;
+  background:linear-gradient(90deg, var(--gold-bright), var(--purple-bright));
+  z-index:9990;
+  box-shadow:0 0 10px rgba(245,197,66,.6);
+  transition:width .1s ease-out;
+  pointer-events:none;
+}
+
+/* === STICKY COMPACT STATS (appear after scrolling past hero) === */
+.sticky-stats{
+  position:fixed;top:8px;right:12px;
+  z-index:9989;
+  display:flex;gap:8px;
+  background:rgba(10,6,16,.92);
+  backdrop-filter:blur(12px);
+  border:1.5px solid rgba(245,197,66,.4);
+  border-radius:10px;
+  padding:8px 12px;
+  font-family:var(--mono);font-size:11px;
+  box-shadow:0 4px 18px rgba(0,0,0,.5);
+  opacity:0;
+  transform:translateY(-10px);
+  pointer-events:none;
+  transition:opacity .3s ease, transform .3s ease;
+}
+.sticky-stats.show{
+  opacity:1;
+  transform:translateY(0);
+  pointer-events:auto;
+}
+.sticky-stats .ss-cell{
+  display:flex;flex-direction:column;align-items:flex-start;
+  padding:0 6px;
+  border-right:1px solid rgba(212,164,49,.2);
+}
+.sticky-stats .ss-cell:last-child{border-right:none}
+.sticky-stats .ss-k{
+  color:rgba(246,233,196,.55);
+  font-size:9px;letter-spacing:.06em;
+  text-transform:uppercase;
+}
+.sticky-stats .ss-v{
+  color:var(--gold-glow);
+  font-weight:bold;font-size:12px;
+}
+.sticky-stats .ss-v.up{color:var(--green)}
+.sticky-stats .ss-v.down{color:#ff6b6b}
+@media (max-width:540px){
+  .sticky-stats{
+    top:auto;bottom:8px;right:8px;left:8px;
+    justify-content:center;
+  }
+}
+
+/* === CHAPTER RIBBON (above big sections) === */
+.chapter-ribbon{
+  position:absolute;
+  top:-22px;left:50%;
+  transform:translateX(-50%);
+  background:linear-gradient(135deg, var(--gold-bright), var(--gold));
+  color:#0a0610;
+  font-family:var(--display);
+  font-size:12px;
+  letter-spacing:.22em;
+  padding:8px 24px;
+  border-radius:6px;
+  border:2px solid #0a0610;
+  box-shadow:4px 4px 0 #1a0a2e, 0 0 20px rgba(245,197,66,.45);
+  text-transform:uppercase;
+  z-index:5;
+  white-space:nowrap;
+}
+.chapter-ribbon::before{
+  content:'▸ ';
+  color:var(--purple);
+}
+
+/* === PARALLAX AMBIENT DRIPS continue throughout page === */
+.page-ambient{
+  position:fixed;inset:0;
+  pointer-events:none;z-index:0;
+  overflow:hidden;
+  opacity:.4;
+}
+.page-ambient i{
+  position:absolute;
+  width:4px;height:30px;
+  background:linear-gradient(to bottom, transparent, var(--gold-bright));
+  border-radius:50% 50% 50% 50% / 70% 70% 30% 30%;
+  filter:drop-shadow(0 0 6px rgba(245,197,66,.4));
+  animation:ambientDrop linear infinite;
+}
+.page-ambient i.purple{
+  background:linear-gradient(to bottom, transparent, var(--purple-bright));
+  filter:drop-shadow(0 0 6px rgba(162,89,255,.4));
+}
+@keyframes ambientDrop{
+  0%{transform:translateY(-50px);opacity:0}
+  10%{opacity:.6}
+  90%{opacity:.6}
+  100%{transform:translateY(105vh);opacity:0}
+}
+
 .container{max-width:1280px;margin:0 auto}
 .eyebrow{
   font-family:var(--mono);font-size:12px;letter-spacing:.32em;
@@ -976,6 +1098,42 @@ h2 .red{color:var(--crimson);text-shadow:3px 3px 0 #000}
   color:var(--green);
   text-shadow:0 0 6px rgba(50,255,150,.6);
 }
+.dq-tile-art{
+  position:relative;
+  width:100%;
+  aspect-ratio:1;
+  border-radius:10px;
+  overflow:hidden;
+  margin-bottom:10px;
+  background:linear-gradient(135deg, rgba(10,6,16,.6), rgba(58,26,94,.4));
+  border:2px solid rgba(212,164,49,.25);
+  transition:all .25s ease;
+}
+.dq-tile-art img{
+  width:100%;height:100%;
+  object-fit:cover;
+  display:block;
+  transition:transform .35s ease, filter .35s ease;
+}
+.dq-tile.locked .dq-tile-art img{
+  filter:grayscale(95%) brightness(.4) blur(1px);
+}
+.dq-tile.locked .dq-tile-art::after{
+  content:'🔒';
+  position:absolute;inset:0;
+  display:grid;place-items:center;
+  font-size:36px;
+  color:rgba(255,255,255,.5);
+  text-shadow:0 0 12px rgba(0,0,0,.7);
+}
+.dq-tile.unlocked .dq-tile-art{
+  border-color:var(--gold);
+  box-shadow:0 0 18px rgba(245,197,66,.4);
+}
+.dq-tile.unlocked:hover .dq-tile-art img{
+  transform:scale(1.05);
+  filter:brightness(1.1) saturate(1.15);
+}
 .dq-tile-icon{font-size:28px;display:block;margin-bottom:6px}
 .dq-tile-name{
   font-family:var(--display);font-size:13px;
@@ -1192,26 +1350,136 @@ h2 .red{color:var(--crimson);text-shadow:3px 3px 0 #000}
   100%{opacity:0;transform:translate(-50%, -110%) scale(.95) rotate(1deg)}
 }
 
-/* ========== MELTDOWN at 100 clicks ========== */
+/* ========== DRAMATIC CRASH at 30 clicks ========== */
+
+/* Phase 1: Glitch — RGB shift, scan lines, screen tear */
+.drippy-glitch{
+  animation:bodyShake .3s ease-in-out 3, glitchHue .15s infinite;
+  position:relative;
+}
+.drippy-glitch::before{
+  content:'';
+  position:fixed;inset:0;
+  pointer-events:none;
+  z-index:9997;
+  background:
+    repeating-linear-gradient(0deg,
+      rgba(255,77,109,.08) 0,
+      rgba(255,77,109,.08) 2px,
+      transparent 2px,
+      transparent 4px),
+    repeating-linear-gradient(0deg,
+      rgba(0,217,255,.06) 0,
+      rgba(0,217,255,.06) 1px,
+      transparent 1px,
+      transparent 3px);
+  mix-blend-mode:screen;
+  animation:scanlineMove .15s infinite linear;
+}
+.drippy-glitch::after{
+  content:'';
+  position:fixed;inset:0;
+  pointer-events:none;
+  z-index:9996;
+  background:linear-gradient(180deg,
+    transparent 0%,
+    transparent 48%,
+    rgba(255,255,255,.15) 49%,
+    transparent 51%,
+    transparent 100%);
+  animation:tearMove .4s infinite linear;
+}
+@keyframes glitchHue{
+  0%,100%{filter:hue-rotate(0deg)}
+  20%{filter:hue-rotate(15deg) contrast(1.15)}
+  40%{filter:hue-rotate(-20deg) contrast(1.05)}
+  60%{filter:hue-rotate(10deg) saturate(1.3)}
+  80%{filter:hue-rotate(-10deg) brightness(1.1)}
+}
+@keyframes scanlineMove{
+  0%{transform:translateY(0)}
+  100%{transform:translateY(4px)}
+}
+@keyframes tearMove{
+  0%{transform:translateY(-100vh)}
+  100%{transform:translateY(100vh)}
+}
+
+/* Fake OS-style error dialogs */
+.crash-error-box{
+  position:fixed;
+  z-index:9998;
+  width:280px;
+  background:#e8e6e0;
+  color:#222;
+  border:2px solid #555;
+  box-shadow:6px 6px 0 rgba(0,0,0,.6), inset 0 0 0 1px #fff;
+  font-family:'Chicago', 'Courier New', monospace;
+  font-size:13px;
+  opacity:0;
+  transform:scale(.5) rotate(-3deg);
+  animation:errorPop .35s ease-out forwards;
+}
+.crash-error-title{
+  background:linear-gradient(90deg, #1a0a2e, #3a1a5e);
+  color:#fff;
+  padding:6px 10px;
+  font-weight:bold;
+  font-size:11px;
+  letter-spacing:.04em;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.crash-error-title::after{
+  content:'×';
+  font-size:14px;
+  color:#fff;
+}
+.crash-error-body{
+  padding:18px 12px;
+  background:#f4f2ec;
+  border-top:1px solid #bbb;
+  text-align:center;
+}
+.crash-error-buttons{
+  padding:8px;
+  background:#e8e6e0;
+  display:flex;gap:6px;justify-content:flex-end;
+  border-top:1px solid #aaa;
+}
+.crash-error-buttons button{
+  background:linear-gradient(180deg,#fff,#ccc);
+  border:1px solid #333;
+  font-family:inherit;
+  font-size:11px;
+  padding:4px 12px;
+  cursor:pointer;
+}
+@keyframes errorPop{
+  0%{opacity:0;transform:scale(.4) rotate(-15deg)}
+  60%{opacity:1;transform:scale(1.1) rotate(2deg)}
+  100%{opacity:1;transform:scale(1) rotate(-1deg)}
+}
+
+/* Phase 2: Crash meltdown body shake */
 .drippy-meltdown{
   overflow:hidden !important;
   animation:bodyShake .4s ease-in-out;
 }
 @keyframes bodyShake{
   0%,100%{transform:translate(0,0)}
-  10%{transform:translate(-8px,4px) rotate(-.5deg)}
-  20%{transform:translate(6px,-3px) rotate(.4deg)}
-  30%{transform:translate(-5px,2px) rotate(-.3deg)}
-  40%{transform:translate(4px,-4px) rotate(.5deg)}
-  50%{transform:translate(-6px,3px) rotate(-.4deg)}
-  60%{transform:translate(5px,-2px) rotate(.3deg)}
-  70%{transform:translate(-3px,4px) rotate(-.2deg)}
-  80%{transform:translate(4px,-1px) rotate(.2deg)}
+  10%{transform:translate(-10px,5px) rotate(-.6deg)}
+  20%{transform:translate(8px,-4px) rotate(.5deg)}
+  30%{transform:translate(-6px,3px) rotate(-.4deg)}
+  40%{transform:translate(5px,-5px) rotate(.6deg)}
+  50%{transform:translate(-7px,4px) rotate(-.5deg)}
+  60%{transform:translate(6px,-3px) rotate(.4deg)}
+  70%{transform:translate(-4px,5px) rotate(-.3deg)}
+  80%{transform:translate(5px,-2px) rotate(.3deg)}
 }
 
-/* Each block tumbles with its own random vars (set in JS) */
+/* Sections tumble + shatter */
 .drippy-falling{
-  animation:legoTumble 4s cubic-bezier(.55,.05,.7,.4) forwards;
+  animation:legoTumble 2.5s cubic-bezier(.55,.05,.7,.4) forwards;
   animation-delay:var(--md, 0s);
   transform-origin:50% 50%;
   position:relative;
@@ -1221,26 +1489,29 @@ h2 .red{color:var(--crimson);text-shadow:3px 3px 0 #000}
   0%{
     transform:translate(0,0) rotate(0) scale(1);
     opacity:1;
+    filter:none;
   }
   15%{
-    transform:translate(calc(var(--mx, 0px) * .2), 20px) rotate(calc(var(--mr, 0deg) * .25)) scale(.98);
+    transform:translate(calc(var(--mx, 0px) * .15), 30px) rotate(calc(var(--mr, 0deg) * .2)) scale(.98);
+    filter:hue-rotate(20deg);
   }
   60%{
     opacity:1;
   }
   100%{
-    transform:translate(var(--mx, 0px), var(--my, 600px)) rotate(var(--mr, 30deg)) scale(.85);
+    transform:translate(var(--mx, 0px), var(--my, 800px)) rotate(var(--mr, 30deg)) scale(.65);
     opacity:0;
+    filter:hue-rotate(60deg) blur(2px);
   }
 }
 
 .drippy-snapback{
-  animation:legoSnap .8s cubic-bezier(.18,.89,.32,1.28) forwards;
+  animation:legoSnap .9s cubic-bezier(.18,.89,.32,1.28) forwards;
   transform-origin:50% 50%;
 }
 @keyframes legoSnap{
   0%{
-    transform:translate(var(--mx, 0px), calc(var(--my, 600px) * -1)) rotate(calc(var(--mr, 0deg) * -1)) scale(.6);
+    transform:translate(var(--mx, 0px), calc(var(--my, 600px) * -1)) rotate(calc(var(--mr, 0deg) * -1)) scale(.5);
     opacity:0;
   }
   60%{
@@ -1253,18 +1524,18 @@ h2 .red{color:var(--crimson);text-shadow:3px 3px 0 #000}
 }
 
 .drippy-recovering{
-  animation:bodyBounce .5s ease-out;
+  animation:bodyBounce .6s ease-out;
 }
 @keyframes bodyBounce{
-  0%{transform:scale(.96)}
-  50%{transform:scale(1.02)}
+  0%{transform:scale(.93)}
+  50%{transform:scale(1.03)}
   100%{transform:scale(1)}
 }
 
-/* Falling Lego brick overlay during meltdown */
+/* Falling Lego brick overlay */
 .lego-overlay{
   position:fixed;inset:0;
-  pointer-events:none;z-index:9998;
+  pointer-events:none;z-index:9995;
   overflow:hidden;
 }
 .lego-brick{
@@ -1274,7 +1545,6 @@ h2 .red{color:var(--crimson);text-shadow:3px 3px 0 #000}
   animation:legoFall linear forwards;
 }
 .lego-brick::before{
-  /* The signature Lego stud on top */
   content:'';
   position:absolute;left:25%;top:-4px;
   width:30%;height:7px;
@@ -1286,6 +1556,78 @@ h2 .red{color:var(--crimson);text-shadow:3px 3px 0 #000}
   0%{transform:translateY(-30px) rotate(0);opacity:0}
   10%{opacity:1}
   100%{transform:translateY(110vh) rotate(720deg);opacity:1}
+}
+
+/* Phase 3: Dead screen — "browser crashed" */
+.crash-dead-screen{
+  position:fixed;inset:0;
+  background:#000;
+  z-index:9999;
+  display:grid;place-items:center;
+  animation:deadFadeIn .4s ease-out forwards;
+  font-family:'Courier New', 'Monaco', monospace;
+}
+@keyframes deadFadeIn{
+  from{opacity:0}
+  to{opacity:1}
+}
+.crash-dead-screen.crash-dead-exit{
+  animation:deadFadeOut .4s ease-out forwards;
+}
+@keyframes deadFadeOut{
+  to{opacity:0}
+}
+.crash-dead-inner{
+  text-align:center;
+  max-width:90%;
+  color:#0f0;
+  text-shadow:0 0 8px rgba(0,255,0,.6);
+  padding:20px;
+}
+.crash-dead-emoji{
+  font-size:80px;
+  margin-bottom:20px;
+  animation:deadPulse 2s ease-in-out infinite;
+  filter:drop-shadow(0 0 20px rgba(255,255,255,.4));
+}
+@keyframes deadPulse{
+  0%,100%{transform:scale(1);opacity:.9}
+  50%{transform:scale(1.1);opacity:1}
+}
+.crash-dead-title{
+  font-size:28px;letter-spacing:.18em;
+  color:#ff4d6d;
+  text-shadow:0 0 15px rgba(255,77,109,.7);
+  margin-bottom:8px;
+  font-weight:bold;
+}
+.crash-dead-sub{
+  font-size:14px;
+  color:rgba(255,255,255,.7);
+  margin-bottom:24px;
+}
+.crash-dead-trace{
+  text-align:left;
+  background:rgba(0,40,0,.4);
+  border:1px solid rgba(0,255,0,.3);
+  padding:18px 20px;
+  font-size:12px;
+  line-height:1.6;
+  color:#0f0;
+  white-space:pre-wrap;
+  max-width:520px;margin:0 auto;
+  border-radius:4px;
+}
+.crash-dead-spinner{
+  margin:24px auto 0;
+  width:32px;height:32px;
+  border:3px solid rgba(255,255,255,.2);
+  border-top-color:#0f0;
+  border-radius:50%;
+  animation:deadSpin 1s linear infinite;
+}
+@keyframes deadSpin{
+  to{transform:rotate(360deg)}
 }
 
 /* 100-click reveal banner */
@@ -1525,6 +1867,17 @@ h2 .red{color:var(--crimson);text-shadow:3px 3px 0 #000}
 .share-tweet-btn{
   background:linear-gradient(135deg, #1d9bf0, #1a8cd8);
   color:#fff;
+}
+.share-tg-btn{
+  background:linear-gradient(135deg, #2ca5e0, #1c8bc4);
+  color:#fff;
+}
+.share-hint{
+  margin-top:14px;
+  font-family:var(--mono);font-size:11px;
+  color:rgba(246,233,196,.5);
+  text-align:center;
+  font-style:italic;
 }
 .share-close-btn{
   background:transparent;
@@ -2452,6 +2805,28 @@ body.intro-done .ambient-drips{opacity:.55}
 
 <noscript><style>.intro{display:none}body.intro-running > *:not(.intro){opacity:1 !important;transform:none !important}</style></noscript>
 
+<!-- Scroll progress bar (top of viewport) -->
+<div class="scroll-progress" id="scrollProgress"></div>
+
+<!-- Sticky compact stats (appear after hero scroll) -->
+<div class="sticky-stats" id="stickyStats">
+  <div class="ss-cell">
+    <span class="ss-k">$DRIPPY</span>
+    <span class="ss-v" id="ssPrice">—</span>
+  </div>
+  <div class="ss-cell">
+    <span class="ss-k">24H</span>
+    <span class="ss-v" id="ssChange">—</span>
+  </div>
+  <div class="ss-cell">
+    <span class="ss-k">PACK</span>
+    <span class="ss-v" id="ssHolders">—</span>
+  </div>
+</div>
+
+<!-- Subtle ambient drips behind the whole page -->
+<div class="page-ambient" id="pageAmbient"></div>
+
 <!-- ========== INTRO SPLASH ========== -->
 <div id="intro" class="intro" aria-hidden="true">
   <div class="intro-drips" id="introDrips"></div>
@@ -2572,6 +2947,7 @@ body.intro-done .ambient-drips{opacity:.55}
 
 <!-- LIVE DASHBOARD: SWAP + CHART -->
 <section class="dashboard" id="trade">
+  <span class="chapter-ribbon">Trade</span>
   <div class="container">
     <div class="eyebrow">Trade Live</div>
     <h2>Buy. <span class="purple">Swap.</span> <span class="gold">Track.</span></h2>
@@ -2640,6 +3016,7 @@ body.intro-done .ambient-drips{opacity:.55}
 
 <!-- LEGEND -->
 <section class="legend" id="legend">
+  <span class="chapter-ribbon">The Story</span>
   <div class="container">
     <div class="eyebrow">Chapter One</div>
     <h2>The Legend of <span class="gold">Drippy</span></h2>
@@ -2778,6 +3155,7 @@ body.intro-done .ambient-drips{opacity:.55}
 
 <!-- WALLET CHECKER -->
 <section class="wallet-checker" id="checker">
+  <span class="chapter-ribbon">Your Drips</span>
   <div class="container">
     <div class="eyebrow">Check Your Bag</div>
     <h2>How Much Has <span class="gold">Drippy</span> Paid <span class="purple">You?</span></h2>
@@ -3210,13 +3588,15 @@ body.intro-done .ambient-drips{opacity:.55}
   <div class="share-modal-inner">
     <div class="share-modal-title">🃏 Your DripQuests Card</div>
     <div class="share-card-preview">
-      <canvas id="shareCanvas" class="share-card-canvas" width="800" height="800"></canvas>
+      <canvas id="shareCanvas" class="share-card-canvas" width="900" height="1100"></canvas>
     </div>
     <div class="share-modal-actions">
+      <a class="share-tweet-btn" id="shareTweet" target="_blank" rel="noopener">𝕏 Share on X</a>
+      <a class="share-tg-btn" id="shareTelegram" target="_blank" rel="noopener">✈ Telegram</a>
       <button class="share-download-btn" id="shareDownload">📥 Download</button>
-      <a class="share-tweet-btn" id="shareTweet" target="_blank" rel="noopener">𝕏 Tweet It</a>
       <button class="share-close-btn" id="shareClose">Close</button>
     </div>
+    <div class="share-hint">Tip: download saves the image to your device — post it anywhere you want.</div>
   </div>
 </div>
 
@@ -3326,6 +3706,68 @@ setTimeout(() => {
     d.style.transform = `scale(${0.5 + Math.random() * 1.2})`;
     wrap.appendChild(d);
   }
+})();
+
+// =====================================================
+// PAGE-WIDE AMBIENT DRIPS — subtle ambience throughout entire page
+// =====================================================
+(function(){
+  const wrap = document.getElementById('pageAmbient');
+  if(!wrap) return;
+  const count = window.innerWidth < 768 ? 8 : 14;
+  for(let i = 0; i < count; i++){
+    const d = document.createElement('i');
+    d.style.left = (Math.random() * 100) + '%';
+    d.style.animationDuration = (12 + Math.random() * 14) + 's';
+    d.style.animationDelay = (Math.random() * 16) + 's';
+    d.style.transform = `scale(${0.4 + Math.random() * 0.9})`;
+    if(Math.random() < 0.3) d.classList.add('purple');
+    wrap.appendChild(d);
+  }
+})();
+
+// =====================================================
+// SCROLL PROGRESS BAR + STICKY STATS
+// =====================================================
+(function(){
+  const bar = document.getElementById('scrollProgress');
+  const sticky = document.getElementById('stickyStats');
+  if(!bar) return;
+
+  function update(){
+    const docH = document.documentElement.scrollHeight - window.innerHeight;
+    const scroll = window.scrollY;
+    const pct = docH > 0 ? (scroll / docH) * 100 : 0;
+    bar.style.width = pct + '%';
+
+    // Show sticky stats after scrolling past the hero (~600px)
+    if(sticky){
+      if(scroll > 600) sticky.classList.add('show');
+      else sticky.classList.remove('show');
+    }
+  }
+
+  window.addEventListener('scroll', update, { passive: true });
+  window.addEventListener('resize', update, { passive: true });
+  update();
+
+  // Mirror live stats into the sticky bar
+  function mirrorStats(){
+    const priceCell = document.querySelector('[data-key="price"] .v');
+    const changeCell = document.querySelector('[data-key="change"] .v');
+    const holdersCell = document.querySelector('[data-key="holders"] .v');
+    const ssPrice = document.getElementById('ssPrice');
+    const ssChange = document.getElementById('ssChange');
+    const ssHolders = document.getElementById('ssHolders');
+    if(priceCell && ssPrice) ssPrice.textContent = priceCell.textContent;
+    if(changeCell && ssChange){
+      ssChange.textContent = changeCell.textContent;
+      ssChange.className = 'ss-v ' + (changeCell.classList.contains('up') ? 'up' : changeCell.classList.contains('down') ? 'down' : '');
+    }
+    if(holdersCell && ssHolders) ssHolders.textContent = holdersCell.textContent;
+  }
+  setInterval(mirrorStats, 1500);
+  mirrorStats();
 })();
 
 // =====================================================
@@ -3667,24 +4109,27 @@ setTimeout(() => {
 // =====================================================
 (function(){
   const QUESTS = [
-    { id: 'join',        icon: '🐕', name: 'Join the Pack',    desc: 'Hold any amount of $DRIPPY',     check: (d) => (d.currentHoldings?.uiAmount || 0) > 0 },
-    { id: 'diamond_start', icon: '💎', name: 'Diamond Starter', desc: 'Hold 1M+ $DRIPPY',             check: (d) => (d.currentHoldings?.uiAmount || 0) >= 1_000_000 },
-    { id: 'whale',       icon: '🐋', name: 'Whale Status',      desc: 'Hold 10M+ $DRIPPY',             check: (d) => (d.currentHoldings?.uiAmount || 0) >= 10_000_000 },
-    { id: 'first_drip',  icon: '💧', name: 'First Drip',         desc: 'Receive your first payout',    check: (d) => (d.distributionCount || 0) >= 1 },
-    { id: 'veteran',     icon: '🌊', name: 'Drip Veteran',       desc: 'Receive 50+ payouts',           check: (d) => (d.distributionCount || 0) >= 50 },
-    { id: 'legend',      icon: '🏆', name: 'Drip Legend',        desc: 'Receive 100+ payouts',          check: (d) => (d.distributionCount || 0) >= 100 },
-    { id: 'init_burn',   icon: '🔥', name: 'Initiate the Burn',  desc: 'Burn any $DRIPPY',              check: (d) => (d.burner?.burnEvents || 0) >= 1 },
-    { id: 'burn_boss',   icon: '🔥', name: 'Burn Boss',          desc: 'Burn 1M+ $DRIPPY total',        check: (d) => (d.burner?.tokensBurned || 0) >= 1_000_000 },
-    { id: 'inferno',     icon: '⚡', name: 'Inferno',             desc: '5+ separate burn events',        check: (d) => (d.burner?.burnEvents || 0) >= 5 },
-    { id: 'earned_pt1',  icon: '📈', name: 'Earned 0.1 SOL',     desc: 'Earn 0.1+ total SOL',           check: (d) => (d.totalReceivedSol || 0) >= 0.1 }
+    { id: 'join',          img: 'assets/quests/quest-join-pack.png',       icon: '🐕', name: 'Join the Pack',    desc: 'Hold any amount of $DRIPPY',     check: (d) => (d.currentHoldings?.uiAmount || 0) > 0 },
+    { id: 'diamond_start', img: 'assets/quests/quest-diamond-starter.png', icon: '💎', name: 'Diamond Starter',  desc: 'Hold 1M+ $DRIPPY',                check: (d) => (d.currentHoldings?.uiAmount || 0) >= 1_000_000 },
+    { id: 'whale',         img: 'assets/quests/quest-whale.png',           icon: '🐋', name: 'Whale Status',     desc: 'Hold 10M+ $DRIPPY',               check: (d) => (d.currentHoldings?.uiAmount || 0) >= 10_000_000 },
+    { id: 'first_drip',    img: 'assets/quests/quest-first-drip.png',      icon: '💧', name: 'First Drip',       desc: 'Receive your first payout',       check: (d) => (d.distributionCount || 0) >= 1 },
+    { id: 'veteran',       img: 'assets/quests/quest-veteran.png',         icon: '🌊', name: 'Drip Veteran',     desc: 'Receive 50+ payouts',             check: (d) => (d.distributionCount || 0) >= 50 },
+    { id: 'legend',        img: 'assets/quests/quest-legend.png',          icon: '🏆', name: 'Drip Legend',      desc: 'Receive 100+ payouts',            check: (d) => (d.distributionCount || 0) >= 100 },
+    { id: 'init_burn',     img: 'assets/quests/quest-initiate-burn.png',   icon: '🔥', name: 'Initiate the Burn',desc: 'Burn any $DRIPPY',                check: (d) => (d.burner?.burnEvents || 0) >= 1 },
+    { id: 'burn_boss',     img: 'assets/quests/quest-burn-boss.png',       icon: '🔥', name: 'Burn Boss',        desc: 'Burn 1M+ $DRIPPY total',          check: (d) => (d.burner?.tokensBurned || 0) >= 1_000_000 },
+    { id: 'inferno',       img: 'assets/quests/quest-inferno.png',         icon: '⚡', name: 'Inferno',          desc: '5+ separate burn events',          check: (d) => (d.burner?.burnEvents || 0) >= 5 },
+    { id: 'earned_pt1',    img: 'assets/quests/quest-earned-01.png',       icon: '📈', name: 'Earned 0.1 SOL',   desc: 'Earn 0.1+ total SOL',             check: (d) => (d.totalReceivedSol || 0) >= 0.1 },
+    { id: 'earned_pt5',    img: 'assets/quests/quest-earned-05.png',       icon: '🌟', name: 'Half a SOL',       desc: 'Earn 0.5+ total SOL',             check: (d) => (d.totalReceivedSol || 0) >= 0.5 },
+    { id: 'earned_1',      img: 'assets/quests/quest-earned-1.png',        icon: '👑', name: 'SOL Millionaire',  desc: 'Earn 1+ total SOL',               check: (d) => (d.totalReceivedSol || 0) >= 1 }
   ];
 
+  // Tier thresholds rebalanced for 12 quests total
   const TIERS = [
-    { name: 'No Rank',         min: 0, cls: '',         label: 'Check Your Wallet' },
-    { name: 'Bronze Dripper',  min: 1, cls: 'tier-bronze',  label: 'Bronze Dripper' },
-    { name: 'Silver Dripper',  min: 4, cls: 'tier-silver',  label: 'Silver Dripper' },
-    { name: 'Gold Dripper',    min: 7, cls: 'tier-gold',    label: 'Gold Dripper' },
-    { name: 'Diamond Dripper', min: 9, cls: 'tier-diamond', label: 'Diamond Dripper' }
+    { name: 'No Rank',         min: 0,  cls: '',              label: 'Check Your Wallet' },
+    { name: 'Bronze Dripper',  min: 1,  cls: 'tier-bronze',   label: 'Bronze Dripper' },
+    { name: 'Silver Dripper',  min: 4,  cls: 'tier-silver',   label: 'Silver Dripper' },
+    { name: 'Gold Dripper',    min: 8,  cls: 'tier-gold',     label: 'Gold Dripper' },
+    { name: 'Diamond Dripper', min: 11, cls: 'tier-diamond',  label: 'Diamond Dripper' }
   ];
 
   function computeTier(completedCount){
@@ -3711,9 +4156,11 @@ setTimeout(() => {
     QUESTS.forEach(q => {
       const isUnlocked = walletData ? !!q.check(walletData) : false;
       const tile = document.createElement('div');
-      tile.className = 'dq-tile' + (isUnlocked ? ' unlocked' : '');
+      tile.className = 'dq-tile' + (isUnlocked ? ' unlocked' : ' locked');
       tile.innerHTML = `
-        <span class="dq-tile-icon">${q.icon}</span>
+        <div class="dq-tile-art">
+          <img src="${q.img}" alt="${q.name}" loading="lazy" />
+        </div>
         <div class="dq-tile-name">${q.name}</div>
         <div class="dq-tile-desc">${q.desc}</div>
       `;
@@ -3721,11 +4168,30 @@ setTimeout(() => {
     });
   }
 
+  // Find the highest-unlocked quest (last one in array order they've cleared)
+  // This is the "featured Drippy" used in the rank card + share card
+  function getHighestUnlockedQuest(walletData){
+    if(!walletData) return null;
+    let highest = null;
+    QUESTS.forEach(q => {
+      if(q.check(walletData)) highest = q;
+    });
+    return highest;
+  }
+  // Expose for share card
+  window.getHighestUnlockedQuest = getHighestUnlockedQuest;
+  window.DRIPPY_QUESTS = QUESTS;
+  window.DRIPPY_TIERS = TIERS;
+
   window.updateDripQuests = function(walletData){
     if(!walletData) return;
     const completed = QUESTS.filter(q => q.check(walletData)).length;
     const tier = computeTier(completed);
     const next = nextTier(completed);
+    const featured = getHighestUnlockedQuest(walletData);
+    window._dripFeaturedQuest = featured;
+    window._dripTier = tier;
+    window._dripCompletedCount = completed;
 
     // Rank card
     const card = document.getElementById('dqRankCard');
@@ -3735,6 +4201,16 @@ setTimeout(() => {
     }
     const rankName = document.getElementById('dqRankName');
     if(rankName) rankName.textContent = tier.label;
+
+    // Featured Drippy in rank card — uses their highest-unlocked quest art
+    const rankArt = document.getElementById('dqRankArt');
+    if(rankArt && featured){
+      const img = rankArt.querySelector('img');
+      if(img){
+        img.src = featured.img;
+        img.alt = featured.name;
+      }
+    }
 
     // Progress bar (toward next tier — or full if maxed)
     const progressFill = document.getElementById('dqProgressFill');
@@ -3961,7 +4437,7 @@ setTimeout(() => {
   target.addEventListener('click', (e) => {
     clickCount++;
 
-    // Bark on every 5th click
+    // Bark animation at milestone clicks (5, 10, 15, 20, 25, 30)
     if(clickCount % 5 === 0){
       target.classList.remove('bark');
       void target.offsetWidth;
@@ -3969,8 +4445,8 @@ setTimeout(() => {
       setTimeout(() => target.classList.remove('bark'), 800);
     }
 
-    // Speech bubble line on every 20th click
-    if(clickCount % 20 === 0){
+    // Drippy line speech bubble at 5, 10, 15, 20, 25 — building anticipation
+    if([5,10,15,20,25].includes(clickCount)){
       showLine(randomUnseen());
     }
 
@@ -3990,88 +4466,165 @@ setTimeout(() => {
       setTimeout(() => treat.remove(), 1500);
     }
 
-    // 100 clicks: WHOLE PAGE MELTDOWN 🧱
-    if(clickCount === 100){
+    // 30 clicks: WHOLE PAGE CRASHES HARD 💥
+    if(clickCount === 30){
       triggerMeltdown(target, burst, treats);
+      // Reset click counter so they can do it again
+      setTimeout(() => { clickCount = 0; }, 10000);
     }
   });
 
-  // ----- Meltdown sequence: whole page tumbles like Legos, then snaps back -----
+  // ----- DRAMATIC CRASH sequence: site completely "crashes" then rebuilds -----
   function triggerMeltdown(target, burst, treats){
     const body = document.body;
-    if(body.classList.contains('drippy-meltdown')) return; // prevent double-trigger
+    if(body.classList.contains('drippy-meltdown')) return;
 
-    // Get every visible top-level section + nav + marquee + footer
-    // We'll give each its own random tumble. CSS variables drive the angles + offsets.
-    const blocks = document.querySelectorAll(
-      'section, footer, .marquee, nav, .dist-wrap, .live-wrap'
-    );
-    blocks.forEach((b, i) => {
-      const angle = (Math.random() - 0.5) * 90;       // -45° to 45°
-      const offsetX = (Math.random() - 0.5) * 600;     // px drift
-      const offsetY = 200 + Math.random() * 600;       // px drop
-      const delay = Math.random() * 0.35;              // staggered fall
-      b.style.setProperty('--mx', offsetX + 'px');
-      b.style.setProperty('--my', offsetY + 'px');
-      b.style.setProperty('--mr', angle + 'deg');
-      b.style.setProperty('--md', delay + 's');
-      b.classList.add('drippy-falling');
+    // Phase 1: GLITCH START (0 - 0.5s) — RGB shift, scan lines, screen tear
+    body.classList.add('drippy-glitch');
+
+    // Spawn fake error dialogs in random positions for max chaos
+    const errorMsgs = [
+      { title: '⚠️ DRIPPY.EXE', body: 'has stopped responding' },
+      { title: '💀 FATAL ERROR', body: 'pack_overflow detected' },
+      { title: '🐕 SYSTEM ERROR', body: 'too much drip detected' },
+      { title: '🔥 RUNTIME ERROR', body: 'unauthorized burn event' },
+      { title: '⚡ KERNEL PANIC', body: 'memory leak in /var/sol' }
+    ];
+    const errorBoxes = [];
+    errorMsgs.forEach((msg, i) => {
+      const box = document.createElement('div');
+      box.className = 'crash-error-box';
+      box.innerHTML = `
+        <div class="crash-error-title">${msg.title}</div>
+        <div class="crash-error-body">${msg.body}</div>
+        <div class="crash-error-buttons">
+          <button>End Task</button>
+          <button>Cancel</button>
+          <button>Cry</button>
+        </div>
+      `;
+      box.style.left = (10 + Math.random() * 60) + 'vw';
+      box.style.top = (15 + Math.random() * 50) + 'vh';
+      box.style.animationDelay = (0.15 + i * 0.12) + 's';
+      body.appendChild(box);
+      errorBoxes.push(box);
     });
 
-    // Trigger the body-level shake + meltdown class
-    body.classList.add('drippy-meltdown');
-
-    // Spawn falling Lego-style colored blocks across the screen
-    const legoOverlay = document.createElement('div');
-    legoOverlay.className = 'lego-overlay';
-    const legoColors = ['#f5c542','#a259ff','#ff4d6d','#3eddb6','#fff5c0','#1a8cd8','#ffd966'];
-    for(let i = 0; i < 28; i++){
-      const lego = document.createElement('div');
-      lego.className = 'lego-brick';
-      lego.style.left = (Math.random() * 100) + 'vw';
-      lego.style.background = legoColors[Math.floor(Math.random() * legoColors.length)];
-      lego.style.width = (16 + Math.random() * 28) + 'px';
-      lego.style.height = (10 + Math.random() * 16) + 'px';
-      lego.style.animationDelay = (Math.random() * 1.2) + 's';
-      lego.style.animationDuration = (1.8 + Math.random() * 1.5) + 's';
-      legoOverlay.appendChild(lego);
-    }
-    body.appendChild(legoOverlay);
-
-    // After 4 seconds, snap everything back into place
+    // Phase 2: SHATTER (0.5 - 2s) — sections break apart and fall
     setTimeout(() => {
-      blocks.forEach(b => {
-        b.classList.remove('drippy-falling');
-        b.classList.add('drippy-snapback');
+      const blocks = document.querySelectorAll(
+        'section, footer, .marquee, nav, .dist-wrap, .live-wrap'
+      );
+      blocks.forEach((b, i) => {
+        const angle = (Math.random() - 0.5) * 180;
+        const offsetX = (Math.random() - 0.5) * 900;
+        const offsetY = 600 + Math.random() * 800;
+        const delay = Math.random() * 0.4;
+        b.style.setProperty('--mx', offsetX + 'px');
+        b.style.setProperty('--my', offsetY + 'px');
+        b.style.setProperty('--mr', angle + 'deg');
+        b.style.setProperty('--md', delay + 's');
+        b.classList.add('drippy-falling');
       });
-      body.classList.remove('drippy-meltdown');
-      body.classList.add('drippy-recovering');
+      body.classList.add('drippy-meltdown');
 
-      // Drippy delivers the punch line
-      setTimeout(() => {
-        const punchline = document.createElement('div');
-        punchline.className = 'drippy-bubble';
-        punchline.textContent = 'Did I do that? 🐕';
-        const rect = target.getBoundingClientRect();
-        punchline.style.left = (rect.left + rect.width / 2) + 'px';
-        punchline.style.top = (rect.top + window.scrollY - 60) + 'px';
-        document.body.appendChild(punchline);
-        setTimeout(() => punchline.remove(), 4200);
-      }, 500);
+      // Spawn raining Lego bricks
+      const legoOverlay = document.createElement('div');
+      legoOverlay.className = 'lego-overlay';
+      const legoColors = ['#f5c542','#a259ff','#ff4d6d','#3eddb6','#fff5c0','#1a8cd8','#ffd966','#ff8800'];
+      for(let i = 0; i < 50; i++){
+        const lego = document.createElement('div');
+        lego.className = 'lego-brick';
+        lego.style.left = (Math.random() * 100) + 'vw';
+        lego.style.background = legoColors[Math.floor(Math.random() * legoColors.length)];
+        lego.style.width = (14 + Math.random() * 34) + 'px';
+        lego.style.height = (10 + Math.random() * 18) + 'px';
+        lego.style.animationDelay = (Math.random() * 2.5) + 's';
+        lego.style.animationDuration = (1.6 + Math.random() * 1.8) + 's';
+        legoOverlay.appendChild(lego);
+      }
+      body.appendChild(legoOverlay);
 
-      // Cleanup
+      // Phase 3: DEAD SCREEN (2.5 - 6.5s) — black screen with fake stack trace
       setTimeout(() => {
-        blocks.forEach(b => {
-          b.classList.remove('drippy-snapback');
-          b.style.removeProperty('--mx');
-          b.style.removeProperty('--my');
-          b.style.removeProperty('--mr');
-          b.style.removeProperty('--md');
-        });
-        body.classList.remove('drippy-recovering');
-        legoOverlay.remove();
-      }, 1200);
-    }, 4000);
+        body.classList.remove('drippy-glitch');
+        errorBoxes.forEach(b => b.remove());
+
+        const deadScreen = document.createElement('div');
+        deadScreen.className = 'crash-dead-screen';
+        deadScreen.innerHTML = `
+          <div class="crash-dead-inner">
+            <div class="crash-dead-emoji">💀</div>
+            <div class="crash-dead-title">SITE NOT RESPONDING</div>
+            <div class="crash-dead-sub">Drippy.exe has encountered a fatal error.</div>
+            <pre class="crash-dead-trace">
+Stack trace:
+  at PackOverflow.distribute (drippy.js:420:69)
+  at Wallet.eatTheDip (sol.js:1337:0)
+  at GoodBoy.fetchTooHard (paws.js:99:99)
+  at Drippy.bark&lt;anonymous&gt; (woof.js:1:1)
+
+ERROR_CODE: 0xDEADD06
+DUMP: /var/log/too_much_drip.log
+
+Attempting recovery in <span id="crashCountdown">5</span>...</div>
+            <div class="crash-dead-spinner"></div>
+          </div>
+        `;
+        body.appendChild(deadScreen);
+
+        // Countdown
+        let countdown = 5;
+        const cdEl = deadScreen.querySelector('#crashCountdown');
+        const cdInterval = setInterval(() => {
+          countdown--;
+          if(cdEl && countdown >= 0) cdEl.textContent = countdown;
+          if(countdown <= 0) clearInterval(cdInterval);
+        }, 1000);
+
+        // Phase 4: RESTART (6.5s+) — fade out dead screen, sections fly back
+        setTimeout(() => {
+          clearInterval(cdInterval);
+          deadScreen.classList.add('crash-dead-exit');
+
+          setTimeout(() => {
+            const allBlocks = document.querySelectorAll('section, footer, .marquee, nav, .dist-wrap, .live-wrap');
+            allBlocks.forEach(b => {
+              b.classList.remove('drippy-falling');
+              b.classList.add('drippy-snapback');
+            });
+            body.classList.remove('drippy-meltdown');
+            body.classList.add('drippy-recovering');
+
+            // Drippy delivers the punch line
+            setTimeout(() => {
+              const punchline = document.createElement('div');
+              punchline.className = 'drippy-bubble';
+              punchline.textContent = 'Did I do that? 🐕';
+              const rect = target.getBoundingClientRect();
+              punchline.style.left = (rect.left + rect.width / 2) + 'px';
+              punchline.style.top = (rect.top + window.scrollY - 60) + 'px';
+              document.body.appendChild(punchline);
+              setTimeout(() => punchline.remove(), 4500);
+            }, 700);
+
+            // Cleanup
+            setTimeout(() => {
+              allBlocks.forEach(b => {
+                b.classList.remove('drippy-snapback');
+                b.style.removeProperty('--mx');
+                b.style.removeProperty('--my');
+                b.style.removeProperty('--mr');
+                b.style.removeProperty('--md');
+              });
+              body.classList.remove('drippy-recovering');
+              legoOverlay.remove();
+              deadScreen.remove();
+            }, 1400);
+          }, 400);
+        }, 4000); // dead screen visible for 4s
+      }, 2000); // shatter visible for 2s before dead screen
+    }, 500); // glitch visible for 0.5s before shatter
   }
 })();
 
@@ -4272,7 +4825,7 @@ setTimeout(() => {
 
 
 // =====================================================
-// SHARE CARD GENERATOR
+// SHARE CARD GENERATOR — featured-Drippy + seeded uniqueness
 // =====================================================
 (function(){
   const shareBtn = document.getElementById('dqShareBtn');
@@ -4280,6 +4833,7 @@ setTimeout(() => {
   const closeBtn = document.getElementById('shareClose');
   const downloadBtn = document.getElementById('shareDownload');
   const tweetBtn = document.getElementById('shareTweet');
+  const tgBtn = document.getElementById('shareTelegram');
   const canvas = document.getElementById('shareCanvas');
   if(!shareBtn || !modal || !canvas) return;
 
@@ -4296,89 +4850,215 @@ setTimeout(() => {
     return Math.round(n).toLocaleString();
   }
 
-  function renderCard(){
+  // Deterministic seeded random from wallet address — never displays the address,
+  // just uses it as a source of per-wallet visual variety.
+  function makeSeededRng(seedStr){
+    let h = 2166136261;
+    for(let i = 0; i < seedStr.length; i++){
+      h ^= seedStr.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    let state = h >>> 0;
+    return function(){
+      state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
+      return state / 0xFFFFFFFF;
+    };
+  }
+
+  // Pre-load the featured Drippy image into a cached Image so canvas can draw it
+  const imgCache = {};
+  function loadImg(src){
+    return new Promise((resolve, reject) => {
+      if(imgCache[src]) return resolve(imgCache[src]);
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => { imgCache[src] = img; resolve(img); };
+      img.onerror = reject;
+      img.src = src;
+    });
+  }
+
+  const TIER_COLORS = {
+    'tier-bronze':  { primary: '#cd7f32', glow: 'rgba(205,127,50,.6)',  text: '#cd7f32' },
+    'tier-silver':  { primary: '#c0c0c0', glow: 'rgba(192,192,192,.6)', text: '#e8e8e8' },
+    'tier-gold':    { primary: '#ffd700', glow: 'rgba(255,215,0,.7)',   text: '#ffd700' },
+    'tier-diamond': { primary: '#b9f2ff', glow: 'rgba(185,242,255,.7)', text: '#b9f2ff' },
+    '':             { primary: '#f5c542', glow: 'rgba(245,197,66,.5)',  text: '#ffd966' }
+  };
+
+  async function renderCard(){
     const d = window._dripWalletData;
     if(!d) return;
+    const featured = window._dripFeaturedQuest;
+    const tier = window._dripTier || { cls: '', label: 'Dripper' };
+    const completed = window._dripCompletedCount || 0;
+    const allQuests = window.DRIPPY_QUESTS || [];
 
     const ctx = canvas.getContext('2d');
     const W = canvas.width, H = canvas.height;
+
+    // Seed visual uniqueness from wallet address (never displayed)
+    const seed = d.wallet || 'anon';
+    const rng = makeSeededRng(seed);
+
+    const tierColor = TIER_COLORS[tier.cls] || TIER_COLORS[''];
+
+    // Clear
+    ctx.clearRect(0, 0, W, H);
 
     // Background gradient
     const bg = ctx.createLinearGradient(0, 0, W, H);
     bg.addColorStop(0, '#1a0a2e');
     bg.addColorStop(0.5, '#0a0610');
-    bg.addColorStop(1, '#3a1a5e');
+    bg.addColorStop(1, '#2a1248');
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, W, H);
 
-    // Gold border
-    ctx.strokeStyle = '#f5c542';
-    ctx.lineWidth = 8;
+    // Seeded sparkle/confetti pattern — every wallet gets unique sparkle positions
+    for(let i = 0; i < 60; i++){
+      const x = rng() * W;
+      const y = rng() * H;
+      const size = 1 + rng() * 3;
+      const opacity = 0.15 + rng() * 0.35;
+      ctx.fillStyle = rng() < 0.5
+        ? `rgba(245,197,66,${opacity})`
+        : `rgba(162,89,255,${opacity})`;
+      ctx.beginPath();
+      ctx.arc(x, y, size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Tier-colored outer border
+    ctx.strokeStyle = tierColor.primary;
+    ctx.lineWidth = 10;
     ctx.strokeRect(20, 20, W-40, H-40);
+    // Inner thin gold border
+    ctx.strokeStyle = '#f5c542';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(36, 36, W-72, H-72);
 
-    // Title
+    // Header
     ctx.fillStyle = '#ffd966';
-    ctx.font = 'bold 60px "Bowlby One", system-ui, sans-serif';
+    ctx.font = 'bold 56px "Bowlby One", system-ui, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('$DRIPPY STATS', W/2, 110);
+    ctx.fillText('DRIPQUESTS', W/2, 100);
 
-    // Subtitle
     ctx.fillStyle = '#a259ff';
-    ctx.font = 'bold 26px monospace';
-    ctx.fillText('DrippyRewards.com', W/2, 150);
+    ctx.font = 'bold 20px monospace';
+    ctx.fillText('drippyrewards.com', W/2, 130);
 
-    // Total earned BIG
+    // Featured Drippy image — big, centered
+    if(featured){
+      try{
+        const img = await loadImg(featured.img);
+        const imgSize = 380;
+        const imgX = (W - imgSize) / 2;
+        const imgY = 170;
+        // Glow halo around image
+        ctx.shadowColor = tierColor.glow;
+        ctx.shadowBlur = 40;
+        // Rounded clip for the image
+        ctx.save();
+        ctx.beginPath();
+        const r = 24;
+        ctx.moveTo(imgX + r, imgY);
+        ctx.lineTo(imgX + imgSize - r, imgY);
+        ctx.quadraticCurveTo(imgX + imgSize, imgY, imgX + imgSize, imgY + r);
+        ctx.lineTo(imgX + imgSize, imgY + imgSize - r);
+        ctx.quadraticCurveTo(imgX + imgSize, imgY + imgSize, imgX + imgSize - r, imgY + imgSize);
+        ctx.lineTo(imgX + r, imgY + imgSize);
+        ctx.quadraticCurveTo(imgX, imgY + imgSize, imgX, imgY + imgSize - r);
+        ctx.lineTo(imgX, imgY + r);
+        ctx.quadraticCurveTo(imgX, imgY, imgX + r, imgY);
+        ctx.closePath();
+        ctx.clip();
+        ctx.drawImage(img, imgX, imgY, imgSize, imgSize);
+        ctx.restore();
+        ctx.shadowBlur = 0;
+        // Tier-colored frame around image
+        ctx.strokeStyle = tierColor.primary;
+        ctx.lineWidth = 4;
+        ctx.strokeRect(imgX, imgY, imgSize, imgSize);
+      } catch(err) {
+        console.warn('[share-card] image load failed', err);
+      }
+    }
+
+    // Tier rank below image
+    ctx.fillStyle = tierColor.text;
+    ctx.font = 'bold 44px "Bowlby One", system-ui, sans-serif';
+    ctx.shadowColor = tierColor.glow;
+    ctx.shadowBlur = 24;
+    ctx.fillText(tier.label.toUpperCase(), W/2, 605);
+    ctx.shadowBlur = 0;
+
+    ctx.fillStyle = '#a259ff';
+    ctx.font = 'bold 18px monospace';
+    ctx.fillText(`${completed} of ${allQuests.length} quests cleared`, W/2, 635);
+
+    // Total SOL earned — big spotlight stat
+    ctx.fillStyle = '#a259ff';
+    ctx.font = 'bold 18px monospace';
+    ctx.fillText('TOTAL SOL EARNED', W/2, 700);
     ctx.fillStyle = '#ffd966';
-    ctx.font = 'bold 36px monospace';
-    ctx.fillText('TOTAL SOL EARNED', W/2, 220);
-    ctx.fillStyle = '#fff5c0';
-    ctx.font = 'bold 84px "Bowlby One", system-ui, sans-serif';
-    ctx.fillText(fmtSol(d.totalReceivedSol) + ' SOL', W/2, 310);
+    ctx.font = 'bold 72px "Bowlby One", system-ui, sans-serif';
+    ctx.shadowColor = 'rgba(245,197,66,.5)';
+    ctx.shadowBlur = 24;
+    ctx.fillText(fmtSol(d.totalReceivedSol) + ' SOL', W/2, 770);
+    ctx.shadowBlur = 0;
 
-    // Stats grid
-    const statsY = 400;
+    // Stats grid — 2x2
     const stats = [
       { label: 'DISTRIBUTIONS', value: (d.distributionCount || 0).toLocaleString() },
-      { label: 'CURRENT BAG', value: fmtTokens(d.currentHoldings?.uiAmount || 0) },
-      { label: 'BURNED', value: fmtTokens(d.burner?.tokensBurned || 0) },
-      { label: 'BURN WEIGHT', value: (d.burner?.burnWeightSharePct || 0).toFixed(2) + '%' }
+      { label: 'HOLDING',       value: fmtTokens(d.currentHoldings?.uiAmount || 0) },
+      { label: 'BURNED',        value: fmtTokens(d.burner?.tokensBurned || 0) },
+      { label: 'BURN WEIGHT',   value: (d.burner?.burnWeightSharePct || 0).toFixed(2) + '%' }
     ];
     const colW = W / 2;
+    const statsY = 830;
     stats.forEach((s, i) => {
       const col = i % 2;
       const row = Math.floor(i / 2);
       const x = colW * col + colW / 2;
-      const y = statsY + row * 130;
-      ctx.fillStyle = '#a259ff';
-      ctx.font = 'bold 22px monospace';
+      const y = statsY + row * 80;
+      ctx.fillStyle = 'rgba(162,89,255,.85)';
+      ctx.font = 'bold 14px monospace';
       ctx.fillText(s.label, x, y);
-      ctx.fillStyle = '#f5c542';
-      ctx.font = 'bold 44px "Bowlby One", system-ui, sans-serif';
-      ctx.fillText(s.value, x, y + 50);
+      ctx.fillStyle = '#fff5c0';
+      ctx.font = 'bold 30px "Bowlby One", system-ui, sans-serif';
+      ctx.fillText(s.value, x, y + 32);
     });
 
     // Footer tagline
-    ctx.fillStyle = '#fff5c0';
-    ctx.font = 'bold 32px "Bowlby One", system-ui, sans-serif';
-    ctx.fillText('PAID. EVERY 30 MINUTES.', W/2, H - 50);
+    ctx.fillStyle = '#a259ff';
+    ctx.font = 'bold 18px monospace';
+    ctx.fillText('PAID EVERY 30 MINUTES · BURN FOR 2X FOREVER', W/2, H - 50);
   }
 
-  shareBtn.addEventListener('click', () => {
-    renderCard();
+  function buildShareText(){
+    const d = window._dripWalletData;
+    const tier = window._dripTier || { label: 'Dripper' };
+    const earned = d ? fmtSol(d.totalReceivedSol) : '0';
+    return `I'm a ${tier.label} on $DRIPPY 🐕💧\n\nEarned ${earned} SOL just by holding the dog.\n\nEvery 30 min the pack eats. Burn for 2x forever.\n\n→ drippyrewards.com`;
+  }
+
+  shareBtn.addEventListener('click', async () => {
+    await renderCard();
     modal.classList.add('show');
-    // Update tweet URL
+    const shareText = buildShareText();
+    const shareUrl = 'https://drippyrewards.com';
     if(tweetBtn){
-      const d = window._dripWalletData;
-      const earned = d ? fmtSol(d.totalReceivedSol) : '0';
-      const text = `I've earned ${earned} SOL just by holding $DRIPPY 🐕💧\n\nEvery 30 minutes the dog pays. Burn weight earns 2x forever.\n\nCheck your bag → drippyrewards.com`;
-      tweetBtn.href = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(text);
+      tweetBtn.href = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(shareText);
+    }
+    if(tgBtn){
+      tgBtn.href = 'https://t.me/share/url?url=' + encodeURIComponent(shareUrl) + '&text=' + encodeURIComponent(shareText);
     }
   });
   closeBtn.addEventListener('click', () => modal.classList.remove('show'));
   modal.addEventListener('click', (e) => { if(e.target === modal) modal.classList.remove('show'); });
   downloadBtn.addEventListener('click', () => {
     const link = document.createElement('a');
-    link.download = 'drippy-stats.png';
+    link.download = 'drippy-quests-card.png';
     link.href = canvas.toDataURL('image/png');
     link.click();
   });
