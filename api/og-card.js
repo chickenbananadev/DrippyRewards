@@ -157,9 +157,23 @@ module.exports = async (req, res) => {
   <text x="${W/2}" y="${H-55}" text-anchor="middle" font-family="Courier New, monospace" font-size="16" font-weight="bold" fill="#a259ff" letter-spacing="2">PAID EVERY 30 MINUTES · BURN FOR 2X FOREVER</text>
 </svg>`;
 
-  // Return SVG directly — Twitter/Telegram both support SVG og:images,
-  // and this avoids needing any image conversion dependencies
-  res.setHeader('Content-Type', 'image/svg+xml');
-  res.setHeader('Cache-Control', 'public, s-maxage=300, max-age=60');
-  res.status(200).send(svg);
+  // Convert SVG to PNG — Twitter/Telegram require raster images for og:image
+  try {
+    const { Resvg } = require('@resvg/resvg-js');
+    const resvg = new Resvg(svg, {
+      fitTo: { mode: 'width', value: W },
+    });
+    const pngData = resvg.render();
+    const pngBuffer = pngData.asPng();
+
+    res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Cache-Control', 'public, s-maxage=300, max-age=60');
+    res.status(200).send(pngBuffer);
+  } catch (e) {
+    // Fallback to SVG if resvg fails
+    console.error('[og-card] PNG conversion failed, falling back to SVG:', e.message);
+    res.setHeader('Content-Type', 'image/svg+xml');
+    res.setHeader('Cache-Control', 'public, s-maxage=300, max-age=60');
+    res.status(200).send(svg);
+  }
 };
