@@ -1,15 +1,9 @@
 // /api/og-card.js
-// Generates a dynamic OG image (PNG) for a wallet's DripQuests share card.
-// Uses @vercel/og (Satori) on Edge Runtime to render JSX -> PNG.
+// Generates a dynamic OG share card image (PNG) for a wallet's DripQuests stats.
+// Uses pure SVG -> PNG conversion via resvg-js (no Edge runtime needed).
 //
 // Usage: /api/og-card?wallet=XXXX
-// Twitter/Telegram crawlers hit this URL via the og:image meta tag.
 
-import { ImageResponse } from '@vercel/og';
-
-export const config = { runtime: 'edge' };
-
-// Tier thresholds — must match the client-side TIERS
 const TIERS = [
   { min: 0,  label: 'Dripper',         color: '#f5c542' },
   { min: 1,  label: 'Bronze Dripper',  color: '#cd7f32' },
@@ -18,8 +12,7 @@ const TIERS = [
   { min: 11, label: 'Diamond Dripper', color: '#b9f2ff' },
 ];
 
-// Quest definitions — same check logic as client
-function countCompleted(d) {
+function countQuests(d) {
   let c = 0;
   const h = d.currentHoldings?.uiAmount || 0;
   const dist = d.distributionCount || 0;
@@ -27,13 +20,13 @@ function countCompleted(d) {
   const burns = d.burner?.burnEvents || 0;
   const burned = d.burner?.tokensBurned || 0;
   if (h > 0) c++;
-  if (h >= 1_000_000) c++;
-  if (h >= 10_000_000) c++;
+  if (h >= 1e6) c++;
+  if (h >= 10e6) c++;
   if (dist >= 1) c++;
   if (dist >= 50) c++;
   if (dist >= 100) c++;
   if (burns >= 1) c++;
-  if (burned >= 1_000_000) c++;
+  if (burned >= 1e6) c++;
   if (burns >= 5) c++;
   if (sol >= 0.1) c++;
   if (sol >= 0.5) c++;
@@ -43,9 +36,7 @@ function countCompleted(d) {
 
 function getTier(completed) {
   let tier = TIERS[0];
-  for (const t of TIERS) {
-    if (completed >= t.min) tier = t;
-  }
+  for (const t of TIERS) if (completed >= t.min) tier = t;
   return tier;
 }
 
@@ -63,185 +54,112 @@ function fmtTokens(n) {
   return Math.round(n).toLocaleString();
 }
 
-export default async function handler(req) {
-  const { searchParams } = new URL(req.url);
-  const wallet = searchParams.get('wallet');
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
+module.exports = async (req, res) => {
+  const wallet = req.query.wallet || '';
   if (!wallet || wallet.length < 32) {
-    return new Response('Missing or invalid wallet', { status: 400 });
+    res.status(400).send('Missing or invalid wallet');
+    return;
   }
 
-  // Fetch wallet data from our own API
-  const origin = new URL(req.url).origin;
+  const proto = req.headers['x-forwarded-proto'] || 'https';
+  const host = req.headers['x-forwarded-host'] || req.headers.host || 'drippyrewards.com';
+  const origin = proto + '://' + host;
+
   let d;
   try {
-    const r = await fetch(`${origin}/api/wallet?address=${wallet}`, { cache: 'no-store' });
+    const r = await fetch(origin + '/api/wallet?address=' + encodeURIComponent(wallet), { cache: 'no-store' });
     d = await r.json();
     if (!d || d.error) throw new Error(d?.error || 'no data');
   } catch (e) {
-    return new Response('Could not fetch wallet data: ' + e.message, { status: 500 });
+    res.status(500).send('Could not fetch wallet data: ' + e.message);
+    return;
   }
 
-  const completed = countCompleted(d);
+  const completed = countQuests(d);
   const tier = getTier(completed);
   const earned = fmtSol(d.totalReceivedSol);
-  const distributions = (d.distributionCount || 0).toLocaleString();
+  const distributions = String(d.distributionCount || 0);
   const daysHolding = d.daysHolding != null
     ? (d.daysHolding === 0 ? 'TODAY' : d.daysHolding === 1 ? '1 DAY' : d.daysHolding + ' DAYS')
     : 'HOLDER';
   const burned = fmtTokens(d.burner?.tokensBurned || 0);
   const burnWeight = (d.burner?.burnWeightSharePct || 0).toFixed(2) + '%';
-  const shortWallet = wallet.slice(0, 4) + '...' + wallet.slice(-4);
 
-  // Quest tier images hosted on the site
-  const questImages = [
-    'quest-join-pack', 'quest-diamond-starter', 'quest-whale',
-    'quest-first-drip', 'quest-veteran', 'quest-legend',
-    'quest-initiate-burn', 'quest-burn-boss', 'quest-inferno',
-    'quest-earned-01', 'quest-earned-05', 'quest-earned-1'
-  ];
-  // Pick the highest unlocked quest image for the featured art
-  const questChecks = [
-    (d.currentHoldings?.uiAmount || 0) > 0,
-    (d.currentHoldings?.uiAmount || 0) >= 1_000_000,
-    (d.currentHoldings?.uiAmount || 0) >= 10_000_000,
-    (d.distributionCount || 0) >= 1,
-    (d.distributionCount || 0) >= 50,
-    (d.distributionCount || 0) >= 100,
-    (d.burner?.burnEvents || 0) >= 1,
-    (d.burner?.tokensBurned || 0) >= 1_000_000,
-    (d.burner?.burnEvents || 0) >= 5,
-    (d.totalReceivedSol || 0) >= 0.1,
-    (d.totalReceivedSol || 0) >= 0.5,
-    (d.totalReceivedSol || 0) >= 1,
-  ];
-  let featuredImg = `${origin}/assets/quest-join-pack.png`;
-  for (let i = questChecks.length - 1; i >= 0; i--) {
-    if (questChecks[i]) {
-      featuredImg = `${origin}/assets/${questImages[i]}.png`;
-      break;
-    }
-  }
+  const W = 900, H = 1100;
+  const tc = tier.color;
 
-  return new ImageResponse(
-    (
-      <div style={{
-        width: '900px', height: '1100px',
-        display: 'flex', flexDirection: 'column', alignItems: 'center',
-        background: 'linear-gradient(135deg, #1a0a2e, #0a0610, #2a1248)',
-        fontFamily: 'sans-serif',
-        position: 'relative',
-        padding: '0',
-      }}>
-        {/* Outer border */}
-        <div style={{
-          position: 'absolute', top: '20px', left: '20px', right: '20px', bottom: '20px',
-          border: `5px solid ${tier.color}`,
-          display: 'flex',
-        }} />
-        {/* Inner border */}
-        <div style={{
-          position: 'absolute', top: '36px', left: '36px', right: '36px', bottom: '36px',
-          border: '2px solid #f5c542',
-          display: 'flex',
-        }} />
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1a0a2e"/>
+      <stop offset="50%" stop-color="#0a0610"/>
+      <stop offset="100%" stop-color="#2a1248"/>
+    </linearGradient>
+    <linearGradient id="solGlow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffd966"/>
+      <stop offset="100%" stop-color="#f5c542"/>
+    </linearGradient>
+  </defs>
 
-        {/* Header */}
-        <div style={{
-          display: 'flex', flexDirection: 'column', alignItems: 'center',
-          marginTop: '60px',
-        }}>
-          <div style={{
-            fontSize: '56px', fontWeight: 'bold', color: '#ffd966',
-            letterSpacing: '0.04em',
-          }}>DRIPQUESTS</div>
-          <div style={{
-            fontSize: '20px', fontWeight: 'bold', color: '#a259ff',
-            marginTop: '4px',
-          }}>drippyrewards.com</div>
-        </div>
+  <!-- Background -->
+  <rect width="${W}" height="${H}" fill="url(#bg)"/>
 
-        {/* Featured quest image */}
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          marginTop: '30px',
-          width: '340px', height: '340px',
-          borderRadius: '24px',
-          border: `4px solid ${tier.color}`,
-          overflow: 'hidden',
-          boxShadow: `0 0 40px ${tier.color}44`,
-        }}>
-          <img src={featuredImg} width="340" height="340" style={{ objectFit: 'cover' }} />
-        </div>
+  <!-- Outer border -->
+  <rect x="20" y="20" width="${W-40}" height="${H-40}" rx="4" fill="none" stroke="${tc}" stroke-width="5"/>
+  <!-- Inner border -->
+  <rect x="36" y="36" width="${W-72}" height="${H-72}" rx="2" fill="none" stroke="#f5c542" stroke-width="2"/>
 
-        {/* Tier label */}
-        <div style={{
-          display: 'flex', flexDirection: 'column', alignItems: 'center',
-          marginTop: '20px',
-        }}>
-          <div style={{
-            fontSize: '44px', fontWeight: 'bold', color: tier.color,
-            textShadow: `0 0 24px ${tier.color}88`,
-          }}>{tier.label.toUpperCase()}</div>
-          <div style={{
-            fontSize: '18px', fontWeight: 'bold', color: '#a259ff',
-            marginTop: '4px',
-          }}>{completed} of 12 quests cleared</div>
-        </div>
+  <!-- Decorative sparkles -->
+  ${Array.from({length: 40}, (_, i) => {
+    const x = ((i * 137 + 43) % W);
+    const y = ((i * 191 + 71) % H);
+    const r = 1.5 + (i % 3);
+    const col = i % 2 === 0 ? 'rgba(245,197,66,0.25)' : 'rgba(162,89,255,0.25)';
+    return `<circle cx="${x}" cy="${y}" r="${r}" fill="${col}"/>`;
+  }).join('\n  ')}
 
-        {/* Total SOL earned */}
-        <div style={{
-          display: 'flex', flexDirection: 'column', alignItems: 'center',
-          marginTop: '40px',
-        }}>
-          <div style={{
-            fontSize: '18px', fontWeight: 'bold', color: '#a259ff',
-            letterSpacing: '0.1em',
-          }}>TOTAL SOL EARNED</div>
-          <div style={{
-            fontSize: '68px', fontWeight: 'bold', color: '#ffd966',
-            textShadow: '0 0 24px rgba(245,197,66,.5)',
-            marginTop: '4px',
-          }}>{earned} SOL</div>
-        </div>
+  <!-- Header -->
+  <text x="${W/2}" y="100" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-size="56" font-weight="900" fill="#ffd966" letter-spacing="3">DRIPQUESTS</text>
+  <text x="${W/2}" y="132" text-anchor="middle" font-family="Courier New, monospace" font-size="20" font-weight="bold" fill="#a259ff">drippyrewards.com</text>
 
-        {/* Stats grid 2x2 */}
-        <div style={{
-          display: 'flex', flexWrap: 'wrap',
-          width: '700px', marginTop: '30px',
-          justifyContent: 'center',
-        }}>
-          {[
-            { label: 'DISTRIBUTIONS', value: distributions },
-            { label: 'IN THE PACK', value: daysHolding },
-            { label: 'BURNED', value: burned },
-            { label: 'BURN WEIGHT', value: burnWeight },
-          ].map((s) => (
-            <div style={{
-              display: 'flex', flexDirection: 'column', alignItems: 'center',
-              width: '350px', marginBottom: '16px',
-            }}>
-              <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#a259ff', letterSpacing: '0.08em' }}>{s.label}</div>
-              <div style={{ fontSize: '30px', fontWeight: 'bold', color: '#fff5c0', marginTop: '4px' }}>{s.value}</div>
-            </div>
-          ))}
-        </div>
+  <!-- Featured image placeholder (gold bordered box) -->
+  <rect x="${(W-340)/2}" y="170" width="340" height="340" rx="24" fill="rgba(162,89,255,0.12)" stroke="${tc}" stroke-width="4"/>
+  <text x="${W/2}" y="320" text-anchor="middle" font-family="Arial, sans-serif" font-size="80">🐕</text>
+  <text x="${W/2}" y="380" text-anchor="middle" font-family="Courier New, monospace" font-size="16" fill="rgba(246,233,196,0.5)">$DRIPPY</text>
 
-        {/* Footer */}
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          position: 'absolute', bottom: '55px', left: '0', right: '0',
-        }}>
-          <div style={{
-            fontSize: '16px', fontWeight: 'bold', color: '#a259ff',
-            letterSpacing: '0.06em',
-          }}>PAID EVERY 30 MINUTES · BURN FOR 2X FOREVER</div>
-        </div>
-      </div>
-    ),
-    {
-      width: 900,
-      height: 1100,
-    }
-  );
-}
+  <!-- Tier label -->
+  <text x="${W/2}" y="570" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-size="44" font-weight="900" fill="${tc}">${esc(tier.label.toUpperCase())}</text>
+  <text x="${W/2}" y="600" text-anchor="middle" font-family="Courier New, monospace" font-size="18" font-weight="bold" fill="#a259ff">${completed} of 12 quests cleared</text>
+
+  <!-- Total SOL earned label -->
+  <text x="${W/2}" y="670" text-anchor="middle" font-family="Courier New, monospace" font-size="18" font-weight="bold" fill="#a259ff" letter-spacing="4">TOTAL SOL EARNED</text>
+  <!-- Total SOL earned value -->
+  <text x="${W/2}" y="740" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-size="68" font-weight="900" fill="url(#solGlow)">${esc(earned)} SOL</text>
+
+  <!-- Stats grid 2x2 -->
+  <!-- Row 1 -->
+  <text x="${W/4}" y="820" text-anchor="middle" font-family="Courier New, monospace" font-size="14" font-weight="bold" fill="#a259ff" letter-spacing="2">DISTRIBUTIONS</text>
+  <text x="${W/4}" y="855" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-size="30" font-weight="900" fill="#fff5c0">${esc(distributions)}</text>
+
+  <text x="${W*3/4}" y="820" text-anchor="middle" font-family="Courier New, monospace" font-size="14" font-weight="bold" fill="#a259ff" letter-spacing="2">IN THE PACK</text>
+  <text x="${W*3/4}" y="855" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-size="30" font-weight="900" fill="#fff5c0">${esc(daysHolding)}</text>
+
+  <!-- Row 2 -->
+  <text x="${W/4}" y="920" text-anchor="middle" font-family="Courier New, monospace" font-size="14" font-weight="bold" fill="#a259ff" letter-spacing="2">BURNED</text>
+  <text x="${W/4}" y="955" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-size="30" font-weight="900" fill="#fff5c0">${esc(burned)}</text>
+
+  <text x="${W*3/4}" y="920" text-anchor="middle" font-family="Courier New, monospace" font-size="14" font-weight="bold" fill="#a259ff" letter-spacing="2">BURN WEIGHT</text>
+  <text x="${W*3/4}" y="955" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-size="30" font-weight="900" fill="#fff5c0">${esc(burnWeight)}</text>
+
+  <!-- Footer -->
+  <text x="${W/2}" y="${H-55}" text-anchor="middle" font-family="Courier New, monospace" font-size="16" font-weight="bold" fill="#a259ff" letter-spacing="2">PAID EVERY 30 MINUTES · BURN FOR 2X FOREVER</text>
+</svg>`;
+
+  // Return SVG directly — Twitter/Telegram both support SVG og:images,
+  // and this avoids needing any image conversion dependencies
+  res.setHeader('Content-Type', 'image/svg+xml');
+  res.setHeader('Cache-Control', 'public, s-maxage=300, max-age=60');
+  res.status(200).send(svg);
+};
