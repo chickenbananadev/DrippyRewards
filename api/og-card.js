@@ -1,6 +1,6 @@
-// /api/og-card.js
-// Generates a dynamic OG share card image (PNG) for Twitter/Telegram.
-// Wide landscape format (1200x630) for summary_large_image compatibility.
+import { ImageResponse } from '@vercel/og';
+
+export const config = { runtime: 'edge' };
 
 const TIERS = [
   { min: 0,  label: 'Dripper',         color: '#f5c542' },
@@ -52,27 +52,22 @@ function fmtTokens(n) {
   return Math.round(n).toLocaleString();
 }
 
-function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+export default async function handler(req) {
+  const { searchParams } = new URL(req.url);
+  const wallet = searchParams.get('wallet');
 
-module.exports = async (req, res) => {
-  const wallet = req.query.wallet || '';
   if (!wallet || wallet.length < 32) {
-    res.status(400).send('Missing or invalid wallet');
-    return;
+    return new Response('Missing or invalid wallet', { status: 400 });
   }
 
-  const proto = req.headers['x-forwarded-proto'] || 'https';
-  const host = req.headers['x-forwarded-host'] || req.headers.host || 'drippyrewards.com';
-  const origin = proto + '://' + host;
-
+  const origin = new URL(req.url).origin;
   let d;
   try {
-    const r = await fetch(origin + '/api/wallet?address=' + encodeURIComponent(wallet), { cache: 'no-store' });
+    const r = await fetch(`${origin}/api/wallet?address=${wallet}`, { cache: 'no-store' });
     d = await r.json();
     if (!d || d.error) throw new Error(d?.error || 'no data');
   } catch (e) {
-    res.status(500).send('Could not fetch wallet data: ' + e.message);
-    return;
+    return new Response('Could not fetch wallet data: ' + e.message, { status: 500 });
   }
 
   const completed = countQuests(d);
@@ -84,114 +79,142 @@ module.exports = async (req, res) => {
     : 'HOLDER';
   const burned = fmtTokens(d.burner?.tokensBurned || 0);
   const burnWeight = (d.burner?.burnWeightSharePct || 0).toFixed(2) + '%';
-
-  const W = 1200, H = 630;
   const tc = tier.color;
 
-  // Left column x center, right column x positions
-  const leftX = 320;  // center of left area (for dog + tier)
-  const rightX = 780; // center of right area (for stats)
+  return new ImageResponse(
+    (
+      <div style={{
+        width: '1200px', height: '630px',
+        display: 'flex',
+        background: 'linear-gradient(135deg, #1a0a2e, #0a0610, #2a1248)',
+        fontFamily: 'sans-serif',
+        position: 'relative',
+      }}>
+        {/* Outer border */}
+        <div style={{
+          position: 'absolute', top: '12px', left: '12px', right: '12px', bottom: '12px',
+          border: `4px solid ${tc}`, borderRadius: '8px',
+          display: 'flex',
+        }} />
+        <div style={{
+          position: 'absolute', top: '22px', left: '22px', right: '22px', bottom: '22px',
+          border: '1.5px solid #f5c542', borderRadius: '4px',
+          display: 'flex',
+        }} />
 
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#1a0a2e"/>
-      <stop offset="50%" stop-color="#0a0610"/>
-      <stop offset="100%" stop-color="#2a1248"/>
-    </linearGradient>
-    <linearGradient id="solGlow" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#ffd966"/>
-      <stop offset="100%" stop-color="#f5c542"/>
-    </linearGradient>
-  </defs>
+        {/* LEFT SIDE */}
+        <div style={{
+          display: 'flex', flexDirection: 'column', alignItems: 'center',
+          width: '500px', padding: '50px 40px',
+        }}>
+          <div style={{ fontSize: '38px', fontWeight: 900, color: '#ffd966', letterSpacing: '2px' }}>
+            DRIPQUESTS
+          </div>
+          <div style={{ fontSize: '15px', fontWeight: 700, color: '#a259ff', marginTop: '4px' }}>
+            drippyrewards.com
+          </div>
 
-  <!-- Background -->
-  <rect width="${W}" height="${H}" fill="url(#bg)"/>
+          {/* Dog placeholder */}
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            width: '200px', height: '200px',
+            marginTop: '24px',
+            borderRadius: '18px',
+            border: `3px solid ${tc}`,
+            background: 'rgba(162,89,255,0.1)',
+          }}>
+            <div style={{ fontSize: '80px' }}>🐕</div>
+          </div>
 
-  <!-- Outer border -->
-  <rect x="12" y="12" width="${W-24}" height="${H-24}" rx="8" fill="none" stroke="${tc}" stroke-width="4"/>
-  <!-- Inner border -->
-  <rect x="22" y="22" width="${W-44}" height="${H-44}" rx="4" fill="none" stroke="#f5c542" stroke-width="1.5"/>
+          <div style={{
+            fontSize: '30px', fontWeight: 900, color: tc, marginTop: '20px',
+          }}>
+            {tier.label.toUpperCase()}
+          </div>
+          <div style={{
+            fontSize: '14px', fontWeight: 700, color: '#a259ff', marginTop: '4px',
+          }}>
+            {completed} of 12 quests cleared
+          </div>
+        </div>
 
-  <!-- Sparkles -->
-  ${Array.from({length: 30}, (_, i) => {
-    const x = ((i * 137 + 43) % W);
-    const y = ((i * 191 + 71) % H);
-    const r = 1 + (i % 3);
-    const col = i % 2 === 0 ? 'rgba(245,197,66,0.2)' : 'rgba(162,89,255,0.2)';
-    return `<circle cx="${x}" cy="${y}" r="${r}" fill="${col}"/>`;
-  }).join('\n  ')}
+        {/* Divider */}
+        <div style={{
+          position: 'absolute', left: '500px', top: '50px', bottom: '50px',
+          width: '1px', background: 'rgba(162,89,255,0.25)',
+          display: 'flex',
+        }} />
 
-  <!-- Divider line between left and right -->
-  <line x1="540" y1="60" x2="540" y2="${H-60}" stroke="rgba(162,89,255,0.25)" stroke-width="1" stroke-dasharray="4,6"/>
+        {/* RIGHT SIDE */}
+        <div style={{
+          display: 'flex', flexDirection: 'column', alignItems: 'center',
+          width: '700px', padding: '45px 40px',
+        }}>
+          <div style={{
+            fontSize: '16px', fontWeight: 700, color: '#a259ff', letterSpacing: '3px',
+          }}>
+            TOTAL SOL EARNED
+          </div>
+          <div style={{
+            fontSize: '64px', fontWeight: 900, color: '#ffd966',
+            marginTop: '8px',
+          }}>
+            {earned} SOL
+          </div>
 
-  <!-- ===== LEFT SIDE: Branding + Tier ===== -->
+          {/* Stats grid */}
+          <div style={{
+            display: 'flex', flexWrap: 'wrap', justifyContent: 'center',
+            width: '100%', marginTop: '30px', gap: '10px',
+          }}>
+            {[
+              { label: 'DISTRIBUTIONS', value: distributions },
+              { label: 'IN THE PACK', value: daysHolding },
+              { label: 'BURNED', value: burned },
+              { label: 'BURN WEIGHT', value: burnWeight },
+            ].map((s, i) => (
+              <div key={i} style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center',
+                width: '260px', marginBottom: '8px',
+              }}>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: '#a259ff', letterSpacing: '1px' }}>
+                  {s.label}
+                </div>
+                <div style={{ fontSize: '28px', fontWeight: 900, color: '#fff5c0', marginTop: '4px' }}>
+                  {s.value}
+                </div>
+              </div>
+            ))}
+          </div>
 
-  <!-- Header -->
-  <text x="${leftX}" y="75" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-size="36" font-weight="900" fill="#ffd966" letter-spacing="2">DRIPQUESTS</text>
-  <text x="${leftX}" y="100" text-anchor="middle" font-family="Courier New, monospace" font-size="14" font-weight="bold" fill="#a259ff">drippyrewards.com</text>
+          {/* Tagline */}
+          <div style={{
+            fontSize: '18px', fontWeight: 900, color: '#ffd966', marginTop: '24px',
+          }}>
+            THE DRIP NEVER STOPS
+          </div>
+          <div style={{
+            fontSize: '13px', color: 'rgba(246,233,196,0.5)', marginTop: '6px',
+          }}>
+            5% tax · 100% to SOL · rewards every 30 min
+          </div>
 
-  <!-- Dog emoji placeholder -->
-  <rect x="${leftX - 120}" y="130" width="240" height="240" rx="18" fill="rgba(162,89,255,0.1)" stroke="${tc}" stroke-width="3"/>
-  <text x="${leftX}" y="240" text-anchor="middle" font-family="Arial, sans-serif" font-size="72">🐕</text>
-  <text x="${leftX}" y="310" text-anchor="middle" font-family="Courier New, monospace" font-size="14" fill="rgba(246,233,196,0.4)">$DRIPPY</text>
-
-  <!-- Tier -->
-  <text x="${leftX}" y="420" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-size="32" font-weight="900" fill="${tc}">${esc(tier.label.toUpperCase())}</text>
-  <text x="${leftX}" y="450" text-anchor="middle" font-family="Courier New, monospace" font-size="14" font-weight="bold" fill="#a259ff">${completed} of 12 quests cleared</text>
-
-  <!-- Footer left -->
-  <text x="${leftX}" y="${H-45}" text-anchor="middle" font-family="Courier New, monospace" font-size="11" font-weight="bold" fill="rgba(162,89,255,0.6)" letter-spacing="1">PAID EVERY 30 MIN · BURN FOR 2X FOREVER</text>
-
-  <!-- ===== RIGHT SIDE: Stats ===== -->
-
-  <!-- SOL earned -->
-  <text x="${rightX}" y="90" text-anchor="middle" font-family="Courier New, monospace" font-size="16" font-weight="bold" fill="#a259ff" letter-spacing="3">TOTAL SOL EARNED</text>
-  <text x="${rightX}" y="155" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-size="60" font-weight="900" fill="url(#solGlow)">${esc(earned)}</text>
-  <text x="${rightX}" y="190" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-size="30" font-weight="900" fill="#ffd966">SOL</text>
-
-  <!-- Stats 2x2 grid -->
-  <text x="${rightX - 120}" y="260" text-anchor="middle" font-family="Courier New, monospace" font-size="12" font-weight="bold" fill="#a259ff" letter-spacing="1">DISTRIBUTIONS</text>
-  <text x="${rightX - 120}" y="292" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-size="28" font-weight="900" fill="#fff5c0">${esc(distributions)}</text>
-
-  <text x="${rightX + 120}" y="260" text-anchor="middle" font-family="Courier New, monospace" font-size="12" font-weight="bold" fill="#a259ff" letter-spacing="1">IN THE PACK</text>
-  <text x="${rightX + 120}" y="292" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-size="28" font-weight="900" fill="#fff5c0">${esc(daysHolding)}</text>
-
-  <text x="${rightX - 120}" y="350" text-anchor="middle" font-family="Courier New, monospace" font-size="12" font-weight="bold" fill="#a259ff" letter-spacing="1">BURNED</text>
-  <text x="${rightX - 120}" y="382" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-size="28" font-weight="900" fill="#fff5c0">${esc(burned)}</text>
-
-  <text x="${rightX + 120}" y="350" text-anchor="middle" font-family="Courier New, monospace" font-size="12" font-weight="bold" fill="#a259ff" letter-spacing="1">BURN WEIGHT</text>
-  <text x="${rightX + 120}" y="382" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-size="28" font-weight="900" fill="#fff5c0">${esc(burnWeight)}</text>
-
-  <!-- Separator -->
-  <line x1="580" y1="420" x2="980" y2="420" stroke="rgba(245,197,66,0.2)" stroke-width="1"/>
-
-  <!-- Tagline -->
-  <text x="${rightX}" y="470" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-size="18" font-weight="900" fill="#ffd966">THE DRIP NEVER STOPS</text>
-  <text x="${rightX}" y="500" text-anchor="middle" font-family="Courier New, monospace" font-size="13" fill="rgba(246,233,196,0.5)">5% tax · 100% to SOL · rewards every 30 min</text>
-
-  <!-- CTA -->
-  <rect x="${rightX - 110}" y="530" width="220" height="42" rx="8" fill="rgba(245,197,66,0.15)" stroke="${tc}" stroke-width="2"/>
-  <text x="${rightX}" y="557" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-size="16" font-weight="900" fill="${tc}">JOIN THE PACK</text>
-</svg>`;
-
-  // Convert SVG to PNG for Twitter/Telegram compatibility
-  try {
-    const { Resvg } = require('@resvg/resvg-js');
-    const resvg = new Resvg(svg, {
-      fitTo: { mode: 'width', value: W },
-    });
-    const pngData = resvg.render();
-    const pngBuffer = pngData.asPng();
-
-    res.setHeader('Content-Type', 'image/png');
-    res.setHeader('Cache-Control', 'public, s-maxage=300, max-age=60');
-    res.status(200).send(pngBuffer);
-  } catch (e) {
-    // Fallback to SVG if resvg fails
-    console.error('[og-card] PNG conversion failed, falling back to SVG:', e.message);
-    res.setHeader('Content-Type', 'image/svg+xml');
-    res.setHeader('Cache-Control', 'public, s-maxage=300, max-age=60');
-    res.status(200).send(svg);
-  }
-};
+          {/* CTA button */}
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            marginTop: '20px',
+            padding: '10px 40px',
+            borderRadius: '8px',
+            border: `2px solid ${tc}`,
+            background: 'rgba(245,197,66,0.15)',
+          }}>
+            <div style={{ fontSize: '16px', fontWeight: 900, color: tc }}>
+              JOIN THE PACK
+            </div>
+          </div>
+        </div>
+      </div>
+    ),
+    { width: 1200, height: 630 }
+  );
+}
