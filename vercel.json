@@ -1,9 +1,13 @@
 {
-     "version": 2,
-     "functions": {
-       "api/*.js": {
-         "memory": 1024,
-         "maxDuration": 10
-       }
-     }
-   }
+  "version": 2,
+  "functions": {
+    "api/wallet.js": { "memory": 1024, "maxDuration": 10 },
+    "api/events.js": { "memory": 1024, "maxDuration": 10 },
+    "api/holders.js": { "memory": 1024, "maxDuration": 10 },
+    "api/leaderboard.js": { "memory": 1024, "maxDuration": 10 },
+    "api/candles.js": { "memory": 1024, "maxDuration": 10 },
+    "api/distribution.js": { "memory": 1024, "maxDuration": 10 },
+    "api/upload-image.js": { "memory": 1024, "maxDuration": 10 },
+    "api/share.js": { "memory": 1024, "maxDuration": 10 }
+  }
+}
