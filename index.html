@@ -1784,6 +1784,14 @@ h2 .red{color:var(--crimson);text-shadow:3px 3px 0 #000}
   color:rgba(0,255,0,.55);
   letter-spacing:.04em;
   margin-top:6px;
+  word-break:break-all;
+}
+@media (max-width:540px){
+  .crash-dead-title{font-size:22px;letter-spacing:.1em}
+  .crash-dead-trace{font-size:11px;padding:10px 12px;min-height:220px}
+  .crash-dead-emoji{font-size:60px}
+  .crash-dead-sub{font-size:12px}
+  .crash-dead-meta{font-size:9px}
 }
 
 /* Recovery message */
@@ -2067,15 +2075,15 @@ h2 .red{color:var(--crimson);text-shadow:3px 3px 0 #000}
   flex-wrap:wrap;
 }
 .dripping-img{
-  width:100%;max-width:680px;height:auto;max-height:320px;
+  width:100%;height:auto;
   flex-shrink:0;order:10;
   border-radius:10px;
-  object-fit:cover;
+  object-fit:contain;
   border:1.5px solid rgba(212,164,49,.35);
   margin-top:12px;
 }
 @media (max-width:540px){
-  .dripping-img{max-height:200px}
+  .dripping-img{border-radius:8px}
 }
 
 /* ========== SHARE CARD MODAL ========== */
@@ -4967,12 +4975,22 @@ setTimeout(() => {
               setTimeout(() => {
                 allBlocks.forEach(b => {
                   b.classList.remove('drippy-snapback');
+                  b.classList.remove('drippy-falling');
                   b.style.removeProperty('--mx');
                   b.style.removeProperty('--my');
                   b.style.removeProperty('--mr');
                   b.style.removeProperty('--md');
+                  b.style.opacity = '';
+                  b.style.transform = '';
+                  b.style.filter = '';
+                  b.style.animation = '';
                 });
                 body.classList.remove('drippy-recovering');
+                body.classList.remove('drippy-meltdown');
+                body.classList.remove('drippy-glitch');
+                body.classList.remove('drippy-impact');
+                body.classList.remove('drippy-strobing');
+                body.classList.remove('drippy-static');
                 legoOverlay.remove();
                 deadScreen.remove();
               }, 1500);
