@@ -1,13 +1,8 @@
 {
   "version": 2,
   "functions": {
-    "api/wallet.js": { "maxDuration": 10 },
-    "api/events.js": { "maxDuration": 10 },
-    "api/holders.js": { "maxDuration": 10 },
-    "api/leaderboard.js": { "maxDuration": 10 },
-    "api/candles.js": { "maxDuration": 10 },
-    "api/distribution.js": { "maxDuration": 10 },
-    "api/upload-image.js": { "maxDuration": 10 },
-    "api/share.js": { "maxDuration": 10 }
+    "api/*.js": {
+      "maxDuration": 10
+    }
   }
 }
