@@ -50,8 +50,8 @@ module.exports = async (req, res) => {
   <meta property="og:title" content="${title}" />
   <meta property="og:description" content="${description}" />
   <meta property="og:image" content="${ogImage}" />
-  <meta property="og:image:width" content="900" />
-  <meta property="og:image:height" content="1100" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
   <meta property="og:url" content="${pageUrl}" />
   <meta property="og:type" content="website" />
   <meta name="twitter:card" content="summary_large_image" />
