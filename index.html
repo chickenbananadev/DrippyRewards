@@ -4084,11 +4084,18 @@ setTimeout(() => {
         io.unobserve(e.target);
       }
     });
-  }, { threshold: 0.15, rootMargin: '0px 0px -10% 0px' });
+  }, { threshold: 0.05, rootMargin: '0px 0px -5% 0px' });
 
   // Wait for intro to start exiting before observing, so reveals trigger naturally as user scrolls
   setTimeout(() => {
     document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+    // Observe leaderboard + quests independently so they reveal on mobile
+    document.querySelectorAll('.lb-block, .dq-block').forEach(el => {
+      if(!el.classList.contains('reveal')){
+        el.classList.add('reveal');
+        io.observe(el);
+      }
+    });
   }, 1800);
 })();
 
