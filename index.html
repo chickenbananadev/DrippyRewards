@@ -5526,10 +5526,14 @@ setTimeout(() => {
   shareBtn.addEventListener('click', async () => {
     await renderCard();
     modal.classList.add('show');
+    const d = window._dripWalletData;
+    const wallet = d ? d.wallet : '';
+    const shareUrl = wallet
+      ? 'https://drippyrewards.com/api/share?wallet=' + encodeURIComponent(wallet)
+      : 'https://drippyrewards.com';
     const shareText = buildShareText();
-    const shareUrl = 'https://drippyrewards.com';
     if(tweetBtn){
-      tweetBtn.href = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(shareText);
+      tweetBtn.href = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(shareText) + '&url=' + encodeURIComponent(shareUrl);
     }
     if(tgBtn){
       tgBtn.href = 'https://t.me/share/url?url=' + encodeURIComponent(shareUrl) + '&text=' + encodeURIComponent(shareText);
