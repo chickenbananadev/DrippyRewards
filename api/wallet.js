@@ -259,7 +259,16 @@ module.exports = async (req, res) => {
 
     // Burn leaderboard — only if they've actually burned
     if (formatted.burner.burnEvents > 0 && formatted.burner.tokensBurned > 0) {
-      const burnScore = Math.round(formatted.burner.tokensBurned);
+      // Safety clamp: burns can never exceed total supply (~1B). $DRIPPY has
+      // 9 decimals, so a raw value would be 1e9x too big. Rescale if needed.
+      let burnUi = Number(formatted.burner.tokensBurned) || 0;
+      if (burnUi > 1_000_000_000) {
+        if (burnUi / 1e9 <= 1_000_000_000) burnUi = burnUi / 1e9;
+        else if (burnUi / 1e6 <= 1_000_000_000) burnUi = burnUi / 1e6;
+        else { let g = 0; while (burnUi > 1_000_000_000 && g < 6) { burnUi /= 1e3; g++; } }
+      }
+      formatted.burner.tokensBurned = burnUi;
+      const burnScore = Math.round(burnUi);
       await redis(['ZADD', LB_KEY, burnScore, address]);
       const r = await redis(['ZREVRANK', LB_KEY, address]);
       if (r != null) burnRank = Number(r) + 1;
