@@ -1,16 +1,8 @@
 {
   "version": 2,
-  "buildCommand": "",
-  "outputDirectory": ".",
   "functions": {
     "api/*.js": {
-      "maxDuration": 30
+      "maxDuration": 10
     }
-  },
-  "crons": [
-    {
-      "path": "/api/burn-snapshot?action=record&secret=2026Drippyrewards",
-      "schedule": "0 6 * * *"
-    }
-  ]
+  }
 }
