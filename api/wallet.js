@@ -221,6 +221,46 @@ module.exports = async (req, res) => {
     }
 
     if (forgeRes.status === 404) {
+      // Forge has no distribution record, but this wallet may still have burn
+      // data we recorded earlier. Fall back to cached metadata in Redis.
+      let cachedMeta = null;
+      try {
+        const metaStr = await redis(['GET', META_PREFIX + address]);
+        if (metaStr) cachedMeta = JSON.parse(metaStr);
+      } catch(_) {}
+
+      if (cachedMeta && (cachedMeta.tokensBurned > 0 || cachedMeta.totalReceivedSol > 0)) {
+        // Sanitize burn in case it was stored corrupted
+        let burnUi = Number(cachedMeta.tokensBurned) || 0;
+        if (burnUi > 1_000_000_000) {
+          if (burnUi / 1e9 <= 1_000_000_000) burnUi = burnUi / 1e9;
+          else if (burnUi / 1e6 <= 1_000_000_000) burnUi = burnUi / 1e6;
+        }
+        const burnRankRaw = await redis(['ZREVRANK', LB_KEY, address]);
+        const earnRankRaw = await redis(['ZREVRANK', LB_EARN_KEY, address]);
+        res.status(200).json({
+          found: true,
+          fromCache: true,
+          wallet: address,
+          currentHoldings: { uiAmount: onChainBalance || cachedMeta.currentHoldings || 0 },
+          totalReceivedSol: cachedMeta.totalReceivedSol || 0,
+          distributionCount: cachedMeta.distributionCount || 0,
+          daysHolding,
+          firstDripTimestamp: firstDripTs,
+          burner: {
+            enabled: burnUi > 0,
+            tokensBurned: burnUi,
+            burnEvents: cachedMeta.burnEvents || 0,
+            burnWeightSharePct: cachedMeta.burnWeightSharePct || 0
+          },
+          burnRank: burnRankRaw != null ? Number(burnRankRaw) + 1 : null,
+          earnRank: earnRankRaw != null ? Number(earnRankRaw) + 1 : null,
+          recentDistributions: [],
+          fetchedAt: new Date().toISOString()
+        });
+        return;
+      }
+
       res.status(200).json({
         found: false,
         wallet: address,
