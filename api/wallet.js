@@ -9,6 +9,15 @@
 const TOKEN_MINT = 'EPRZgmvU4aTQ4UaC4bywgNvxJ5YmhuKqM1bx3gw4DRPY';
 const HELIUS_KEY = process.env.HELIUS_API_KEY || 'c3f500f3-db28-4d44-994f-0fa0e0ebd510';
 
+// Browser-like headers — forgepad.fun (Cloudflare) blocks non-browser UAs
+const BROWSER_HEADERS = {
+  'Accept': 'application/json, text/plain, */*',
+  'Accept-Language': 'en-US,en;q=0.9',
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+  'Referer': 'https://forgepad.fun/',
+  'Origin': 'https://forgepad.fun'
+};
+
 const REDIS_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
 const REDIS_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
 
@@ -195,7 +204,7 @@ module.exports = async (req, res) => {
       let dbg = { forgeUrl };
       try {
         const dr = await withTimeout(
-          fetch(forgeUrl, { headers: { 'Accept': 'application/json', 'User-Agent': 'DrippyRewards-Site/1.0' } }),
+          fetch(forgeUrl, { headers: BROWSER_HEADERS }),
           9000
         );
         dbg.status = dr.status;
@@ -214,7 +223,7 @@ module.exports = async (req, res) => {
     // are optional enrichment (balance + daysHolding) and fall back to null.
     const [forgeRes, onChainBalance, firstDripTs] = await Promise.all([
       withTimeout(
-        fetch(forgeUrl, { headers: { 'Accept': 'application/json', 'User-Agent': 'DrippyRewards-Site/1.0' } }),
+        fetch(forgeUrl, { headers: BROWSER_HEADERS }),
         9000
       ).catch(() => null),
       withTimeout(getOnChainBalance(address), 4000).catch(() => null),
