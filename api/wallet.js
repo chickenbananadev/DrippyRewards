@@ -119,9 +119,10 @@ async function getFirstDripDate(owner){
     for(const acc of tokenAccounts){
       let before = null;
       let oldestForThisAcc = null;
-      // Walk back through pages until no more results — capped at 5 pages to
-      // protect against runaway wallets
-      for(let page = 0; page < 5; page++){
+      // Walk back through pages until no more results — capped at 2 pages to
+      // stay well under Vercel's function time limit (was 5, too slow for
+      // high-activity wallets and caused consistent timeouts)
+      for(let page = 0; page < 2; page++){
         const params = before ? { before, limit: 1000 } : { limit: 1000 };
         const sigRes = await fetch(url, {
           method: 'POST',
@@ -183,11 +184,34 @@ module.exports = async (req, res) => {
   try {
     // Fire Forge, Helius balance, and Helius first-drip in parallel
     const forgeUrl = 'https://forgepad.fun/api/distributions/wallet/' + address + '?contract=' + TOKEN_MINT;
-    const [forgeRes, onChainBalance, firstDripTs] = await Promise.all([
-      fetch(forgeUrl, { headers: { 'Accept': 'application/json', 'User-Agent': 'DrippyRewards-Site/1.0' } }),
-      getOnChainBalance(address),
-      getFirstDripDate(address)
+    // Timeout wrapper — Forge can hang; don't let it block the whole request
+    const withTimeout = (p, ms) => Promise.race([
+      p,
+      new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))
     ]);
+    const [forgeRes, onChainBalance, firstDripTs] = await Promise.all([
+      withTimeout(
+        fetch(forgeUrl, { headers: { 'Accept': 'application/json', 'User-Agent': 'DrippyRewards-Site/1.0' } }),
+        7000
+      ).catch(() => null),
+      withTimeout(getOnChainBalance(address), 6000).catch(() => null),
+      // First-drip date can be very slow for high-activity wallets (walks
+      // many signature pages). Cap it hard and fall back to null — daysHolding
+      // is a nice-to-have, not worth failing the whole request over.
+      withTimeout(getFirstDripDate(address), 6000).catch(() => null)
+    ]);
+
+    // If Forge itself timed out/failed, return a graceful error
+    if (!forgeRes) {
+      res.status(200).json({
+        found: false,
+        wallet: address,
+        currentHoldings: { uiAmount: onChainBalance || 0 },
+        daysHolding: null,
+        message: 'Live data is slow right now. Your on-chain balance is shown; try again shortly for full stats.'
+      });
+      return;
+    }
 
     // Compute days-holding from first-drip timestamp (if found)
     let daysHolding = null;
@@ -301,6 +325,10 @@ module.exports = async (req, res) => {
     res.status(200).json(formatted);
   } catch (err) {
     console.error('[wallet proxy] error:', err);
-    res.status(500).json({ error: err.message || 'Unknown error' });
+    if (err.message === 'timeout') {
+      res.status(504).json({ error: 'The data provider is slow right now. Try again in a moment.' });
+    } else {
+      res.status(500).json({ error: err.message || 'Unknown error' });
+    }
   }
 };
