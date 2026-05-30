@@ -4269,9 +4269,43 @@ setTimeout(() => {
       const TOKEN_MINT = 'EPRZgmvU4aTQ4UaC4bywgNvxJ5YmhuKqM1bx3gw4DRPY';
       try{
         const forgeUrl = 'https://forgepad.fun/api/distributions/wallet/' + encodeURIComponent(addr) + '?contract=' + TOKEN_MINT;
-        const fr = await fetch(forgeUrl, { headers: { 'Accept': 'application/json' } });
-        if(fr.ok){
-          const fd = await fr.json();
+        // Vercel can't reach Forge's per-wallet endpoint (it black-holes
+        // datacenter IPs), and the browser can't fetch it directly (CORS).
+        // So we route through public CORS proxies. Each proxy returns the
+        // data differently, so we get the raw text and parse it ourselves.
+        async function tryFetchForge(){
+          const tries = [
+            // allorigins /get wraps the body in { contents: "..." }
+            { url: 'https://api.allorigins.win/get?url=' + encodeURIComponent(forgeUrl), wrapped: true },
+            // allorigins /raw returns the body directly
+            { url: 'https://api.allorigins.win/raw?url=' + encodeURIComponent(forgeUrl), wrapped: false },
+            // corsproxy.io returns the body directly
+            { url: 'https://corsproxy.io/?url=' + encodeURIComponent(forgeUrl), wrapped: false },
+            // direct (works if Forge ever allows CORS)
+            { url: forgeUrl, wrapped: false }
+          ];
+          for(const t of tries){
+            try{
+              const resp = await fetch(t.url);
+              if(!resp.ok) continue;
+              const txt = await resp.text();
+              let jsonText = txt;
+              if(t.wrapped){
+                const wrap = JSON.parse(txt);
+                jsonText = wrap.contents;
+              }
+              const parsed = JSON.parse(jsonText);
+              // Validate it's really Forge data, not a proxy error page
+              if(parsed && (parsed.wallet || parsed.burnerStats || parsed.distributionCount != null)){
+                return parsed;
+              }
+            }catch(_){ /* try next proxy */ }
+          }
+          return null;
+        }
+
+        const fd = await tryFetchForge();
+        if(fd){
           const lamportsToSol = (n) => Number(n || 0) / 1e9;
           const burner = fd.burnerStats || {};
           let burnUi = Number(burner.tokensBurnedUi) || 0;
