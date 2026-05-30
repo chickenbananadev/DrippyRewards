@@ -189,6 +189,27 @@ module.exports = async (req, res) => {
       p,
       new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))
     ]);
+
+    // DEBUG MODE: /api/wallet?address=XXX&debug=1 returns raw Forge response
+    if (req.query.debug === '1') {
+      let dbg = { forgeUrl };
+      try {
+        const dr = await withTimeout(
+          fetch(forgeUrl, { headers: { 'Accept': 'application/json', 'User-Agent': 'DrippyRewards-Site/1.0' } }),
+          9000
+        );
+        dbg.status = dr.status;
+        dbg.ok = dr.ok;
+        dbg.contentType = dr.headers.get('content-type');
+        const text = await dr.text();
+        dbg.bodyPreview = text.slice(0, 500);
+      } catch(e) {
+        dbg.error = e.message;
+      }
+      res.status(200).json(dbg);
+      return;
+    }
+
     // Run all three in parallel. Forge is the critical source; Helius calls
     // are optional enrichment (balance + daysHolding) and fall back to null.
     const [forgeRes, onChainBalance, firstDripTs] = await Promise.all([
