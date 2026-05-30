@@ -48,7 +48,7 @@ module.exports = async (req, res) => {
   const key = type === 'earn' ? LB_EARN_KEY : LB_BURN_KEY;
 
   try {
-    const limit = Math.min(parseInt(req.query.limit, 10) || 15, 50);
+    const limit = Math.min(parseInt(req.query.limit, 10) || 15, 100);
     const total = Number(await redis(['ZCARD', key])) || 0;
 
     let raw = await redis(['ZRANGE', key, '0', String(limit - 1), 'REV', 'WITHSCORES']);
@@ -60,15 +60,46 @@ module.exports = async (req, res) => {
       return;
     }
 
+    // Total supply is ~1B. Any burn value far above that is corrupted data
+    // from an older code version that stored raw (9-decimal) amounts instead
+    // of UI amounts. $DRIPPY has 9 decimals, so a raw value is 1e9x too big.
+    const MAX_PLAUSIBLE_BURN = 1_000_000_000; // 1B tokens (total supply ceiling)
+    function sanitizeBurn(val){
+      let v = Number(val) || 0;
+      if (v <= MAX_PLAUSIBLE_BURN) return v;       // already clean
+      // Try dividing by 1e9 (9 decimals) — the normal contamination
+      if (v / 1e9 <= MAX_PLAUSIBLE_BURN) return v / 1e9;
+      // Fallback: try 1e6 (6 decimals) in case a different scale slipped in
+      if (v / 1e6 <= MAX_PLAUSIBLE_BURN) return v / 1e6;
+      // Last resort: clamp by repeated /1e3 until plausible
+      let guard = 0;
+      while (v > MAX_PLAUSIBLE_BURN && guard < 6) { v = v / 1e3; guard++; }
+      return v;
+    }
+
     const entries = [];
     for (let i = 0; i < raw.length; i += 2) {
       const wallet = raw[i];
-      const score = Number(raw[i + 1]);
+      let score = Number(raw[i + 1]);
       if (!wallet) continue;
       const entry = { wallet, rank: entries.length + 1 };
-      if (type === 'earn') entry.totalReceivedSol = score / 1e9; // lamports → SOL
-      else                  entry.tokensBurned = score;
+      if (type === 'earn') {
+        entry.totalReceivedSol = score / 1e9; // lamports → SOL
+      } else {
+        const fixed = sanitizeBurn(score, wallet);
+        // If we corrected it, rewrite the clean value back to Redis so the
+        // sort order self-heals on next read
+        if (fixed !== score) {
+          await redis(['ZADD', key, Math.round(fixed), wallet]);
+        }
+        entry.tokensBurned = fixed;
+      }
       entries.push(entry);
+    }
+    // Re-sort + re-rank after any corrections (a fixed score may drop in rank)
+    if (type === 'burn') {
+      entries.sort((a, b) => b.tokensBurned - a.tokensBurned);
+      entries.forEach((e, i) => { e.rank = i + 1; });
     }
 
     // Pull display metadata
@@ -80,10 +111,21 @@ module.exports = async (req, res) => {
           e.burnEvents = meta.burnEvents || 0;
           e.burnWeightSharePct = meta.burnWeightSharePct || 0;
           e.distributionCount = meta.distributionCount || 0;
-          if (type === 'burn' && meta.tokensBurned) e.tokensBurned = meta.tokensBurned;
+          // Only use meta.tokensBurned if it's plausible; otherwise keep the
+          // sanitized score we already computed
+          if (type === 'burn' && meta.tokensBurned) {
+            const metaFixed = sanitizeBurn(meta.tokensBurned, e.wallet);
+            e.tokensBurned = metaFixed;
+          }
           if (type === 'earn' && meta.totalReceivedSol != null) e.totalReceivedSol = meta.totalReceivedSol;
         } catch(_) {}
       }
+    }));
+
+    // Attach usernames (if any) to each entry
+    await Promise.all(entries.map(async (e) => {
+      const name = await redis(['GET', 'drippy:username:' + e.wallet]);
+      if (name) e.username = name;
     }));
 
     res.status(200).json({ configured: true, type, entries, total, fetchedAt: new Date().toISOString() });
