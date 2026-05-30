@@ -4262,102 +4262,14 @@ setTimeout(() => {
     button.textContent = 'Checking...';
 
     try{
-      // The browser can reach Forge directly even when Vercel's servers time
-      // out on it. Try Forge from the browser first; if CORS blocks it, fall
-      // back to the Vercel API (which still returns on-chain balance + rank).
-      let d = null;
-      const TOKEN_MINT = 'EPRZgmvU4aTQ4UaC4bywgNvxJ5YmhuKqM1bx3gw4DRPY';
-      try{
-        const forgeUrl = 'https://forgepad.fun/api/distributions/wallet/' + encodeURIComponent(addr) + '?contract=' + TOKEN_MINT;
-        // Vercel can't reach Forge's per-wallet endpoint (it black-holes
-        // datacenter IPs), and the browser can't fetch it directly (CORS).
-        // So we route through public CORS proxies. Each proxy returns the
-        // data differently, so we get the raw text and parse it ourselves.
-        async function tryFetchForge(){
-          const tries = [
-            // allorigins /get wraps the body in { contents: "..." }
-            { url: 'https://api.allorigins.win/get?url=' + encodeURIComponent(forgeUrl), wrapped: true },
-            // allorigins /raw returns the body directly
-            { url: 'https://api.allorigins.win/raw?url=' + encodeURIComponent(forgeUrl), wrapped: false },
-            // corsproxy.io returns the body directly
-            { url: 'https://corsproxy.io/?url=' + encodeURIComponent(forgeUrl), wrapped: false },
-            // direct (works if Forge ever allows CORS)
-            { url: forgeUrl, wrapped: false }
-          ];
-          for(const t of tries){
-            try{
-              const resp = await fetch(t.url);
-              if(!resp.ok) continue;
-              const txt = await resp.text();
-              let jsonText = txt;
-              if(t.wrapped){
-                const wrap = JSON.parse(txt);
-                jsonText = wrap.contents;
-              }
-              const parsed = JSON.parse(jsonText);
-              // Validate it's really Forge data, not a proxy error page
-              if(parsed && (parsed.wallet || parsed.burnerStats || parsed.distributionCount != null)){
-                return parsed;
-              }
-            }catch(_){ /* try next proxy */ }
-          }
-          return null;
-        }
+      // All wallet data now comes from our own API, which sources it from
+      // Helius (on-chain) + Redis (burns/ranks) — no Forge dependency.
+      const r = await fetch(`/api/wallet?address=${encodeURIComponent(addr)}`, { cache: 'no-store' });
+      const d = await r.json();
 
-        const fd = await tryFetchForge();
-        if(fd){
-          const lamportsToSol = (n) => Number(n || 0) / 1e9;
-          const burner = fd.burnerStats || {};
-          let burnUi = Number(burner.tokensBurnedUi) || 0;
-          if (burnUi > 1e9) {
-            if (burnUi / 1e9 <= 1e9) burnUi = burnUi / 1e9;
-            else if (burnUi / 1e6 <= 1e9) burnUi = burnUi / 1e6;
-          }
-          d = {
-            found: true,
-            wallet: fd.wallet || addr,
-            totalReceivedSol: lamportsToSol(fd.totalReceived),
-            distributionCount: fd.distributionCount || 0,
-            currentHoldings: { uiAmount: fd.currentHoldings?.uiAmount || 0 },
-            lastDistribution: fd.lastDistribution ? {
-              timestamp: fd.lastDistribution.timestamp,
-              amountSol: lamportsToSol(fd.lastDistribution.amount),
-              txSig: fd.lastDistribution.txSig
-            } : null,
-            recentDistributions: (fd.recentDistributions || []).slice(0,10).map(x => ({
-              timestamp: x.timestamp,
-              amountSol: lamportsToSol(x.amount),
-              status: x.status,
-              txSig: x.txSig
-            })),
-            burner: {
-              enabled: !!burner.burnToEarnEnabled,
-              tokensBurned: burnUi,
-              burnEvents: burner.burnEvents || 0,
-              burnWeightSharePct: burner.burnWeightSharePct || 0
-            }
-          };
-          // Fire-and-forget: tell our API to record this wallet for the
-          // leaderboard + rank (don't block the UI on it)
-          fetch(`/api/wallet?address=${encodeURIComponent(addr)}`, { cache: 'no-store' })
-            .then(r => r.json())
-            .then(apiD => {
-              if(apiD && (apiD.burnRank || apiD.earnRank)){
-                d.burnRank = apiD.burnRank;
-                d.earnRank = apiD.earnRank;
-                if(window.loadLeaderboard) window.loadLeaderboard(d.wallet, apiD.burnRank, apiD.earnRank);
-              }
-            }).catch(()=>{});
-        }
-      }catch(forgeErr){
-        d = null;
-      }
-
-      // Fallback: Vercel API (returns on-chain balance + rank even if Forge
-      // times out server-side)
-      if(!d){
-        const r = await fetch(`/api/wallet?address=${encodeURIComponent(addr)}`, { cache: 'no-store' });
-        d = await r.json();
+      // Refresh the leaderboard highlighting this wallet
+      if(window.loadLeaderboard && (d.burnRank || d.earnRank)){
+        window.loadLeaderboard(d.wallet, d.burnRank, d.earnRank);
       }
 
       if(d.error){
