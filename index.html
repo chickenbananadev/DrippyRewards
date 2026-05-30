@@ -4262,8 +4262,69 @@ setTimeout(() => {
     button.textContent = 'Checking...';
 
     try{
-      const r = await fetch(`/api/wallet?address=${encodeURIComponent(addr)}`, { cache: 'no-store' });
-      const d = await r.json();
+      // The browser can reach Forge directly even when Vercel's servers time
+      // out on it. Try Forge from the browser first; if CORS blocks it, fall
+      // back to the Vercel API (which still returns on-chain balance + rank).
+      let d = null;
+      const TOKEN_MINT = 'EPRZgmvU4aTQ4UaC4bywgNvxJ5YmhuKqM1bx3gw4DRPY';
+      try{
+        const forgeUrl = 'https://forgepad.fun/api/distributions/wallet/' + encodeURIComponent(addr) + '?contract=' + TOKEN_MINT;
+        const fr = await fetch(forgeUrl, { headers: { 'Accept': 'application/json' } });
+        if(fr.ok){
+          const fd = await fr.json();
+          const lamportsToSol = (n) => Number(n || 0) / 1e9;
+          const burner = fd.burnerStats || {};
+          let burnUi = Number(burner.tokensBurnedUi) || 0;
+          if (burnUi > 1e9) {
+            if (burnUi / 1e9 <= 1e9) burnUi = burnUi / 1e9;
+            else if (burnUi / 1e6 <= 1e9) burnUi = burnUi / 1e6;
+          }
+          d = {
+            found: true,
+            wallet: fd.wallet || addr,
+            totalReceivedSol: lamportsToSol(fd.totalReceived),
+            distributionCount: fd.distributionCount || 0,
+            currentHoldings: { uiAmount: fd.currentHoldings?.uiAmount || 0 },
+            lastDistribution: fd.lastDistribution ? {
+              timestamp: fd.lastDistribution.timestamp,
+              amountSol: lamportsToSol(fd.lastDistribution.amount),
+              txSig: fd.lastDistribution.txSig
+            } : null,
+            recentDistributions: (fd.recentDistributions || []).slice(0,10).map(x => ({
+              timestamp: x.timestamp,
+              amountSol: lamportsToSol(x.amount),
+              status: x.status,
+              txSig: x.txSig
+            })),
+            burner: {
+              enabled: !!burner.burnToEarnEnabled,
+              tokensBurned: burnUi,
+              burnEvents: burner.burnEvents || 0,
+              burnWeightSharePct: burner.burnWeightSharePct || 0
+            }
+          };
+          // Fire-and-forget: tell our API to record this wallet for the
+          // leaderboard + rank (don't block the UI on it)
+          fetch(`/api/wallet?address=${encodeURIComponent(addr)}`, { cache: 'no-store' })
+            .then(r => r.json())
+            .then(apiD => {
+              if(apiD && (apiD.burnRank || apiD.earnRank)){
+                d.burnRank = apiD.burnRank;
+                d.earnRank = apiD.earnRank;
+                if(window.loadLeaderboard) window.loadLeaderboard(d.wallet, apiD.burnRank, apiD.earnRank);
+              }
+            }).catch(()=>{});
+        }
+      }catch(forgeErr){
+        d = null;
+      }
+
+      // Fallback: Vercel API (returns on-chain balance + rank even if Forge
+      // times out server-side)
+      if(!d){
+        const r = await fetch(`/api/wallet?address=${encodeURIComponent(addr)}`, { cache: 'no-store' });
+        d = await r.json();
+      }
 
       if(d.error){
         errorEl.textContent = d.error;
