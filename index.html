@@ -698,6 +698,70 @@ h2 .red{color:var(--crimson);text-shadow:3px 3px 0 #000}
   to{opacity:1;transform:translateY(0)}
 }
 
+.wc-username-display{
+  margin-top:10px;
+  font-family:var(--display);font-size:20px;
+  color:var(--gold);letter-spacing:.02em;
+}
+.wc-username-display:empty{display:none}
+.wc-username-box{
+  background:linear-gradient(135deg, rgba(162,89,255,.1), rgba(162,89,255,.04));
+  border:2px solid rgba(162,89,255,.4);
+  border-radius:14px;
+  padding:20px 22px;
+  margin-bottom:20px;
+  text-align:center;
+}
+.wc-username-box.is-set{
+  border-color:rgba(245,197,66,.45);
+  background:linear-gradient(135deg, rgba(245,197,66,.08), rgba(162,89,255,.05));
+}
+.wc-username-title{
+  font-family:var(--display);font-size:17px;
+  color:var(--purple-glow);letter-spacing:.03em;
+  margin-bottom:6px;
+}
+.wc-username-desc{
+  font-family:var(--mono);font-size:12px;line-height:1.5;
+  color:rgba(246,233,196,.65);
+  margin-bottom:14px;
+}
+.wc-username-row{
+  display:flex;gap:10px;flex-wrap:wrap;
+  max-width:480px;margin:0 auto;
+}
+.wc-username-input{
+  flex:1;min-width:180px;
+  background:rgba(10,6,16,.9);
+  border:2px solid rgba(162,89,255,.4);
+  border-radius:10px;
+  padding:12px 14px;
+  font-family:var(--mono);font-size:14px;
+  color:var(--cream);outline:none;
+  transition:border-color .2s ease;
+}
+.wc-username-input:focus{border-color:var(--purple-glow)}
+.wc-username-input::placeholder{color:rgba(246,233,196,.4)}
+.wc-username-btn{
+  background:linear-gradient(135deg, var(--purple), #7b3fd1);
+  color:#fff;border:none;
+  border-radius:10px;
+  padding:12px 20px;
+  font-family:var(--display);font-size:14px;letter-spacing:.03em;
+  cursor:pointer;white-space:nowrap;
+  box-shadow:4px 4px 0 #1a0a2e;
+  transition:transform .15s ease, box-shadow .15s ease;
+}
+.wc-username-btn:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 #1a0a2e}
+.wc-username-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.wc-username-msg{
+  margin-top:12px;
+  font-family:var(--mono);font-size:12px;line-height:1.5;
+  min-height:16px;
+}
+.wc-username-msg.ok{color:#4ade80}
+.wc-username-msg.err{color:#ff6b6b}
+
 .wc-hero{
   text-align:center;
   background:linear-gradient(135deg, rgba(245,197,66,.1), rgba(162,89,255,.08));
@@ -929,6 +993,16 @@ h2 .red{color:var(--crimson);text-shadow:3px 3px 0 #000}
   font-family:var(--mono);font-size:13px;
   color:var(--cream);
 }
+.lb-username{
+  display:block;
+  font-family:var(--display);font-size:14px;
+  color:var(--gold);letter-spacing:.02em;
+}
+.lb-wallet-sub{
+  display:block;
+  font-family:var(--mono);font-size:10px;
+  color:rgba(246,233,196,.45);margin-top:1px;
+}
 .lb-you-tag{
   font-family:var(--display);font-size:9px;
   background:var(--gold);color:var(--black);
@@ -955,6 +1029,22 @@ h2 .red{color:var(--crimson);text-shadow:3px 3px 0 #000}
   margin-top:16px;text-align:center;
   font-family:var(--mono);font-size:11px;line-height:1.5;
   color:rgba(246,233,196,.55);
+}
+.lb-seemore{
+  display:block;width:100%;margin-top:18px;
+  padding:14px;text-align:center;
+  font-family:var(--display);font-size:15px;letter-spacing:.04em;
+  color:var(--purple-glow);
+  background:linear-gradient(135deg, rgba(162,89,255,.15), rgba(162,89,255,.05));
+  border:2px solid var(--purple);
+  border-radius:12px;
+  text-decoration:none;
+  transition:transform .15s ease, box-shadow .15s ease, background .2s ease;
+}
+.lb-seemore:hover{
+  transform:translateY(-2px);
+  background:linear-gradient(135deg, rgba(162,89,255,.25), rgba(162,89,255,.1));
+  box-shadow:0 6px 20px rgba(162,89,255,.25);
 }
 @media (max-width:768px){
   .lb-row{grid-template-columns:36px 1fr auto;gap:8px;padding:10px}
@@ -3451,6 +3541,18 @@ body.intro-done .ambient-drips{opacity:.55}
         <span class="wc-hero-label">Total SOL Earned</span>
         <span class="wc-hero-value" id="wcTotalSol">0 SOL</span>
         <span class="wc-hero-sub" id="wcWalletShort"></span>
+        <div class="wc-username-display" id="wcUsernameDisplay"></div>
+      </div>
+
+      <!-- Username claim -->
+      <div class="wc-username-box" id="wcUsernameBox">
+        <div class="wc-username-title">🏷️ Claim Your Pack Name</div>
+        <div class="wc-username-desc" id="wcUsernameDesc">Connect this wallet to set a username that shows on the leaderboard. Only you can set it.</div>
+        <div class="wc-username-row">
+          <input type="text" id="wcUsernameInput" class="wc-username-input" placeholder="Choose a username..." maxlength="20" autocomplete="off" spellcheck="false" />
+          <button id="wcUsernameBtn" class="wc-username-btn">Connect &amp; Claim</button>
+        </div>
+        <div class="wc-username-msg" id="wcUsernameMsg"></div>
       </div>
 
       <!-- Stat grid -->
@@ -3517,6 +3619,7 @@ body.intro-done .ambient-drips{opacity:.55}
       <div class="lb-list" id="lbList">
         <div class="lb-loading">Loading leaderboard...</div>
       </div>
+      <a class="lb-seemore" id="lbSeeMore" href="leaderboard.html">See Top 100 →</a>
       <div class="lb-footer">Leaderboard grows as holders check their wallets. Burn more $DRIPPY to climb.</div>
     </div>
 
@@ -4228,6 +4331,11 @@ setTimeout(() => {
       // Cache the wallet data for DripQuests verification and share card
       window._dripWalletData = d;
 
+      // Load username UI for this wallet
+      if(window.loadUsernameUI){
+        window.loadUsernameUI(d.wallet);
+      }
+
       // Refresh the leaderboard, highlighting this wallet
       if(window.loadLeaderboard){
         window.loadLeaderboard(d.wallet, d.burnRank, d.earnRank);
@@ -4337,9 +4445,12 @@ setTimeout(() => {
           primaryLabel = 'burned';
           secondary = (e.burnWeightSharePct || 0).toFixed(1) + '%';
         }
+        const displayName = e.username
+          ? '<span class="lb-username">' + e.username + '</span><span class="lb-wallet-sub">' + shortAddr(e.wallet) + '</span>'
+          : shortAddr(e.wallet);
         row.innerHTML = `
           <span class="lb-rank ${rankClass}">${medal}</span>
-          <span class="lb-wallet">${shortAddr(e.wallet)}${isYou ? '<span class="lb-you-tag">YOU</span>' : ''}</span>
+          <span class="lb-wallet">${displayName}${isYou ? '<span class="lb-you-tag">YOU</span>' : ''}</span>
           <span class="lb-burned">${primaryValue}<br><span class="lb-burned-sub">${primaryLabel}</span></span>
           <span class="lb-share">${secondary}</span>
         `;
@@ -6290,6 +6401,185 @@ function copyAddr(srcId, btnId){
     btn.textContent='✅ Copied!';btn.classList.add('copied');setTimeout(restore,1800);
   }
 }
+
+// =====================================================
+// USERNAME CLAIM + WALLET CONNECT
+// Connect Phantom/Solflare, sign a message to prove
+// ownership, then claim a username tied to the wallet.
+// =====================================================
+(function(){
+  const box = document.getElementById('wcUsernameBox');
+  const input = document.getElementById('wcUsernameInput');
+  const btn = document.getElementById('wcUsernameBtn');
+  const msg = document.getElementById('wcUsernameMsg');
+  const desc = document.getElementById('wcUsernameDesc');
+  const display = document.getElementById('wcUsernameDisplay');
+  if(!box || !btn) return;
+
+  let currentWallet = null;
+
+  function setMsg(text, kind){
+    msg.textContent = text || '';
+    msg.className = 'wc-username-msg' + (kind ? ' ' + kind : '');
+  }
+
+  // Called when a wallet is checked — loads existing username if set
+  window.loadUsernameUI = async function(wallet){
+    currentWallet = wallet;
+    setMsg('');
+    input.value = '';
+    display.textContent = '';
+    box.classList.remove('is-set');
+    try {
+      const r = await fetch('/api/username?wallet=' + encodeURIComponent(wallet));
+      const j = await r.json();
+      if(j.username){
+        display.textContent = '🏷️ ' + j.username;
+        box.classList.add('is-set');
+        desc.textContent = 'This wallet\u2019s name is set. Connect and sign to change it (only the wallet owner can).';
+        input.value = j.username;
+        btn.textContent = 'Connect & Update';
+      } else {
+        desc.textContent = 'Connect this wallet to set a username that shows on the leaderboard. Only you can set it.';
+        btn.textContent = 'Connect & Claim';
+      }
+    } catch(e){ /* leave defaults */ }
+  };
+
+  function getProvider(){
+    // Explicit known wallets first (most reliable signMessage support)
+    if(window.solana && window.solana.isPhantom) return window.solana;
+    if(window.solflare && window.solflare.isSolflare) return window.solflare;
+    if(window.backpack && window.backpack.isBackpack) return window.backpack;
+    if(window.glow) return window.glow;
+    if(window.glowSolana) return window.glowSolana;
+    // Jupiter Mobile in-app browser injects here
+    if(window.jupiter && window.jupiter.signMessage) return window.jupiter;
+    // Coinbase Wallet
+    if(window.coinbaseSolana) return window.coinbaseSolana;
+    // Any generic injected provider that can sign
+    if(window.solana && window.solana.signMessage) return window.solana;
+    return null;
+  }
+
+  btn.addEventListener('click', async () => {
+    if(!currentWallet){
+      setMsg('Check a wallet above first.', 'err');
+      return;
+    }
+    const desired = (input.value || '').trim().replace(/[^a-zA-Z0-9_]/g, '');
+    if(desired.length < 3){
+      setMsg('Username must be at least 3 characters (letters, numbers, underscore).', 'err');
+      return;
+    }
+
+    const provider = getProvider();
+    if(!provider){
+      setMsg('No Solana wallet detected. Open this site in your wallet\u2019s browser (Phantom, Solflare, Backpack, or Jupiter Mobile), or install a wallet extension.', 'err');
+      return;
+    }
+
+    btn.disabled = true;
+    setMsg('Connecting wallet...', '');
+
+    try {
+      // Connect
+      const resp = await provider.connect();
+      const connectedPubkey = (resp && resp.publicKey ? resp.publicKey : provider.publicKey).toString();
+
+      // The connected wallet MUST match the wallet they checked
+      if(connectedPubkey !== currentWallet){
+        setMsg('Connected wallet (' + connectedPubkey.slice(0,4) + '...) does not match the wallet you checked. Connect the matching wallet.', 'err');
+        btn.disabled = false;
+        return;
+      }
+
+      // Build a message and sign it to prove ownership
+      const message = 'Drippy username claim for ' + currentWallet.slice(0,8) + ' :: ' + desired + ' :: ' + Date.now();
+      setMsg('Approve the signature request in your wallet...', '');
+      const encoded = new TextEncoder().encode(message);
+      // Some wallets want (bytes, 'utf8'), others just (bytes). Try the
+      // standard call, fall back to single-arg for stricter wallets.
+      let signed;
+      try {
+        signed = await provider.signMessage(encoded, 'utf8');
+      } catch(sigErr){
+        if(/argument|param|utf8/i.test(sigErr.message || '')){
+          signed = await provider.signMessage(encoded);
+        } else {
+          throw sigErr;
+        }
+      }
+
+      // Normalize the signature across wallets:
+      //  - Phantom/Backpack: { signature: Uint8Array }
+      //  - Solflare/Jupiter: Uint8Array directly
+      //  - Some return { signature: { data: [...] } } or base58 string
+      let sigBytes = signed && signed.signature ? signed.signature : signed;
+      if(sigBytes && sigBytes.data && Array.isArray(sigBytes.data)){
+        sigBytes = Uint8Array.from(sigBytes.data);
+      } else if(typeof sigBytes === 'string'){
+        // already base58-encoded by the wallet
+        var signature = sigBytes;
+      }
+      if(typeof signature === 'undefined'){
+        signature = bs58encode(sigBytes);
+      }
+
+      setMsg('Saving...', '');
+      const r = await fetch('/api/username', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ wallet: currentWallet, username: desired, signature, message })
+      });
+      const j = await r.json();
+      if(j.success){
+        setMsg('✅ Username set to "' + j.username + '"! It will show on the leaderboard.', 'ok');
+        display.textContent = '🏷️ ' + j.username;
+        box.classList.add('is-set');
+        // Refresh leaderboard to show the new name
+        if(window.loadLeaderboard && window._dripWalletData){
+          const d = window._dripWalletData;
+          window.loadLeaderboard(d.wallet, d.burnRank, d.earnRank);
+        }
+      } else {
+        setMsg(j.error || 'Could not set username.', 'err');
+      }
+    } catch(e){
+      if(e && (e.code === 4001 || /reject/i.test(e.message||''))){
+        setMsg('Signature cancelled.', 'err');
+      } else {
+        setMsg('Error: ' + (e.message || 'wallet connection failed'), 'err');
+      }
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  // Minimal base58 encoder (Bitcoin alphabet) for signatures
+  function bs58encode(bytes){
+    const ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+    const arr = Array.from(bytes);
+    let digits = [0];
+    for(let i=0;i<arr.length;i++){
+      let carry = arr[i];
+      for(let j=0;j<digits.length;j++){
+        carry += digits[j] << 8;
+        digits[j] = carry % 58;
+        carry = (carry / 58) | 0;
+      }
+      while(carry > 0){
+        digits.push(carry % 58);
+        carry = (carry / 58) | 0;
+      }
+    }
+    // leading zeros
+    let str = '';
+    for(let k=0; k<arr.length && arr[k]===0; k++) str += '1';
+    for(let q=digits.length-1; q>=0; q--) str += ALPHABET[digits[q]];
+    return str;
+  }
+})();
 </script>
 
 </body>
