@@ -201,20 +201,35 @@ module.exports = async (req, res) => {
 
     // DEBUG MODE: /api/wallet?address=XXX&debug=1 returns raw Forge response
     if (req.query.debug === '1') {
-      let dbg = { forgeUrl };
+      let dbg = { forgeUrl, tests: {} };
+
+      // Test 1: plain fetch, no custom headers, 25s timeout, with timing
+      const t1 = Date.now();
       try {
-        const dr = await withTimeout(
-          fetch(forgeUrl, { headers: BROWSER_HEADERS }),
-          9000
-        );
-        dbg.status = dr.status;
-        dbg.ok = dr.ok;
-        dbg.contentType = dr.headers.get('content-type');
-        const text = await dr.text();
-        dbg.bodyPreview = text.slice(0, 500);
+        const dr = await withTimeout(fetch(forgeUrl), 25000);
+        dbg.tests.plain = {
+          status: dr.status, ok: dr.ok,
+          ms: Date.now() - t1,
+          contentType: dr.headers.get('content-type'),
+          bodyPreview: (await dr.text()).slice(0, 200)
+        };
       } catch(e) {
-        dbg.error = e.message;
+        dbg.tests.plain = { error: e.message, ms: Date.now() - t1 };
       }
+
+      // Test 2: with browser headers, 25s timeout
+      const t2 = Date.now();
+      try {
+        const dr = await withTimeout(fetch(forgeUrl, { headers: BROWSER_HEADERS }), 25000);
+        dbg.tests.browser = {
+          status: dr.status, ok: dr.ok,
+          ms: Date.now() - t2,
+          bodyPreview: (await dr.text()).slice(0, 200)
+        };
+      } catch(e) {
+        dbg.tests.browser = { error: e.message, ms: Date.now() - t2 };
+      }
+
       res.status(200).json(dbg);
       return;
     }
