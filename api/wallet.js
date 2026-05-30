@@ -189,16 +189,15 @@ module.exports = async (req, res) => {
       p,
       new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))
     ]);
+    // Run all three in parallel. Forge is the critical source; Helius calls
+    // are optional enrichment (balance + daysHolding) and fall back to null.
     const [forgeRes, onChainBalance, firstDripTs] = await Promise.all([
       withTimeout(
         fetch(forgeUrl, { headers: { 'Accept': 'application/json', 'User-Agent': 'DrippyRewards-Site/1.0' } }),
-        7000
+        9000
       ).catch(() => null),
-      withTimeout(getOnChainBalance(address), 6000).catch(() => null),
-      // First-drip date can be very slow for high-activity wallets (walks
-      // many signature pages). Cap it hard and fall back to null — daysHolding
-      // is a nice-to-have, not worth failing the whole request over.
-      withTimeout(getFirstDripDate(address), 6000).catch(() => null)
+      withTimeout(getOnChainBalance(address), 4000).catch(() => null),
+      withTimeout(getFirstDripDate(address), 4000).catch(() => null)
     ]);
 
     // If Forge itself timed out/failed, return a graceful error
@@ -271,9 +270,56 @@ module.exports = async (req, res) => {
       });
       return;
     }
-    if (!forgeRes.ok) { res.status(forgeRes.status).json({ error: 'Forge returned ' + forgeRes.status }); return; }
+    if (!forgeRes.ok) {
+      // Non-404 error (rate limit, 5xx). Try cached metadata before failing.
+      let cachedMeta = null;
+      try {
+        const metaStr = await redis(['GET', META_PREFIX + address]);
+        if (metaStr) cachedMeta = JSON.parse(metaStr);
+      } catch(_) {}
+      if (cachedMeta && (cachedMeta.tokensBurned > 0 || cachedMeta.totalReceivedSol > 0)) {
+        let burnUi = Number(cachedMeta.tokensBurned) || 0;
+        if (burnUi > 1_000_000_000) {
+          if (burnUi / 1e9 <= 1_000_000_000) burnUi = burnUi / 1e9;
+          else if (burnUi / 1e6 <= 1_000_000_000) burnUi = burnUi / 1e6;
+        }
+        res.status(200).json({
+          found: true, fromCache: true, wallet: address,
+          currentHoldings: { uiAmount: onChainBalance || cachedMeta.currentHoldings || 0 },
+          totalReceivedSol: cachedMeta.totalReceivedSol || 0,
+          distributionCount: cachedMeta.distributionCount || 0,
+          daysHolding, firstDripTimestamp: firstDripTs,
+          burner: {
+            enabled: burnUi > 0, tokensBurned: burnUi,
+            burnEvents: cachedMeta.burnEvents || 0,
+            burnWeightSharePct: cachedMeta.burnWeightSharePct || 0
+          },
+          recentDistributions: [],
+          fetchedAt: new Date().toISOString()
+        });
+        return;
+      }
+      res.status(200).json({
+        found: false, wallet: address,
+        currentHoldings: { uiAmount: onChainBalance || 0 },
+        daysHolding,
+        message: 'Live data is busy right now. Try again in a moment.'
+      });
+      return;
+    }
 
-    const data = await forgeRes.json();
+    let data;
+    try {
+      data = await forgeRes.json();
+    } catch(parseErr) {
+      res.status(200).json({
+        found: false, wallet: address,
+        currentHoldings: { uiAmount: onChainBalance || 0 },
+        daysHolding,
+        message: 'Could not read live data. Try again in a moment.'
+      });
+      return;
+    }
     const lamportsToSol = (n) => Number(n || 0) / 1e9;
     const burner = data.burnerStats || {};
 
