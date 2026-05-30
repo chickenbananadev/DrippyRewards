@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Burn Report — Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bowlby+One&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --black:#0a0610; --gold:#d4a431; --gold-glow:#ffd966;
+  --purple:#6b2dc9; --purple-bright:#a259ff; --purple-glow:#c084fc;
+  --cream:#f6e9c4;
+  --display:'Bowlby One', cursive; --mono:'JetBrains Mono', monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:radial-gradient(ellipse at top, #1a0a2e 0%, var(--black) 70%, #000 100%) fixed;
+  color:var(--cream);font-family:var(--mono);min-height:100vh;padding:30px 18px 80px;
+}
+.wrap{max-width:760px;margin:0 auto}
+h1{font-family:var(--display);font-size:28px;color:var(--gold-glow);margin-bottom:6px;text-shadow:3px 3px 0 #000}
+.sub{font-size:13px;color:rgba(246,233,196,.6);margin-bottom:24px}
+.card{
+  background:rgba(20,12,30,.7);border:2px solid rgba(162,89,255,.3);
+  border-radius:14px;padding:22px;margin-bottom:18px;
+}
+label{display:block;font-size:12px;color:var(--purple-glow);margin-bottom:6px;letter-spacing:.04em;text-transform:uppercase}
+input,select{
+  width:100%;background:rgba(10,6,16,.9);border:2px solid rgba(162,89,255,.35);
+  border-radius:10px;padding:12px 14px;color:var(--cream);font-family:var(--mono);
+  font-size:14px;outline:none;margin-bottom:14px;
+}
+input:focus,select:focus{border-color:var(--purple-glow)}
+.row{display:flex;gap:12px;flex-wrap:wrap}
+.row > div{flex:1;min-width:150px}
+button{
+  background:linear-gradient(135deg, var(--purple), #7b3fd1);color:#fff;border:none;
+  border-radius:10px;padding:13px 22px;font-family:var(--display);font-size:14px;
+  cursor:pointer;letter-spacing:.03em;box-shadow:4px 4px 0 #1a0a2e;
+  transition:transform .15s ease;
+}
+button:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 #1a0a2e}
+button.ghost{background:transparent;border:2px solid rgba(162,89,255,.4);box-shadow:none}
+.msg{font-size:13px;margin-top:10px;min-height:16px}
+.msg.err{color:#ff6b6b}
+.msg.ok{color:#4ade80}
+.summary{
+  display:flex;gap:16px;flex-wrap:wrap;margin-bottom:18px;
+}
+.stat{
+  flex:1;min-width:120px;text-align:center;
+  background:rgba(245,197,66,.08);border:1px solid rgba(245,197,66,.25);
+  border-radius:10px;padding:14px;
+}
+.stat-v{font-family:var(--display);font-size:22px;color:var(--gold-glow)}
+.stat-k{font-size:11px;color:rgba(246,233,196,.6);margin-top:4px;text-transform:uppercase;letter-spacing:.05em}
+.rrow{
+  display:grid;grid-template-columns:36px 1fr auto auto;align-items:center;gap:12px;
+  padding:12px 14px;background:rgba(20,12,30,.6);
+  border:1px solid rgba(162,89,255,.15);border-radius:10px;margin-bottom:6px;
+}
+.rrank{font-family:var(--display);font-size:14px;color:var(--purple-glow);text-align:center}
+.ruser{font-family:var(--display);font-size:13px;color:var(--gold)}
+.raddr{font-size:11px;color:rgba(246,233,196,.5)}
+.rburn{font-family:var(--display);font-size:14px;color:var(--gold-glow);text-align:right}
+.rtotal{font-size:11px;color:rgba(246,233,196,.5);text-align:right}
+.dates{font-size:12px;color:rgba(246,233,196,.55);margin-top:8px;line-height:1.6}
+.hide{display:none}
+.copybox{
+  width:100%;min-height:120px;background:rgba(10,6,16,.9);
+  border:2px solid rgba(162,89,255,.3);border-radius:10px;
+  padding:12px;color:var(--cream);font-family:var(--mono);font-size:11px;
+  margin-top:12px;resize:vertical;
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🔥 Burn Report</h1>
+  <div class="sub">Snapshot burns over a time period. Admin only.</div>
+
+  <!-- Auth -->
+  <div class="card" id="authCard">
+    <label>Admin Secret</label>
+    <input type="password" id="secret" placeholder="Enter admin secret..." />
+    <button onclick="saveSecret()">Unlock</button>
+    <div class="msg" id="authMsg"></div>
+  </div>
+
+  <!-- Tools -->
+  <div class="card hide" id="toolCard">
+    <label>Available Snapshot Dates</label>
+    <div class="dates" id="datesList">Loading...</div>
+    <button class="ghost" style="margin-top:8px" onclick="recordNow()">📸 Take Snapshot Now</button>
+    <div class="msg" id="recordMsg"></div>
+  </div>
+
+  <div class="card hide" id="rangeCard">
+    <label>Burns Between Two Dates</label>
+    <div class="row">
+      <div>
+        <label>From</label>
+        <input type="date" id="fromDate" />
+      </div>
+      <div>
+        <label>To</label>
+        <input type="date" id="toDate" />
+      </div>
+    </div>
+    <button onclick="runRange()">Run Report</button>
+    <div class="msg" id="rangeMsg"></div>
+  </div>
+
+  <!-- Results -->
+  <div class="card hide" id="resultsCard">
+    <div class="summary" id="summary"></div>
+    <div id="results"></div>
+    <button class="ghost" style="margin-top:14px" onclick="copyCSV()">📋 Copy as CSV</button>
+    <textarea class="copybox hide" id="csvBox" readonly></textarea>
+  </div>
+</div>
+
+<script>
+let SECRET = '';
+let lastResults = [];
+
+function fmtTokens(n){
+  n = Number(n||0);
+  if(n >= 1e9) return (n/1e9).toFixed(2)+'B';
+  if(n >= 1e6) return (n/1e6).toFixed(2)+'M';
+  if(n >= 1e3) return (n/1e3).toFixed(1)+'K';
+  return Math.round(n).toLocaleString();
+}
+function shortAddr(a){ return a ? a.slice(0,4)+'...'+a.slice(-4) : ''; }
+
+function saveSecret(){
+  SECRET = document.getElementById('secret').value.trim();
+  if(!SECRET){ return; }
+  loadDates();
+}
+
+async function loadDates(){
+  const msg = document.getElementById('authMsg');
+  msg.textContent = 'Checking...';
+  msg.className = 'msg';
+  try {
+    const r = await fetch('/api/burn-snapshot?action=list&secret=' + encodeURIComponent(SECRET));
+    const j = await r.json();
+    if(j.error){
+      msg.textContent = j.error;
+      msg.className = 'msg err';
+      return;
+    }
+    // Unlock UI
+    document.getElementById('authCard').classList.add('hide');
+    document.getElementById('toolCard').classList.remove('hide');
+    document.getElementById('rangeCard').classList.remove('hide');
+    const dates = j.dates || [];
+    document.getElementById('datesList').innerHTML = dates.length
+      ? dates.join('<br>')
+      : 'No snapshots yet. Take one now to start building history.';
+    // Default date inputs
+    if(dates.length){
+      document.getElementById('fromDate').value = dates[0];
+      document.getElementById('toDate').value = dates[dates.length-1];
+    }
+  } catch(e){
+    msg.textContent = 'Error: ' + e.message;
+    msg.className = 'msg err';
+  }
+}
+
+async function recordNow(){
+  const msg = document.getElementById('recordMsg');
+  msg.textContent = 'Taking snapshot...';
+  msg.className = 'msg';
+  try {
+    const r = await fetch('/api/burn-snapshot?action=record&secret=' + encodeURIComponent(SECRET));
+    const j = await r.json();
+    if(j.success){
+      msg.textContent = '✅ Snapshot saved for ' + j.date + ' (' + j.count + ' burners)';
+      msg.className = 'msg ok';
+      loadDates();
+    } else {
+      msg.textContent = j.error || 'Failed';
+      msg.className = 'msg err';
+    }
+  } catch(e){
+    msg.textContent = 'Error: ' + e.message;
+    msg.className = 'msg err';
+  }
+}
+
+async function runRange(){
+  const from = document.getElementById('fromDate').value;
+  const to = document.getElementById('toDate').value;
+  const msg = document.getElementById('rangeMsg');
+  if(!from){ msg.textContent = 'Pick a from date'; msg.className='msg err'; return; }
+  msg.textContent = 'Running...';
+  msg.className = 'msg';
+
+  try {
+    const r = await fetch('/api/burn-snapshot?action=range&secret=' + encodeURIComponent(SECRET) +
+      '&from=' + from + '&to=' + to);
+    const j = await r.json();
+    if(j.error){ msg.textContent = j.error; msg.className='msg err'; return; }
+    msg.textContent = '';
+    lastResults = j.entries || [];
+
+    document.getElementById('resultsCard').classList.remove('hide');
+    document.getElementById('summary').innerHTML =
+      '<div class="stat"><div class="stat-v">'+j.count+'</div><div class="stat-k">Wallets Burned</div></div>'+
+      '<div class="stat"><div class="stat-v">'+fmtTokens(j.totalBurnedInPeriod)+'</div><div class="stat-k">Total Burned</div></div>'+
+      '<div class="stat"><div class="stat-v">'+from+'</div><div class="stat-k">From</div></div>'+
+      '<div class="stat"><div class="stat-v">'+to+'</div><div class="stat-k">To</div></div>';
+
+    const resEl = document.getElementById('results');
+    if(lastResults.length === 0){
+      resEl.innerHTML = '<div style="text-align:center;padding:30px;color:rgba(246,233,196,.5)">No burns in this period.</div>';
+      return;
+    }
+    resEl.innerHTML = '';
+    lastResults.forEach((e, i) => {
+      const who = e.username
+        ? '<div><span class="ruser">'+e.username+'</span><br><span class="raddr">'+shortAddr(e.wallet)+'</span></div>'
+        : '<div><span class="raddr">'+shortAddr(e.wallet)+'</span></div>';
+      const row = document.createElement('div');
+      row.className = 'rrow';
+      row.innerHTML =
+        '<span class="rrank">#'+(i+1)+'</span>'+
+        who+
+        '<span class="rburn">'+fmtTokens(e.burnedInPeriod)+'</span>'+
+        '<span class="rtotal">'+fmtTokens(e.totalBurned)+' total</span>';
+      resEl.appendChild(row);
+    });
+  } catch(e){
+    msg.textContent = 'Error: ' + e.message;
+    msg.className = 'msg err';
+  }
+}
+
+function copyCSV(){
+  if(!lastResults.length) return;
+  let csv = 'rank,wallet,username,burned_in_period,total_burned\n';
+  lastResults.forEach((e, i) => {
+    csv += (i+1)+','+e.wallet+','+(e.username||'')+','+e.burnedInPeriod+','+e.totalBurned+'\n';
+  });
+  const box = document.getElementById('csvBox');
+  box.value = csv;
+  box.classList.remove('hide');
+  box.select();
+  try { document.execCommand('copy'); } catch(_){}
+}
+</script>
+</body>
+</html>
