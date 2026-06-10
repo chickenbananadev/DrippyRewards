@@ -1,8 +1,9 @@
 {
   "version": 2,
   "functions": {
-    "api/*.js": {
-      "maxDuration": 10
-    }
+    "api/wallet.js": { "maxDuration": 30 },
+    "api/backfill-burns.js": { "maxDuration": 30 },
+    "api/stats.js": { "maxDuration": 20 },
+    "api/*.js": { "maxDuration": 10 }
   }
 }
