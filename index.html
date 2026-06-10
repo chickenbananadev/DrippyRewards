@@ -18,6 +18,25 @@
 </head>
 <body>
 
+<!-- INTRO SPLASH -->
+<div id="intro" class="intro" aria-hidden="true">
+  <div class="intro-drips" id="introDrips"></div>
+  <div class="intro-logo">
+    <svg class="intro-paw" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <g fill="currentColor">
+        <ellipse cx="50" cy="62" rx="22" ry="20"/>
+        <ellipse cx="22" cy="42" rx="9" ry="12"/>
+        <ellipse cx="78" cy="42" rx="9" ry="12"/>
+        <ellipse cx="35" cy="22" rx="8" ry="11"/>
+        <ellipse cx="65" cy="22" rx="8" ry="11"/>
+      </g>
+    </svg>
+    <div class="intro-word"><span>D</span><span>R</span><span>I</span><span>P</span><span>P</span><span>Y</span></div>
+    <span class="intro-tag">The Solana Dividend Dog</span>
+  </div>
+  <div class="intro-woof">WOOF!</div>
+</div>
+
 <!-- NAV -->
 <nav class="nav">
   <div class="nav-inner">
@@ -53,27 +72,26 @@
 
 <!-- HERO -->
 <header class="hero" id="top">
+  <div class="drips" id="heroDrips" aria-hidden="true"></div>
   <div class="container">
-    <div class="hero-grid">
-      <div>
-        <div class="hero-tagline">the Solana Dividend Dog</div>
-        <h1>The Drip<br>Never <span class="gold">Stops.</span></h1>
-        <p class="lede">He doesn't promise lambos. He promises that every 30 minutes, while you sleep, eat, or stare at memes, a little more SOL quietly lands in your wallet. Hold to earn. Burn to become a legend.</p>
-        <div class="hero-ctas">
-          <a class="btn btn-gold" href="#trade">Buy $DRIPPY</a>
-          <a class="btn btn-purple" href="https://t.me/DrippyRewards" target="_blank" rel="noopener">Join the Pack</a>
-        </div>
-        <div class="dripmeter" title="Time until the next distribution">
-          <div class="drop"><div class="fill" id="dropFill"></div></div>
-          <div class="cd">
-            <div class="time" id="cdTime">--:--</div>
-            <div class="label">Next drip · auto paid to all holders</div>
-          </div>
-        </div>
+    <div class="hero-banner" id="heroBanner" title="Click him. He talks.">
+      <img src="assets/banner.jpg" alt="Drippy, the Solana Dividend Dog" fetchpriority="high">
+      <div class="stamp">WOOF! good dog. pays well.</div>
+    </div>
+    <div class="hero-copy">
+      <div class="hero-tagline">the Solana Dividend Dog</div>
+      <h1>The Drip Never <span class="gold shimmer">Stops.</span></h1>
+      <p class="lede">He doesn't promise lambos. He promises that every 30 minutes, while you sleep, eat, or stare at memes, a little more SOL quietly lands in your wallet. Hold to earn. Burn to become a legend.</p>
+      <div class="hero-ctas">
+        <a class="btn btn-gold" href="#trade">Buy $DRIPPY</a>
+        <a class="btn btn-purple" href="https://t.me/DrippyRewards" target="_blank" rel="noopener">Join the Pack</a>
       </div>
-      <div class="hero-art">
-        <img src="assets/banner.jpg" alt="Drippy, the Solana Dividend Dog" fetchpriority="high">
-        <div class="stamp">WOOF! good dog. pays well.</div>
+      <div class="dripmeter" title="Time until the next distribution">
+        <div class="drop"><div class="fill" id="dropFill"></div></div>
+        <div class="cd">
+          <div class="time" id="cdTime">--:--</div>
+          <div class="label">Next drip · auto paid to all holders</div>
+        </div>
       </div>
     </div>
 
@@ -91,6 +109,7 @@
         <div class="tcell loading" data-key="liq"><div class="k">Liquidity</div><div class="v">—</div></div>
         <div class="tcell loading" data-key="supply"><div class="k">Circ. Supply</div><div class="v">—</div></div>
         <div class="tcell loading" data-key="burned"><div class="k">🔥 Burned</div><div class="v">—</div></div>
+        <div class="tcell loading" data-key="burnpct"><div class="k">🔥 % of Supply</div><div class="v">—</div></div>
         <div class="tcell loading" data-key="rewards"><div class="k">💰 SOL Paid</div><div class="v">—</div></div>
         <div class="tcell loading" data-key="holders"><div class="k">🐕 Holders</div><div class="v">—</div></div>
       </div>
@@ -232,6 +251,7 @@
       <div class="wc-grid">
         <div class="wc-stat"><div class="k">💰 Payouts received</div><div class="v" id="wcDistCount">0</div></div>
         <div class="wc-stat"><div class="k">Current holdings</div><div class="v" id="wcHoldings">0</div></div>
+        <div class="wc-stat"><div class="k">🔥 Tokens burned</div><div class="v" id="wcBurnedMain">0</div></div>
         <div class="wc-stat"><div class="k">Last payout</div><div class="v" id="wcLastAmount">—</div></div>
         <div class="wc-stat"><div class="k">When</div><div class="v" id="wcLastTime">—</div></div>
       </div>
@@ -291,11 +311,26 @@
     <div class="dq-grid" id="dqGrid"></div>
 
     <div class="dq-share" id="dqShare">
-      <a id="dqShareX" href="#" target="_blank" rel="noopener">𝕏 Share my rank</a>
+      <button id="dqCardBtn">🃏 Create my rank card</button>
+      <a id="dqShareX" href="#" target="_blank" rel="noopener">𝕏 Share link</a>
       <a id="dqShareTg" href="#" target="_blank" rel="noopener">✈ Telegram</a>
     </div>
   </div>
 </section>
+
+<!-- SHARE CARD MODAL -->
+<div class="modal" id="cardModal">
+  <div class="modal-box card-modal-box">
+    <button class="close" id="cardClose" aria-label="Close">✕</button>
+    <h3>🃏 Your Rank Card</h3>
+    <canvas id="cardCanvas" width="1080" height="1350"></canvas>
+    <div class="card-actions">
+      <button id="cardShareBtn">📤 Share image</button>
+      <button id="cardDownloadBtn">⬇ Download</button>
+    </div>
+    <div class="modal-msg" id="cardMsg"></div>
+  </div>
+</div>
 
 <!-- BURN -->
 <section id="burn">
@@ -512,6 +547,10 @@
       <option value="event">📡 Event</option>
     </select>
     <input id="adminLink" type="text" placeholder="Link (optional)">
+    <label class="admin-file">
+      <input id="adminImage" type="file" accept="image/*">
+      <span id="adminImageLabel">📷 Add event image (optional)</span>
+    </label>
     <button id="adminPost">Post event</button>
     <div class="modal-msg" id="adminMsg"></div>
     <h3 style="margin-top:18px">Currently scheduled</h3>
