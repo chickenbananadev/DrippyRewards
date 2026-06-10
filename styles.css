@@ -102,12 +102,67 @@ h2{font-size:clamp(28px,4.6vw,46px);margin-bottom:14px}
 @media(prefers-reduced-motion:reduce){.marquee-track{animation:none}}
 
 /* ---------- hero ---------- */
-.hero{padding:64px 0 40px}
-.hero-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:42px;align-items:center}
-@media(max-width:880px){.hero-grid{grid-template-columns:1fr}}
+.hero{padding:46px 0 40px;position:relative;overflow:hidden}
+.hero-banner{
+  position:relative;border-radius:22px;overflow:visible;margin-bottom:34px;cursor:pointer;
+  transition:transform .25s ease;
+}
+.hero-banner:hover{transform:scale(1.01) rotate(-.3deg)}
+.hero-banner img{
+  width:100%;max-height:440px;object-fit:cover;border-radius:22px;
+  border:1px solid var(--card-border-gold);box-shadow:0 24px 70px rgba(107,45,201,.4);
+}
+.hero-copy{text-align:center;max-width:760px;margin:0 auto}
+.hero-copy .lede{margin:18px auto 26px}
+.hero-ctas{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+.hero .dripmeter{margin:30px auto 0}
 .hero-tagline{font-family:var(--hand);color:var(--purple-glow);font-size:20px;margin-bottom:8px}
-.hero p.lede{margin:18px 0 26px}
-.hero-ctas{display:flex;gap:12px;flex-wrap:wrap}
+
+/* gold shimmer on the headline word */
+.shimmer{
+  background:linear-gradient(110deg,var(--gold) 20%,var(--gold-glow) 45%,#fff3c4 50%,var(--gold-glow) 55%,var(--gold) 80%);
+  background-size:220% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;
+  animation:shimmer 4s ease-in-out infinite;
+}
+@keyframes shimmer{0%,100%{background-position:0% 0}50%{background-position:100% 0}}
+
+/* falling drip particles behind the hero */
+.drips{position:absolute;inset:0;pointer-events:none;z-index:0}
+.hero .container{position:relative;z-index:1}
+.drip-p{
+  position:absolute;top:-30px;width:10px;height:14px;opacity:.5;
+  clip-path:path('M5 0 C5 0 10 6 10 9 C10 11.8 7.8 14 5 14 C2.2 14 0 11.8 0 9 C0 6 5 0 5 0 Z');
+  background:linear-gradient(180deg,var(--gold-glow),var(--gold));
+  animation:dripfall linear infinite;
+}
+.drip-p.purple-p{background:linear-gradient(180deg,var(--purple-glow),var(--purple))}
+@keyframes dripfall{
+  0%{transform:translateY(-30px) scale(var(--s,1));opacity:0}
+  8%{opacity:.55}
+  92%{opacity:.45}
+  100%{transform:translateY(110vh) scale(var(--s,1));opacity:0}
+}
+
+/* WOOF easter egg pop */
+.woof-pop{
+  position:fixed;z-index:80;font-family:var(--display);color:var(--gold-bright);
+  text-shadow:0 2px 14px rgba(212,164,49,.6);pointer-events:none;white-space:nowrap;
+  animation:woofup 1.1s ease-out forwards;
+}
+@keyframes woofup{
+  0%{transform:translate(-50%,0) scale(.5) rotate(-6deg);opacity:0}
+  18%{opacity:1;transform:translate(-50%,-22px) scale(1.15) rotate(3deg)}
+  100%{transform:translate(-50%,-90px) scale(1) rotate(-2deg);opacity:0}
+}
+
+/* ticker value flash on update */
+.tcell .v.flash{animation:vflash .8s ease}
+@keyframes vflash{0%{color:var(--gold-glow);text-shadow:0 0 14px rgba(255,217,102,.7)}100%{}}
+
+/* scroll reveal */
+.reveal{opacity:0;transform:translateY(22px);transition:opacity .6s ease,transform .6s ease}
+.reveal.in{opacity:1;transform:none}
+@media(prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}.drip-p{display:none}.shimmer{animation:none}}
 .btn{
   display:inline-block;font-family:var(--tag);text-transform:uppercase;letter-spacing:2px;font-size:15px;
   padding:14px 26px;border-radius:12px;text-decoration:none;border:0;transition:transform .15s ease;
@@ -116,13 +171,13 @@ h2{font-size:clamp(28px,4.6vw,46px);margin-bottom:14px}
 .btn-gold{background:linear-gradient(135deg,var(--gold) 0%,var(--gold-bright) 100%);color:#1a1005;box-shadow:0 6px 28px rgba(212,164,49,.35)}
 .btn-purple{background:linear-gradient(135deg,var(--purple-deep) 0%,var(--purple) 100%);color:var(--purple-pale);border:1px solid rgba(162,89,255,.4)}
 .btn-ghost{background:transparent;color:var(--cream-dim);border:1px solid var(--card-border)}
-.hero-art{position:relative}
-.hero-art img{border-radius:22px;border:1px solid var(--card-border-gold);box-shadow:0 24px 70px rgba(107,45,201,.35)}
-.hero-art .stamp{
+.stamp{
   position:absolute;top:-14px;right:-8px;transform:rotate(8deg);
   font-family:var(--hand);background:var(--crimson);color:#fff;font-size:14px;
   padding:6px 14px;border-radius:8px;box-shadow:0 6px 18px rgba(179,21,31,.5);
+  animation:wiggle 6s ease-in-out infinite;
 }
+@keyframes wiggle{0%,92%,100%{transform:rotate(8deg)}94%{transform:rotate(12deg) scale(1.06)}96%{transform:rotate(5deg)}98%{transform:rotate(10deg)}}
 
 /* ---------- drip meter (signature) ---------- */
 .dripmeter{
@@ -152,9 +207,11 @@ h2{font-size:clamp(28px,4.6vw,46px);margin-bottom:14px}
 .live-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);margin-right:6px;animation:pulse 2s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
 .ticker-grid{
-  display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:1px;
+  display:grid;grid-template-columns:repeat(5,1fr);gap:1px;
   background:var(--card-border);border:1px solid var(--card-border);border-radius:var(--radius);overflow:hidden;
 }
+@media(max-width:880px){.ticker-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:560px){.ticker-grid{grid-template-columns:repeat(2,1fr)}}
 .tcell{background:var(--black-2);padding:14px 14px 12px}
 .tcell .k{font-family:var(--tag);text-transform:uppercase;letter-spacing:1.5px;font-size:11px;color:var(--cream-faint)}
 .tcell .v{font-family:var(--mono);font-size:17px;margin-top:4px;color:var(--cream)}
@@ -412,6 +469,15 @@ h2{font-size:clamp(28px,4.6vw,46px);margin-bottom:14px}
   display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center;
   background:var(--card-bg);border:1px solid var(--card-border);border-radius:var(--radius-sm);padding:14px 16px;
 }
+.ev-row.has-img{grid-template-columns:auto auto 1fr auto}
+.ev-img{
+  width:110px;height:110px;flex:0 0 auto;border-radius:12px;object-fit:cover;
+  border:1px solid var(--card-border-gold);
+}
+@media(max-width:560px){
+  .ev-row.has-img{grid-template-columns:auto 1fr auto}
+  .ev-img{grid-column:1 / -1;width:100%;height:150px}
+}
 .ev-row .icon{font-size:22px}
 .ev-row .t{font-family:var(--tag);letter-spacing:1px;font-size:15px}
 .ev-row .when{font-family:var(--mono);font-size:12px;color:var(--cream-dim)}
@@ -474,3 +540,161 @@ footer{border-top:1px solid var(--card-border);padding:50px 0 40px;text-align:ce
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms !important;transition-duration:.01ms !important}
 }
+
+
+/* ---------- rank card modal ---------- */
+.card-modal-box{max-width:400px;text-align:center}
+#cardCanvas{width:100%;height:auto;border-radius:14px;border:1px solid var(--card-border-gold);margin:6px 0 14px}
+.card-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.card-actions button{margin:0}
+
+/* admin file input */
+.admin-file{
+  display:block;border:1px dashed var(--card-border-gold);border-radius:10px;
+  padding:11px 13px;margin-bottom:10px;cursor:pointer;
+  font-family:var(--mono);font-size:12.5px;color:var(--cream-dim);
+}
+.admin-file input{display:none}
+.admin-file:hover{color:var(--gold-bright)}
+
+/* ============================================================
+   INTRO SPLASH — paw drop, letter slam, lingering spotlight,
+   gold flash, WOOF pop, then the drip carries into the hero
+   ============================================================ */
+.intro{
+  position:fixed;inset:0;z-index:9999;
+  background:radial-gradient(ellipse at center, #1a0a2e 0%, #000 72%);
+  display:grid;place-items:center;overflow:hidden;
+  animation:introExit .7s ease-in 3.2s forwards;
+}
+.intro.done{display:none}
+@keyframes introExit{
+  0%{opacity:1;transform:scale(1)}
+  100%{opacity:0;transform:scale(1.06);visibility:hidden}
+}
+
+/* Pulsing spotlight behind the word — slower expand, longer linger */
+.intro::before{
+  content:'';position:absolute;left:50%;top:50%;
+  width:640px;height:640px;
+  transform:translate(-50%,-50%) scale(0);
+  background:radial-gradient(circle, rgba(245,197,66,.38) 0%, rgba(162,89,255,.22) 35%, transparent 70%);
+  filter:blur(22px);pointer-events:none;
+  animation:spotlightPulse 3s ease-out .4s forwards;
+}
+@keyframes spotlightPulse{
+  0%{transform:translate(-50%,-50%) scale(0);opacity:0}
+  25%{transform:translate(-50%,-50%) scale(1);opacity:1}
+  70%{transform:translate(-50%,-50%) scale(1.25);opacity:.85}
+  100%{transform:translate(-50%,-50%) scale(1.7);opacity:0}
+}
+
+/* Gold flash at letter impact */
+.intro::after{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(circle at center, rgba(255,217,102,.7), transparent 50%);
+  opacity:0;pointer-events:none;mix-blend-mode:screen;
+  animation:goldFlash .35s ease-out 1.15s forwards;
+}
+@keyframes goldFlash{0%{opacity:0}40%{opacity:1}100%{opacity:0}}
+
+/* Falling drips inside the intro, same look as the hero particles */
+.intro-drips{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.intro-drips i{
+  position:absolute;top:-60px;width:6px;height:50px;
+  background:linear-gradient(to bottom, transparent, var(--gold-bright), var(--gold));
+  border-radius:50% 50% 50% 50% / 70% 70% 30% 30%;
+  filter:drop-shadow(0 0 10px rgba(245,197,66,.55));
+  animation:introDropFall linear infinite;opacity:.85;
+}
+.intro-drips i.purple-drip{
+  background:linear-gradient(to bottom, transparent, #c98aff, var(--purple));
+  filter:drop-shadow(0 0 12px rgba(162,89,255,.55));
+}
+@keyframes introDropFall{
+  0%{transform:translateY(-100px) scaleY(.6);opacity:0}
+  15%{opacity:1}
+  100%{transform:translateY(110vh) scaleY(1.2);opacity:0}
+}
+
+.intro-logo{
+  position:relative;z-index:2;text-align:center;
+  animation:logoIn 1.1s cubic-bezier(.2,.7,.2,1) .3s both, logoShake .12s ease-out 1.15s 2;
+}
+@keyframes logoIn{
+  0%{opacity:0;transform:translateY(20px) scale(.92);filter:blur(6px)}
+  60%{filter:blur(0)}
+  100%{opacity:1;transform:translateY(0) scale(1);filter:blur(0)}
+}
+@keyframes logoShake{
+  0%,100%{transform:translateY(0)}
+  25%{transform:translateY(-3px) translateX(2px)}
+  75%{transform:translateY(2px) translateX(-2px)}
+}
+
+.intro-paw{
+  width:78px;height:78px;color:var(--gold-bright);
+  filter:drop-shadow(0 0 24px rgba(245,197,66,.6));
+  margin:0 auto 18px;display:block;
+  animation:pawDrop 1s cubic-bezier(.34,1.56,.64,1) .2s both, pawWiggle 1.4s ease-in-out 1.4s infinite;
+}
+@keyframes pawDrop{
+  0%{opacity:0;transform:translateY(-80px) scale(.4) rotate(-20deg)}
+  60%{transform:translateY(8px) scale(1.15) rotate(5deg)}
+  100%{opacity:1;transform:translateY(0) scale(1) rotate(0)}
+}
+@keyframes pawWiggle{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
+
+.intro-word{
+  font-family:var(--display);
+  font-size:clamp(56px, 13vw, 140px);
+  line-height:1;letter-spacing:.02em;display:inline-flex;gap:2px;
+}
+.intro-word span{
+  display:inline-block;
+  background:linear-gradient(180deg, var(--gold-pale), var(--gold-bright) 50%, var(--gold) 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(3px 3px 0 rgba(0,0,0,.7)) drop-shadow(0 0 40px rgba(245,197,66,.5));
+  opacity:0;transform:translateY(40px) scale(.4) rotate(-12deg);
+  animation:letterDrop .7s cubic-bezier(.34,1.56,.64,1) forwards;
+}
+.intro-word span:nth-child(1){animation-delay:.5s}
+.intro-word span:nth-child(2){animation-delay:.62s}
+.intro-word span:nth-child(3){animation-delay:.74s}
+.intro-word span:nth-child(4){animation-delay:.86s}
+.intro-word span:nth-child(5){animation-delay:.98s}
+.intro-word span:nth-child(6){animation-delay:1.1s}
+@keyframes letterDrop{
+  0%{opacity:0;transform:translateY(-80px) scale(.4) rotate(-15deg)}
+  60%{opacity:1;transform:translateY(8px) scale(1.15) rotate(4deg)}
+  100%{opacity:1;transform:translateY(0) scale(1) rotate(0)}
+}
+
+.intro-tag{
+  display:block;margin-top:14px;
+  font-family:var(--tag);font-size:14px;
+  letter-spacing:.4em;text-transform:uppercase;
+  color:var(--gold-bright);opacity:0;
+  animation:tagIn .8s ease-out 1.6s forwards;
+  text-shadow:0 0 12px rgba(245,197,66,.45);
+}
+@keyframes tagIn{to{opacity:.95}}
+
+.intro-woof{
+  position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%) scale(0) rotate(-12deg);
+  font-family:var(--display);
+  font-size:clamp(36px, 8vw, 80px);
+  color:var(--gold-bright);
+  text-shadow:4px 4px 0 #1a0a2e, 0 0 30px rgba(255,217,102,.7);
+  letter-spacing:.06em;z-index:3;pointer-events:none;
+  animation:woofPopIntro 1s ease-out 2s forwards;
+}
+@keyframes woofPopIntro{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(0) rotate(-15deg)}
+  30%{opacity:1;transform:translate(-50%,-50%) scale(1.3) rotate(5deg)}
+  60%{transform:translate(-50%,-50%) scale(1.1) rotate(0)}
+  100%{opacity:0;transform:translate(-50%,-150%) scale(.9) rotate(0)}
+}
+
+@media(prefers-reduced-motion:reduce){.intro{display:none}}
