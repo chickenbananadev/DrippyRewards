@@ -66,10 +66,16 @@ function setCell(key, text, cls){
   const cell = document.querySelector('[data-key="' + key + '"]');
   if(!cell) return;
   const v = cell.querySelector('.v');
+  const changed = v.textContent !== text && v.textContent !== '—';
   v.textContent = text;
   v.classList.remove('up','down');
   if(cls) v.classList.add(cls);
   cell.classList.remove('loading');
+  if(changed){
+    v.classList.remove('flash');
+    void v.offsetWidth;
+    v.classList.add('flash');
+  }
 }
 
 /* ---------------- countdown + drip meter ---------------- */
@@ -112,6 +118,7 @@ async function loadStats(){
     if(d.supply) setCell('supply', fmtTokens(d.supply.circulating));
     if(d.holders && d.holders.count != null) setCell('holders', d.holders.count.toLocaleString());
     if(d.burns && d.burns.tokensBurned) setCell('burned', fmtTokens(d.burns.tokensBurned), 'purple');
+    if(d.burns && d.burns.supplyBurnedPct != null) setCell('burnpct', Number(d.burns.supplyBurnedPct).toFixed(2) + '%', 'purple');
     if(d.distribution && d.distribution.totalDistributedSol != null){
       setCell('rewards', fmtSol(d.distribution.totalDistributedSol).replace(' SOL','') + ' SOL', 'gold');
     }
@@ -356,6 +363,7 @@ let currentWallet = null;
       $('wcWalletShort').textContent = shortAddr(d.wallet);
       $('wcDistCount').textContent = (d.distributionCount || 0).toLocaleString();
       $('wcHoldings').textContent = fmtTokens(d.currentHoldings?.uiAmount);
+      $('wcBurnedMain').textContent = (d.burner && d.burner.tokensBurned) ? fmtTokens(d.burner.tokensBurned) : '0';
       if(d.lastDistribution){
         $('wcLastAmount').textContent = fmtSol(d.lastDistribution.amountSol);
         $('wcLastTime').textContent = timeAgo(d.lastDistribution.timestamp);
@@ -672,10 +680,11 @@ async function loadEvents(){
       }
       const icon = e.type === 'space' ? '🎙️' : e.type === 'ama' ? '💬' : e.type === 'launch' ? '🚀' : '📡';
       const row = document.createElement(e.link ? 'a' : 'div');
-      row.className = 'ev-row';
+      row.className = 'ev-row' + (e.image ? ' has-img' : '');
       if(e.link){ row.href = e.link; row.target = '_blank'; row.rel = 'noopener'; row.style.textDecoration = 'none'; row.style.color = 'inherit'; }
       row.innerHTML =
         '<span class="icon">' + icon + '</span>' +
+        (e.image ? '<img class="ev-img" src="' + e.image + '" alt="" loading="lazy">' : '') +
         '<span><div class="t">' + (e.title || 'Event') + '</div>' +
         '<div class="when">' + new Date(e.start).toLocaleString() + '</div></span>' +
         '<span class="cd">' + cd + '</span>';
@@ -727,6 +736,14 @@ setInterval(loadEvents, 60000);
   }
   refreshAdminList();
 
+  const fileInput = $('adminImage');
+  if(fileInput){
+    fileInput.addEventListener('change', () => {
+      const f = fileInput.files && fileInput.files[0];
+      $('adminImageLabel').textContent = f ? ('📷 ' + f.name) : '📷 Add event image (optional)';
+    });
+  }
+
   $('adminPost').addEventListener('click', async () => {
     const key = $('adminKey').value.trim();
     const title = $('adminTitle').value.trim();
@@ -736,11 +753,279 @@ setInterval(loadEvents, 60000);
     if(!key){ msg('Enter the admin key.', 'err'); return; }
     if(!title || !start){ msg('Title and start time are required.', 'err'); return; }
     try{
-      const qs = new URLSearchParams({ action:'add', key, title, start: new Date(start).toISOString(), type, link });
+      let image = '';
+      const f = fileInput && fileInput.files && fileInput.files[0];
+      if(f){
+        if(f.size > 4 * 1024 * 1024){ msg('Image is over 4 MB. Pick a smaller one.', 'err'); return; }
+        msg('Uploading image...');
+        const up = await fetch('/api/upload-image', {
+          method: 'POST',
+          headers: { 'Content-Type': f.type || 'image/jpeg', 'X-Filename': f.name, 'X-Admin-Secret': key },
+          body: f
+        });
+        const uj = await up.json();
+        if(!uj.success){ msg(uj.error || 'Image upload failed.', 'err'); return; }
+        image = uj.url;
+      }
+      msg('Posting...');
+      const qs = new URLSearchParams({ action:'add', key, title, start: new Date(start).toISOString(), type, link, image });
       const r = await fetch('/api/events?' + qs.toString());
       const j = await r.json();
-      if(j.ok){ msg('Event posted.', 'ok'); refreshAdminList(); loadEvents(); }
+      if(j.ok){
+        msg('Event posted.', 'ok');
+        if(fileInput){ fileInput.value = ''; $('adminImageLabel').textContent = '📷 Add event image (optional)'; }
+        refreshAdminList(); loadEvents();
+      }
       else msg(j.error || 'Could not post the event.', 'err');
     }catch(e){ msg('Error: ' + e.message, 'err'); }
   });
+})();
+
+/* ---------------- hero fun: drip particles + WOOF easter egg + reveals ---------------- */
+(function(){
+  if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const host = $('heroDrips');
+  if(host){
+    for(let i = 0; i < 12; i++){
+      const p = document.createElement('span');
+      p.className = 'drip-p' + (Math.random() < 0.35 ? ' purple-p' : '');
+      p.style.left = (Math.random() * 100).toFixed(1) + '%';
+      p.style.setProperty('--s', (0.6 + Math.random() * 0.9).toFixed(2));
+      p.style.animationDuration = (6 + Math.random() * 9).toFixed(1) + 's';
+      p.style.animationDelay = (-Math.random() * 12).toFixed(1) + 's';
+      host.appendChild(p);
+    }
+  }
+})();
+
+(function(){
+  const banner = $('heroBanner');
+  if(!banner) return;
+  const WOOFS = ['WOOF!', 'WOOF WOOF!', 'drip drip.', 'good dog.', 'pays well.', 'AWOOOO!', '*tail wags*', 'the pack eats.'];
+  banner.addEventListener('click', (e) => {
+    const pop = document.createElement('div');
+    pop.className = 'woof-pop';
+    pop.textContent = WOOFS[Math.floor(Math.random() * WOOFS.length)];
+    pop.style.left = e.clientX + 'px';
+    pop.style.top = (e.clientY - 10) + 'px';
+    pop.style.fontSize = (20 + Math.random() * 16).toFixed(0) + 'px';
+    document.body.appendChild(pop);
+    setTimeout(() => pop.remove(), 1200);
+  });
+})();
+
+(function(){
+  const sections = document.querySelectorAll('section, .ticker, .hero-copy');
+  if(!('IntersectionObserver' in window)){ return; }
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(en => { if(en.isIntersecting){ en.target.classList.add('in'); io.unobserve(en.target); } });
+  }, { threshold: 0.08 });
+  sections.forEach(s => { s.classList.add('reveal'); io.observe(s); });
+})();
+
+/* ---------------- rank card: real shareable image ---------------- */
+const CARD_W = 1080, CARD_H = 1350;
+function loadImg(src){
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = src;
+  });
+}
+function roundRect(ctx, x, y, w, h, r){
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+async function drawRankCard(d){
+  const canvas = $('cardCanvas');
+  const ctx = canvas.getContext('2d');
+  const completed = QUESTS.filter(q => q.check(d)).length;
+  const tier = computeTier(completed);
+  let featured = null;
+  QUESTS.forEach(q => { if(q.check(d)) featured = q; });
+
+  // Background
+  const bg = ctx.createLinearGradient(0, 0, 0, CARD_H);
+  bg.addColorStop(0, '#1a0a2e');
+  bg.addColorStop(0.55, '#0a0610');
+  bg.addColorStop(1, '#120a1c');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, CARD_W, CARD_H);
+
+  // Glow blobs
+  const glow1 = ctx.createRadialGradient(CARD_W/2, 150, 30, CARD_W/2, 150, 520);
+  glow1.addColorStop(0, 'rgba(107,45,201,.45)');
+  glow1.addColorStop(1, 'rgba(107,45,201,0)');
+  ctx.fillStyle = glow1;
+  ctx.fillRect(0, 0, CARD_W, 700);
+  const glow2 = ctx.createRadialGradient(CARD_W/2, 760, 40, CARD_W/2, 760, 460);
+  glow2.addColorStop(0, 'rgba(212,164,49,.28)');
+  glow2.addColorStop(1, 'rgba(212,164,49,0)');
+  ctx.fillStyle = glow2;
+  ctx.fillRect(0, 380, CARD_W, 800);
+
+  // Border frame
+  const tierColors = { 'tier-bronze':'#cd7f32', 'tier-silver':'#c0c0c8', 'tier-gold':'#f5c542', 'tier-diamond':'#b4e6ff' };
+  const frame = tierColors[tier.cls] || '#a259ff';
+  ctx.strokeStyle = frame;
+  ctx.lineWidth = 10;
+  roundRect(ctx, 24, 24, CARD_W - 48, CARD_H - 48, 38);
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(246,233,196,.18)';
+  ctx.lineWidth = 2;
+  roundRect(ctx, 44, 44, CARD_W - 88, CARD_H - 88, 28);
+  ctx.stroke();
+
+  // Wordmark
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#f5c542';
+  ctx.font = '78px "Bowlby One", cursive';
+  ctx.fillText('$DRIPPY', CARD_W/2, 152);
+  ctx.fillStyle = '#c084fc';
+  ctx.font = '30px "Permanent Marker", cursive';
+  ctx.fillText('the Solana Dividend Dog', CARD_W/2, 200);
+
+  // Featured quest art
+  const artSrc = featured ? featured.img : 'assets/drippy-king.png';
+  const art = await loadImg(artSrc);
+  const artSize = 460;
+  const ax = (CARD_W - artSize) / 2, ay = 250;
+  if(art){
+    ctx.save();
+    roundRect(ctx, ax, ay, artSize, artSize, 30);
+    ctx.clip();
+    ctx.drawImage(art, ax, ay, artSize, artSize);
+    ctx.restore();
+    ctx.strokeStyle = frame;
+    ctx.lineWidth = 6;
+    roundRect(ctx, ax, ay, artSize, artSize, 30);
+    ctx.stroke();
+  }
+
+  // Rank name
+  ctx.fillStyle = frame;
+  ctx.font = '64px "Bowlby One", cursive';
+  ctx.fillText(tier.name, CARD_W/2, ay + artSize + 96);
+
+  // Quest count
+  ctx.fillStyle = 'rgba(246,233,196,.75)';
+  ctx.font = '30px "JetBrains Mono", monospace';
+  ctx.fillText(completed + ' / ' + QUESTS.length + ' quests complete', CARD_W/2, ay + artSize + 148);
+
+  // Stat boxes
+  const stats = [
+    ['SOL EARNED', fmtSol(d.totalReceivedSol)],
+    ['PAYOUTS', String((d.distributionCount || 0).toLocaleString())],
+    ['BURNED', (d.burner && d.burner.tokensBurned) ? fmtTokens(d.burner.tokensBurned) : '0']
+  ];
+  const boxW = 300, boxH = 130, gap = 24;
+  const startX = (CARD_W - (boxW * 3 + gap * 2)) / 2;
+  const boxY = ay + artSize + 190;
+  stats.forEach((st, i) => {
+    const bx = startX + i * (boxW + gap);
+    ctx.fillStyle = 'rgba(27,18,40,.85)';
+    roundRect(ctx, bx, boxY, boxW, boxH, 18);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(162,89,255,.3)';
+    ctx.lineWidth = 2;
+    roundRect(ctx, bx, boxY, boxW, boxH, 18);
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(246,233,196,.55)';
+    ctx.font = '22px "Anton", sans-serif';
+    ctx.fillText(st[0], bx + boxW/2, boxY + 46);
+    ctx.fillStyle = '#f5c542';
+    ctx.font = '34px "JetBrains Mono", monospace';
+    ctx.fillText(st[1], bx + boxW/2, boxY + 96);
+  });
+
+  // Wallet + site
+  ctx.fillStyle = 'rgba(246,233,196,.5)';
+  ctx.font = '26px "JetBrains Mono", monospace';
+  ctx.fillText(shortAddr(d.wallet), CARD_W/2, CARD_H - 130);
+  ctx.fillStyle = '#ffd966';
+  ctx.font = '34px "Anton", sans-serif';
+  ctx.fillText('DRIPPYREWARDS.COM', CARD_W/2, CARD_H - 78);
+}
+
+(function(){
+  const modal = $('cardModal');
+  const openBtn = $('dqCardBtn');
+  if(!modal || !openBtn) return;
+
+  function cardMsg(text, kind){
+    const el = $('cardMsg');
+    el.textContent = text || '';
+    el.className = 'modal-msg' + (kind ? ' ' + kind : '');
+  }
+
+  openBtn.addEventListener('click', async () => {
+    const d = window._dripWalletData;
+    if(!d) return;
+    modal.classList.add('open');
+    cardMsg('Building your card...');
+    try{
+      await (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve());
+      await drawRankCard(d);
+      cardMsg('');
+    }catch(e){ cardMsg('Could not draw the card: ' + e.message, 'err'); }
+  });
+  $('cardClose').addEventListener('click', () => modal.classList.remove('open'));
+  modal.addEventListener('click', (e) => { if(e.target === modal) modal.classList.remove('open'); });
+
+  $('cardDownloadBtn').addEventListener('click', () => {
+    const a = document.createElement('a');
+    a.download = 'drippy-rank-card.png';
+    a.href = $('cardCanvas').toDataURL('image/png');
+    a.click();
+  });
+
+  $('cardShareBtn').addEventListener('click', () => {
+    $('cardCanvas').toBlob(async (blob) => {
+      if(!blob){ cardMsg('Could not create the image.', 'err'); return; }
+      const file = new File([blob], 'drippy-rank-card.png', { type: 'image/png' });
+      const d = window._dripWalletData;
+      const text = 'My $DRIPPY rank card. ' + fmtSol(d ? d.totalReceivedSol : 0) + ' dripped so far. drippyrewards.com';
+      if(navigator.canShare && navigator.canShare({ files: [file] })){
+        try{ await navigator.share({ files: [file], text }); }
+        catch(e){ /* user cancelled */ }
+      } else {
+        cardMsg('Direct image sharing is not supported in this browser. Use Download, then attach the image to your post.', 'err');
+      }
+    }, 'image/png');
+  });
+})();
+
+/* ---------------- intro splash ---------------- */
+(function(){
+  const intro = $('intro');
+  if(!intro) return;
+  if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+    intro.classList.add('done');
+    return;
+  }
+  // Falling drips inside the splash, gold with a few purple
+  const dripHost = $('introDrips');
+  if(dripHost){
+    for(let i = 0; i < 16; i++){
+      const drop = document.createElement('i');
+      if(Math.random() < 0.3) drop.className = 'purple-drip';
+      drop.style.left = (Math.random() * 100).toFixed(1) + '%';
+      drop.style.animationDuration = (1.4 + Math.random() * 2.2).toFixed(2) + 's';
+      drop.style.animationDelay = (Math.random() * 2.4).toFixed(2) + 's';
+      drop.style.height = (32 + Math.random() * 36).toFixed(0) + 'px';
+      dripHost.appendChild(drop);
+    }
+  }
+  // Remove from the page once the exit animation finishes, with a hard
+  // fallback timer in case the animation event never fires
+  intro.addEventListener('animationend', (e) => {
+    if(e.animationName === 'introExit') intro.classList.add('done');
+  });
+  setTimeout(() => intro.classList.add('done'), 4300);
 })();
