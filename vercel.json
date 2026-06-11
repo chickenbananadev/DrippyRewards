@@ -1,6 +1,7 @@
 {
   "version": 2,
   "functions": {
+    "api/rebuild-burns.js": { "maxDuration": 60 },
     "api/wallet.js": { "maxDuration": 30 },
     "api/backfill-burns.js": { "maxDuration": 30 },
     "api/stats.js": { "maxDuration": 20 },

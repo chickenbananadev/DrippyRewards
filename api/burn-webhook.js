@@ -61,7 +61,9 @@ function extractBurns(tx){
 
 async function recordBurn(wallet, amount, sig, timestamp){
   // Dedup: webhook deliveries can retry. SET NX guards each signature+wallet.
-  const guard = await redis(['SET', SIG_PREFIX + sig + ':' + wallet, '1', 'NX', 'EX', String(60 * 60 * 24 * 14)]);
+  // Guard is PERMANENT: an expiring guard lets a later backfill re-record
+  // the same burn and double count (this bit us 2026-06-10).
+  const guard = await redis(['SET', SIG_PREFIX + sig + ':' + wallet, '1', 'NX']);
   if(guard === null || guard === undefined) {
     // Redis unavailable: bail rather than risk double counting later
     return false;

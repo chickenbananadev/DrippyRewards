@@ -60,7 +60,8 @@ async function rpc(method, params){
 }
 
 async function recordBurn(wallet, amount, sig, timestamp){
-  const guard = await redis(['SET', SIG_PREFIX + sig + ':' + wallet, '1', 'NX', 'EX', String(60 * 60 * 24 * 90)]);
+  // Permanent guard — expiring guards caused double counting on re-runs.
+  const guard = await redis(['SET', SIG_PREFIX + sig + ':' + wallet, '1', 'NX']);
   if(guard !== 'OK') return false;
   await redis(['ZINCRBY', LB_BURN_KEY, String(amount), wallet]);
   await redis(['INCRBYFLOAT', TOTAL_KEY, String(amount)]);
