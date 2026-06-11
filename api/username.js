@@ -202,6 +202,15 @@ module.exports = async (req, res) => {
     if (!wallet || !signature || !message) {
       res.status(400).json({ error: 'wallet, signature, message required' }); return;
     }
+    // Rate limit: 5 sign-in attempts per IP per 60s + 10 per wallet per 5min
+    const ipKey = 'drippy:rl:signin:ip:' + String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
+    const wKey = 'drippy:rl:signin:w:' + wallet;
+    const ipCount = await redis(['INCR', ipKey]); if (ipCount === 1) await redis(['EXPIRE', ipKey, '60']);
+    const wCount = await redis(['INCR', wKey]); if (wCount === 1) await redis(['EXPIRE', wKey, '300']);
+    if (Number(ipCount) > 5 || Number(wCount) > 10) {
+      res.status(429).json({ error: 'Too many sign-in attempts. Wait a minute and try again.' });
+      return;
+    }
     let verified = false;
     try {
       const msgBytes = new TextEncoder().encode(message);

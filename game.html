@@ -207,6 +207,10 @@ canvas{image-rendering:pixelated;width:100%;height:100%;display:block;object-fit
 <div class="ov" id="ovConnect">
   <h2>CONNECT WALLET</h2>
   <div style="font-size:11px;color:#9aa3b2;margin:-6px 0 8px">Sign a free message to prove ownership. No transaction, no gas.</div>
+  <div style="max-width:520px;margin:6px auto 14px;padding:12px 14px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.35);border-radius:10px;font-size:11px;color:#b8e8c8;line-height:1.6;text-align:left">
+    <div style="font-family:'Press Start 2P';font-size:10px;color:#22c55e;letter-spacing:1px;margin-bottom:6px">🛡️ YOU ARE SAFE</div>
+    <div style="font-size:11px">We only request a <b style="color:#fff">signed message</b> — never a transaction. <b style="color:#fff">No SOL or tokens move</b>, no token approvals, no draining possible. You can disconnect any time. <a href="/security" target="_blank" style="color:var(--gold)">Read our full security model →</a></div>
+  </div>
   <div class="walletList" id="walletList"></div>
   <div id="walletMsg" style="margin-top:10px;font-size:11px;color:var(--red);font-family:'Press Start 2P';min-height:14px"></div>
   <div style="margin-top:14px"><button class="btn ghost" id="btnConnectBack">◂ BACK</button></div>
@@ -1807,7 +1811,7 @@ async function startLinkFlow(){
 }
 
 async function linkWith(w,primary){
-  $('walletMsg').style.color='#9aa3b2';$('walletMsg').textContent='Connecting and asking the new wallet to sign…';
+  $('walletMsg').style.color='#9aa3b2';$('walletMsg').textContent='Connecting…';
   try{
     // Force a fresh connect prompt — disconnect first if possible
     try{ if(w.provider.disconnect)await w.provider.disconnect(); }catch(_){}
@@ -1818,6 +1822,18 @@ async function linkWith(w,primary){
     }
     const ts=Date.now();
     const msg=`Link wallet to drippyrewards.com account\nLinking: ${pk.slice(0,8)}…${pk.slice(-4)}\nWith primary: ${primary.slice(0,8)}…${primary.slice(-4)}\n:: ${ts}`;
+    // SAFETY: preview what they're signing
+    const ok = confirm(
+      '🔒 LINK WALLET — SIGNATURE ONLY\n\n'+
+      'Your wallet will sign this message:\n\n'+
+      '"'+msg+'"\n\n'+
+      'This is NOT a transaction. No SOL or tokens move. '+
+      'It only proves you own this wallet so it counts toward your account\'s '+
+      'burns, holdings, and tier unlocks.\n\n'+
+      'Click OK to continue, Cancel to abort.'
+    );
+    if(!ok){$('walletMsg').style.color='var(--red)';$('walletMsg').textContent='Link cancelled.';return;}
+    $('walletMsg').textContent='Approve in your wallet…';
     const encoded=new TextEncoder().encode(msg);
     const sigRes=await w.provider.signMessage(encoded,'utf8');
     const sigBytes=sigRes.signature?sigRes.signature:sigRes;
@@ -1836,13 +1852,26 @@ async function linkWith(w,primary){
 }
 
 async function signInWith(w){
-  $('walletMsg').style.color='#9aa3b2';$('walletMsg').textContent='Waiting for wallet approval…';
+  $('walletMsg').style.color='#9aa3b2';$('walletMsg').textContent='Connecting…';
   try{
     const r=await w.provider.connect();
     const pk=(r&&r.publicKey?r.publicKey:w.provider.publicKey).toString();
     const ts=Date.now();
     const msg=`Sign in to drippyrewards.com\nWallet: ${pk.slice(0,8)}…${pk.slice(-4)}\n:: ${ts}`;
+    // SAFETY: Show user what they're about to sign BEFORE the wallet popup.
+    // This is just a message — not a transaction. No funds move, no tokens approved.
+    const ok = confirm(
+      '🔒 SECURE SIGN-IN\n\n'+
+      'Your wallet will pop up to sign this message:\n\n'+
+      '"'+msg+'"\n\n'+
+      'This is NOT a transaction. No SOL or tokens will move. '+
+      'This only proves you own this wallet so drippyrewards.com can '+
+      'show your skins and tier unlocks.\n\n'+
+      'Click OK to continue, Cancel to abort.'
+    );
+    if(!ok){$('walletMsg').style.color='var(--red)';$('walletMsg').textContent='Sign-in cancelled.';return;}
     const encoded=new TextEncoder().encode(msg);
+    $('walletMsg').textContent='Approve in your wallet…';
     const sigRes=await w.provider.signMessage(encoded,'utf8');
     const sigBytes=sigRes.signature?sigRes.signature:sigRes;
     const sigB58=b58enc(sigBytes);

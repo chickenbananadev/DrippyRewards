@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Security · $DRIPPY Rewards</title>
+<meta name="description" content="How drippyrewards.com keeps your wallet safe. We only request signed messages — never transactions. No draining possible.">
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bowlby+One&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<style>
+  .sec-wrap{max-width:880px;margin:60px auto;padding:0 20px;font-family:'JetBrains Mono',monospace;color:#e7e3d1;line-height:1.65}
+  .sec-wrap h1{font-family:'Bowlby One',sans-serif;font-size:42px;color:#f5c542;margin-bottom:6px;letter-spacing:-1px}
+  .sec-wrap .sub{font-size:14px;color:#9aa3b2;margin-bottom:28px}
+  .sec-card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:22px 26px;margin-bottom:18px}
+  .sec-card h2{font-family:'Bowlby One',sans-serif;font-size:22px;color:#f5c542;margin-bottom:12px;letter-spacing:0}
+  .sec-card h3{font-size:15px;color:#c9b8ff;margin:14px 0 6px;font-weight:600}
+  .sec-card p{font-size:14px;margin-bottom:10px;color:#d4cfb8}
+  .sec-card ul{padding-left:20px;margin-bottom:10px}
+  .sec-card li{font-size:14px;margin-bottom:6px;color:#d4cfb8}
+  .sec-card code{background:rgba(245,197,66,0.1);padding:2px 6px;border-radius:4px;color:#f5c542;font-size:12.5px}
+  .ok{color:#22c55e;font-weight:600}
+  .no{color:#ef4444;font-weight:600}
+  .pill{display:inline-block;padding:3px 10px;border-radius:99px;font-size:11px;font-family:'JetBrains Mono',monospace;font-weight:600;margin-right:8px;vertical-align:middle}
+  .pill.green{background:rgba(34,197,94,0.15);color:#22c55e;border:1px solid rgba(34,197,94,0.4)}
+  .pill.red{background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid rgba(239,68,68,0.4)}
+  .back{display:inline-block;margin-bottom:20px;color:#f5c542;text-decoration:none;font-size:13px}
+  .back:hover{text-decoration:underline}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin:10px 0}
+  th,td{padding:8px 10px;text-align:left;border-bottom:1px solid rgba(255,255,255,0.06)}
+  th{color:#c9b8ff;font-weight:600}
+  body{background:#0a0610}
+</style>
+</head>
+<body>
+<div class="sec-wrap">
+  <a href="/" class="back">◂ Back to drippyrewards.com</a>
+  <h1>🛡️ Security Model</h1>
+  <p class="sub">Plain-English breakdown of how drippyrewards.com handles wallet connections. <b>You cannot be drained by signing in.</b> Here's exactly why.</p>
+
+  <div class="sec-card">
+    <h2>What we ASK your wallet to do</h2>
+    <table>
+      <tr><th>Action</th><th>We do this?</th><th>Why / Why not</th></tr>
+      <tr>
+        <td><b>Sign a message</b> (proof of ownership)</td>
+        <td><span class="pill green">YES</span></td>
+        <td>Proves you own the wallet. <b class="ok">Cannot move funds.</b> The wallet displays the exact text — read it.</td>
+      </tr>
+      <tr>
+        <td><b>Sign a transaction</b> (move SOL or tokens)</td>
+        <td><span class="pill red">ONLY for skin purchases</span></td>
+        <td>The one and only time we ask is when you explicitly click <b>Buy skin for X SOL</b>. The transaction is preview-shown to you BEFORE the wallet popup. Never automatic, never hidden.</td>
+      </tr>
+      <tr>
+        <td><b>Approve token spending</b> (DeFi-style approve)</td>
+        <td><span class="pill red">NEVER</span></td>
+        <td>This is the classic drain vector on other chains. We never request token approvals. There's nothing for us to "approve" on your behalf.</td>
+      </tr>
+      <tr>
+        <td><b>Send SOL silently in the background</b></td>
+        <td><span class="pill red">IMPOSSIBLE</span></td>
+        <td>Solana wallets show every transaction to you for explicit approval. There is no way for a website to move funds without your click + your private key signing.</td>
+      </tr>
+      <tr>
+        <td><b>See your seed phrase / private key</b></td>
+        <td><span class="pill red">IMPOSSIBLE</span></td>
+        <td>Your seed phrase never leaves your wallet. We have no API access to it. <b>If anyone — including us — asks for your seed phrase, they're scamming you.</b></td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="sec-card">
+    <h2>The signed message we ask for</h2>
+    <p>When you click <b>CONNECT WALLET</b>, your wallet pops up showing a message like:</p>
+    <div style="background:#0e0a18;border-left:3px solid #f5c542;padding:12px 16px;border-radius:8px;font-size:13px;color:#e7e3d1;margin:10px 0;white-space:pre-line">Sign in to drippyrewards.com
+Wallet: ABC12345…6789
+:: 1718136245000</div>
+    <p>That's the entire payload. The <code>::</code> number is a millisecond timestamp so the same signature can't be replayed later. Your wallet displays this verbatim — Phantom, Solflare, Backpack, Glow all do this. If you ever see a wallet popup showing a TRANSACTION (with "Send 0.1 SOL to X…") when you expected just a sign-in, <b class="no">cancel immediately</b>.</p>
+  </div>
+
+  <div class="sec-card">
+    <h2>How we verify signatures (server-side)</h2>
+    <p>When your wallet signs the message, we verify it on our server using the standard ed25519 algorithm. The library we use is <code>tweetnacl</code> — the same audited cryptography library used by Solana itself.</p>
+    <ul>
+      <li>Signature must be valid for the claimed public key (<code>nacl.sign.detached.verify</code>)</li>
+      <li>Message must include the wallet's first 8 characters (anti-substitution)</li>
+      <li>Timestamp must be within a 10-minute window (anti-replay)</li>
+      <li>Successful verification sets an HTTP-only, Secure, SameSite=Lax cookie signed with HMAC-SHA256 — your browser holds it but JavaScript can't read it (XSS protection)</li>
+      <li>Sessions expire after 7 days; you can sign out anytime to revoke immediately</li>
+    </ul>
+  </div>
+
+  <div class="sec-card">
+    <h2>Multi-wallet linking — same security</h2>
+    <p>Linking a second/third/Nth wallet to your account works the same way: that wallet signs a message ("Link wallet B to primary A"), we verify the signature. No transactions, no fund movement. A wallet can only be linked to ONE account at a time so claim conflicts are impossible.</p>
+  </div>
+
+  <div class="sec-card">
+    <h2>Skin purchases (when we ship them)</h2>
+    <p>Buying a skin for SOL is the <b>only</b> time we'll ever ask your wallet to sign a real transaction. Here's exactly what happens:</p>
+    <ol style="padding-left:20px;font-size:14px;color:#d4cfb8;line-height:1.7">
+      <li>You click <b>BUY SHADOW – 0.20 SOL</b></li>
+      <li>The site shows you a confirmation: <i>"You will send 0.20 SOL to [vault address]. This is the only transaction we'll request."</i></li>
+      <li>You click <b>Continue</b></li>
+      <li>Your wallet pops up showing the transaction — destination address, amount, fee. <b>Verify the destination matches what the site displayed.</b></li>
+      <li>You approve in your wallet</li>
+      <li>The site shows the on-chain transaction signature so you can verify on Solscan</li>
+      <li>Server verifies the tx on-chain (correct destination, correct amount, fresh, not previously redeemed) and unlocks the skin permanently for your wallet</li>
+    </ol>
+    <p style="margin-top:12px"><b style="color:#22c55e">The destination wallet for skin purchases is a Squads multi-signature vault</b> — meaning multiple signers must approve before any funds can be moved out. Even our own team can't unilaterally withdraw your purchase.</p>
+  </div>
+
+  <div class="sec-card">
+    <h2>HTTP security headers (browser-level protections)</h2>
+    <p>The site sends these headers with every response:</p>
+    <ul>
+      <li><code>Strict-Transport-Security</code> — forces HTTPS, prevents downgrade attacks</li>
+      <li><code>X-Frame-Options: DENY</code> — site cannot be embedded in iframes (clickjacking protection)</li>
+      <li><code>X-Content-Type-Options: nosniff</code> — browser won't mis-interpret file types</li>
+      <li><code>Content-Security-Policy</code> — only scripts from drippyrewards.com + fonts + Jupiter swap plugin can run</li>
+      <li><code>Referrer-Policy</code> — limits what info we leak when you click external links</li>
+      <li><code>Permissions-Policy</code> — disables camera, microphone, geolocation, USB, payment APIs</li>
+    </ul>
+    <p>You can verify these yourself with <code>curl -I https://drippyrewards.com/</code>.</p>
+  </div>
+
+  <div class="sec-card">
+    <h2>What we store</h2>
+    <ul>
+      <li>Your public wallet address (used for tier lookups)</li>
+      <li>Your optional username</li>
+      <li>Your linked wallets (after each signs a proof message)</li>
+      <li>Your chosen skin</li>
+      <li>Game scores you submit</li>
+    </ul>
+    <p>We do not store private keys, seed phrases, or any data that could move your funds. <b>We physically cannot</b> — Solana wallets don't expose that information to websites.</p>
+  </div>
+
+  <div class="sec-card">
+    <h2>Rate limiting & abuse protection</h2>
+    <ul>
+      <li>5 sign-in attempts per IP per minute, 10 per wallet per 5 minutes</li>
+      <li>One leaderboard submission per wallet per 20 seconds</li>
+      <li>Server-side validation on every request — we never trust client claims</li>
+      <li>Admin actions require a separate secret key (not your wallet)</li>
+    </ul>
+  </div>
+
+  <div class="sec-card">
+    <h2>Stuff to watch out for (general crypto safety)</h2>
+    <ul>
+      <li><b class="no">Never share your seed phrase.</b> No legitimate site, including ours, will ever ask for it.</li>
+      <li><b class="no">Double-check the URL.</b> Real site is <code>drippyrewards.com</code>. Bookmark it. Phishers buy lookalike domains (<code>drippyreward.com</code>, <code>drippy-rewards.com</code>).</li>
+      <li><b class="no">Read what your wallet is showing.</b> If a popup says "Send 1 SOL to unknown address" when you expected a sign-in, cancel.</li>
+      <li><b class="ok">Use a hardware wallet</b> (Ledger via Phantom/Solflare) for large holdings. Hot wallets are fine for game play.</li>
+      <li><b class="ok">Use a separate wallet for game / dApp interactions</b> from your cold storage. Our multi-wallet linking is built for this — link your cold wallet for tier credit, play with a side wallet.</li>
+    </ul>
+  </div>
+
+  <div class="sec-card">
+    <h2>Found a security issue?</h2>
+    <p>Tell us before tweeting it. Email <code>security@supremebuildinggroup.com</code> (or DM <code>@JacobsAI</code> on Discord) — we respond within 24 hours.</p>
+  </div>
+
+  <p style="text-align:center;font-size:13px;color:#9aa3b2;margin-top:30px">Last reviewed: 2026-06-11</p>
+</div>
+</body>
+</html>
