@@ -327,7 +327,24 @@ function jet(L,x,y1,y2,period,phase){L.jets.push({x,w:34,y1,y2,period,phase:phas
 function laser(L,x,y1,y2,period,phase){L.lasers.push({x,w:18,y1,y2,period,phase:phase||0,on:false});}
 function icicle(L,x,y){L.icicles.push({x,y,by:y,state:0,vy:0,t:0});}
 function pow(L,x,y,kind){L.powerups.push({x,y,kind,got:false});}
-function en(L,type,x,y,o){L.enemies.push(Object.assign({type,x,y,hp:1,dir:1,t:Math.random()*5,dead:false},o||{}));}
+function en(L,type,x,y,o){
+  const e = Object.assign({type,x,y,hp:1,dir:1,t:Math.random()*5,dead:false}, o||{});
+  // Persist the AS-AUTHORED baseline so scaleEnemiesForLevel can multiply at startLevel time
+  // (we want enemies tougher in later levels — Mario world progression)
+  e._baseHp = e.hp;
+  e._baseSpd = e.spd;
+  L.enemies.push(e);
+}
+// Called from startLevel — bumps enemy stats by lvIdx so the world feels meaner deeper in.
+function scaleEnemiesForLevel(L, lvIdx){
+  // ~+8% HP, +6% speed per level past 1, capped at +100% HP / +60% spd
+  const hpMul = Math.min(2.0, 1 + lvIdx * 0.08);
+  const spdMul = Math.min(1.6, 1 + lvIdx * 0.06);
+  for (const e of L.enemies) {
+    if (e._baseHp != null) e.hp = Math.max(1, Math.round(e._baseHp * hpMul));
+    if (e._baseSpd != null) e.spd = Math.round(e._baseSpd * spdMul);
+  }
+}
 function bb(L,x,y,w,h,kind){L.billboards.push({x,y,w,h,kind});}
 
 const LEVELS=[
@@ -374,7 +391,7 @@ const LEVELS=[
   en(L,'bat',4400,300,{variant:'dive',baseY:300});
   en(L,'bulldog',4700,430,{variant:'patrol',patrol:[4480,5050],spd:60,hp:3});
   bb(L,400,100,240,120,1);bb(L,1250,80,250,130,2);bb(L,2250,100,250,120,3);bb(L,3350,80,250,130,0);bb(L,4500,100,250,120,4);
-  L.windAmp=80;L.supply={every:20,t:8};
+  L.windAmp=80;L.supply={every:45,t:25};
   L.goal={x:4980,y:430};return L;}},
  {name:'THE DEEP',icon:'🟢',music:'deep',par:120,build(){
   const L=mkL('THE DEEP','deep','deep',5000);
@@ -423,7 +440,7 @@ const LEVELS=[
   en(L,'rug',3700,488,{variant:'thrower',hp:2,cd:0});
   en(L,'bulldog',4700,488,{variant:'shield',patrol:[4470,5050],spd:55,hp:4});
   bb(L,500,110,240,120,3);bb(L,1500,90,250,120,2);bb(L,2600,100,240,120,4);bb(L,3700,90,250,120,0);bb(L,4800,110,230,120,1);
-  L.supply={every:26,t:14};
+  L.supply={every:55,t:30};
   L.goal={x:4980,y:488};return L;}},
  {name:'HYDRANT KING',icon:'👑',music:'boss',par:100,build(){
   const L=mkL('HYDRANT KING','boss','boss',1900);
@@ -497,7 +514,7 @@ const LEVELS=[
   en(L,'bat',2600,290,{variant:'sine',baseY:290});en(L,'bat',3200,300,{variant:'dive',baseY:300});
   en(L,'bat',4100,290,{variant:'dive',baseY:290});en(L,'bulldog',4700,440,{variant:'shield',patrol:[4450,5150],spd:50,hp:4});
   bb(L,400,90,250,120,0);bb(L,1500,80,250,120,2);bb(L,2600,90,250,120,3);bb(L,3700,80,250,120,1);bb(L,4800,90,250,120,4);
-  L.windAmp=150;L.supply={every:14,t:6};
+  L.windAmp=150;L.supply={every:35,t:18};
   L.goal={x:5180,y:440};return L;}},
  {name:'THE VAULT',icon:'🏦',music:'scrap',par:140,build(){
   const L=mkL('THE VAULT','scrap','vault',5400);
@@ -681,7 +698,7 @@ function applySkinPerks(p){
   p.spdMul=1; // always reset
   if(!sk||!sk.perks)return;
   const pp=sk.perks;
-  if(pp.startHearts){p.hpMax+=pp.startHearts;p.hp=p.hpMax;}
+  if(pp.startHearts){p.hpMax+=pp.startHearts;p.hp=p.hpMax;p._hpCap=Math.max(5,p.hpMax);}
   if(pp.startShield)p.shield=true;
   if(pp.startCoins){p.gold=(p.gold||0)+pp.startCoins;runScore+=pp.startCoins;}
   if(pp.extraLife)p._extraLives=(p._extraLives||0)+1;
@@ -723,11 +740,66 @@ function scaleBossForLevel(L, lvIdx){
   L.boss.spd   = Math.round(L.boss.spd * spdScale);
 }
 
+/* Mid-level events — falling debris, light flickers, ambush spawns.
+   Active on non-boss levels. Adds dynamic surprise so levels don't feel static. */
+function tickMidEvents(dt){
+  if(!level||level.boss)return; // boss arenas have their own pacing, don't add more chaos
+  level._evT=(level._evT||30)-dt;
+  level._flick=Math.max(0,(level._flick||0)-dt);
+  if(level._evT<=0){
+    level._evT=14+Math.random()*22;
+    const roll=Math.random();
+    if(roll<0.42){
+      // FALLING DEBRIS — drops a damaging chunk near the player from above
+      const dx=player.x + (Math.random()<0.5?-1:1)*(80+Math.random()*180);
+      level._debris=level._debris||[];
+      level._debris.push({x:dx, y:cam.y-40, vy:0, dead:false});
+      level.eventT=1.6; level.eventMsg='⚠ DEBRIS';
+      AUDIO.sfx.shoot && AUDIO.sfx.shoot();
+    } else if(roll<0.72){
+      // LIGHT FLICKER — brief screen dim + tint (atmospheric, no damage)
+      level._flick=1.2;
+      addShake(2,0.15);
+    } else {
+      // AMBUSH — spawn a bulldog at the player's current position+200 charging in
+      const ax=Math.max(120, Math.min(level.w-120, player.x + (Math.random()<0.5?-1:1)*260));
+      const ay=player.ground ? player.ground.y : 488;
+      en(level,'bulldog',ax,ay,{variant:'charge',patrol:[ax-200,ax+200],spd:Math.round(60*(1+lvIdx*0.06)),hp:Math.max(2,Math.round(2*(1+lvIdx*0.08)))});
+      level.eventT=1.6; level.eventMsg='⚠ AMBUSH';
+      AUDIO.sfx.roar && AUDIO.sfx.roar();
+    }
+  }
+  // Tick falling debris
+  if(level._debris&&level._debris.length){
+    for(const d of level._debris){
+      if(d.dead)continue;
+      d.vy+=900*dt; d.y+=d.vy*dt;
+      // Damage check
+      if(Math.abs(d.x-player.x)<24 && Math.abs(d.y-(player.y-player.h/2))<26){
+        d.dead=true; hurt(); spawnP(d.x,d.y,'#b0a890',8,140);
+      }
+      // Land
+      for(const pl of level.platforms){
+        if(pl.gone)continue;
+        if(d.x>pl.x&&d.x<pl.x+pl.w&&d.y>pl.y-12&&d.y<pl.y+12&&d.vy>0){
+          d.dead=true; spawnP(d.x,pl.y,'#b0a890',10,180); addShake(2,0.15); break;
+        }
+      }
+      if(d.y>level.h)d.dead=true;
+    }
+    level._debris=level._debris.filter(d=>!d.dead);
+  }
+}
 function startLevel(i){
   lvIdx=i;level=LEVELS[i].build();
   if(i===0)runScore=0;
   scaleBossForLevel(level, i);
+  scaleEnemiesForLevel(level, i);
   seedEasterEggs(level);
+  // Mid-level events container (debris, ambushes) — populated by tickMidEvents
+  level._evT = 12 + Math.random() * 18;
+  level._debris = [];
+  level._flick = 0;
   level.dripsTotal=level.coins.reduce((s,c)=>s+c.v,0);
   player=newPlayer(90,420);if(GOD){player.hp=99;player.hpMax=99;}
   if(i===0)applySkinPerks(player); // perks only granted at the start of a run (level 1), not every level
@@ -817,7 +889,24 @@ function updatePlayer(dt){
   if(p.vy>1400)p.vy=1400;
   p.x+=p.vx*dt;collide('x');
   // wall slide
-  if(p.wall!==0&&!p.onGround&&p.vy>150&&dir===p.wall){p.vy=150;if(Math.random()<0.3)spawnP(p.x+p.wall*16,p.y-20,'#b0a890',1,60);}
+  // WALL GRAB: hold direction INTO the wall while airborne to cling completely (no slide).
+  // Cling charges for max 2s; releasing direction or jumping breaks it. Slide resumes after.
+  if(p.wall!==0 && !p.onGround && dir===p.wall){
+    p._wallGrab = (p._wallGrab||0) + dt;
+    if(p._wallGrab < 2.0){
+      // Pure grab — no descent at all
+      p.vy = 0;
+      // Sparkle particles to show grip
+      if(Math.random()<0.18) spawnP(p.x+p.wall*14, p.y-20, '#ffd966', 1, 60);
+    } else {
+      // After 2s of grab, slow slide kicks in (Mario-style)
+      if(p.vy<150)p.vy = 150;
+      if(Math.random()<0.3) spawnP(p.x+p.wall*16, p.y-20, '#b0a890', 1, 60);
+    }
+  } else {
+    // Reset grab when leaving the wall or releasing direction
+    p._wallGrab = 0;
+  }
   p.y+=p.vy*dt;const wasAir=!p.onGround;collide('y');
   if(p.onGround&&wasAir){
     if(p.pound>0){landPound();}
@@ -872,12 +961,21 @@ function updatePlayer(dt){
       c.got=true;const v=c.v*(p.x2>0?2:1);runStats.drips+=v;
       if(c.v>1){AUDIO.sfx.bigcoin();addFloat(c.x,c.y-10,'+'+v,'#ffd966',true);}else AUDIO.sfx.coin();
       spawnP(c.x,c.y,'#f5c542',5,130);
-      // 50-coin milestone = +1 extra life (then 100, 150, 200…). Sonic/Mario rhythm.
+      // Real-time score tick — each drip adds 10 to runScore so the HUD updates live
+      runScore += v * 10;
+      // 50-coin milestone: only if player is BELOW heart cap, +1 max heart; else +1 extra life
       const oldMilestone=Math.floor(beforeDrips/50);
       const newMilestone=Math.floor(runStats.drips/50);
       if(newMilestone>oldMilestone){
-        p._extraLives=(p._extraLives||0)+(newMilestone-oldMilestone);
-        addFloat(p.x,p.y-110,'🎁 1-UP!','#f5c542',true);
+        const HP_CAP_NOW = Math.max(5, p._hpCap || 5);
+        if(p.hp < HP_CAP_NOW){
+          p.hpMax = Math.min(HP_CAP_NOW, p.hpMax + 1);
+          p.hp = p.hpMax;
+          addFloat(p.x,p.y-110,'+1 MAX HEART','#ef7676',true);
+        } else {
+          p._extraLives=(p._extraLives||0)+(newMilestone-oldMilestone);
+          addFloat(p.x,p.y-110,'🎁 1-UP!','#f5c542',true);
+        }
         AUDIO.sfx.levelup&&AUDIO.sfx.levelup();
         addShake(3,0.18);
       }
@@ -928,16 +1026,31 @@ function landPound(){
 }
 function applyPow(kind,x,y){
   const p=player;AUDIO.sfx.powerup();
-  if(kind==='gold'){p.gold=8;AUDIO.sfx.gold();addFloat(x,y-30,'GOLD MODE!','#f5c542',true);addShake(4,0.2);}
-  else if(kind==='magnet'){p.magnet=12;addFloat(x,y-30,'DRIP MAGNET','#2fd6c4',true);}
-  else if(kind==='x2'){p.x2=12;addFloat(x,y-30,'2X DRIP','#ffd966',true);}
+  // All power-up durations now randomized 5-8s so each pickup feels fresh
+  const rng = () => 5 + Math.random() * 3;
+  // Max-heart cap (5 unless skin perks added more via startHearts at level start)
+  const HP_CAP = Math.max(5, p._hpCap || 5);
+  if(kind==='gold'){p.gold=rng();AUDIO.sfx.gold();addFloat(x,y-30,'GOLD MODE '+p.gold.toFixed(1)+'s','#f5c542',true);addShake(4,0.2);}
+  else if(kind==='magnet'){p.magnet=rng();addFloat(x,y-30,'DRIP MAGNET '+p.magnet.toFixed(1)+'s','#2fd6c4',true);}
+  else if(kind==='x2'){p.x2=rng();addFloat(x,y-30,'2X DRIP '+p.x2.toFixed(1)+'s','#ffd966',true);}
   else if(kind==='shield'){p.shield=true;AUDIO.sfx.shieldup();addFloat(x,y-30,'CHAIN SHIELD','#a259ff',true);}
-  else if(kind==='bone'){p.hpMax=Math.min(5,Math.max(p.hpMax,p.hp+1));p.hp=Math.min(p.hpMax,p.hp+1);AUDIO.sfx.heal();addFloat(x,y-30,'+1 HEART','#ef7676',true);}
+  else if(kind==='bone'){
+    // Bone only HEALS if you're below your skin's heart cap. If at cap, convert to extra life.
+    if (p.hp < HP_CAP) {
+      p.hpMax = Math.min(HP_CAP, Math.max(p.hpMax, p.hp + 1));
+      p.hp = Math.min(p.hpMax, p.hp + 1);
+      AUDIO.sfx.heal();
+      addFloat(x, y-30, '+1 HEART', '#ef7676', true);
+    } else {
+      p._extraLives = (p._extraLives || 0) + 1;
+      AUDIO.sfx.levelup && AUDIO.sfx.levelup();
+      addFloat(x, y-30, '🎁 1-UP!', '#f5c542', true);
+    }
+  }
   else if(kind==='biggie'){
-    // Growth bone — Drippy grows ~50% bigger for 8s, +stomp damage, +walk speed.
-    p.grow=8;
+    p.grow=rng();
     AUDIO.sfx.gold&&AUDIO.sfx.gold();
-    addFloat(x,y-30,'🦴 GROWTH BONE!','#ffd966',true);
+    addFloat(x,y-30,'🦴 GROWTH BONE '+p.grow.toFixed(1)+'s','#ffd966',true);
     addShake(5,0.25);
     ringP(x,y,'#ffd966',16,260);
   }
@@ -979,14 +1092,15 @@ function hurt(soft){
   if(runStats.drips>0){
     const lose=Math.min(runStats.drips,Math.max(8,Math.floor(runStats.drips*0.5)));
     runStats.drips-=lose;
-    const n=Math.min(32,lose); // cap visual scatter, but drips lost still equals 'lose'
+    const n=Math.min(48,lose);
+    // Wider scatter — full 360° around player with higher peak velocity
     for(let i=0;i<n;i++){
-      const a=-Math.PI/2+(i/n-0.5)*Math.PI*0.95+Math.random()*0.2;
-      const speed=200+Math.random()*220;
+      const a=(i/n)*Math.PI*2 + Math.random()*0.5;
+      const speed=300 + Math.random()*340; // was 200-420 → now 300-640
       level.coins.push({
         x:p.x,y:p.y-p.h/2,v:1,got:false,
-        vx:Math.cos(a)*speed*(Math.random()<0.5?-1:1)*0.7,
-        vy:Math.sin(a)*speed,
+        vx:Math.cos(a)*speed,
+        vy:Math.sin(a)*speed*0.85 - 220, // strong initial pop upward
         delay:0.55,life:2.7
       });}
     AUDIO.sfx.shieldbreak&&AUDIO.sfx.shieldbreak();
@@ -1079,7 +1193,7 @@ function bossHit(n){
   // stay glued in place under your stomps. Capped to arena bounds.
   if (p) {
     const kdir = Math.sign(B.x - p.x) || (Math.random()<0.5?-1:1);
-    const kAmt = 36 + n*12; // bigger hits → bigger knockback
+    const kAmt = 14 + n*6; // softer knockback so boss stays a threat (was 36+n*12)
     B.x = Math.max(140, Math.min(level.w - 140, B.x + kdir * kAmt));
   }
   // RAGE: track hits taken during a single daze. Three hits → boss bursts out
@@ -1105,9 +1219,21 @@ function bossHit(n){
     }
   }
   const p2=B.kind==='shadow'?8:6, p3=B.kind==='shadow'?4:3;
-  if(B.hp<=p2&&B.phase<2){B.phase=2;AUDIO.sfx.roar();addFloat(B.x,B.y-200,B.kind==='shadow'?'THE SHADOW DEEPENS':'HE\'S ANGRY','#ef4444',true);}
-  if(B.hp<=p3&&B.phase<3){B.phase=3;AUDIO.sfx.roar();addFloat(B.x,B.y-200,'FINAL FURY','#ef4444',true);
-    if(!B.summons&&B.kind!=='shadow'){B.summons=true;en(level,'bat',B.x-200,260,{variant:'dive',baseY:260});en(level,'bat',B.x+200,240,{variant:'dive',baseY:240});}}
+  if(B.hp<=p2&&B.phase<2){
+    B.phase=2;AUDIO.sfx.roar();
+    addFloat(B.x,B.y-200,B.kind==='shadow'?'THE SHADOW DEEPENS':'HE\'S ANGRY','#ef4444',true);
+    // Phase 2 music swap — switch from 'boss' to 'final' for intensity (skip if already final)
+    if(LEVELS[lvIdx].music!=='final') AUDIO.playSong&&AUDIO.playSong('final');
+    addShake(4,0.4);
+  }
+  if(B.hp<=p3&&B.phase<3){
+    B.phase=3;AUDIO.sfx.roar();
+    addFloat(B.x,B.y-200,'FINAL FURY','#ef4444',true);
+    addShake(8,0.6);
+    // Phase 3 visual cue: brief red flash
+    level._koFlash = 0.35;
+    if(!B.summons&&B.kind!=='shadow'){B.summons=true;en(level,'bat',B.x-200,260,{variant:'dive',baseY:260});en(level,'bat',B.x+200,240,{variant:'dive',baseY:240});}
+  }
   if(B.hp<=0){B.dead=true;B.state='dead';bossDefeat();}
   // CRITICAL: don't reset state on every hit. Only if boss was idle, restart idle timer.
   // Dazed boss stays dazed (with the rage trigger above) — players can chain hits, but
@@ -1218,7 +1344,9 @@ function updateBoss(dt){
   //   - Stomp onto dazed boss = MEDIUM (2 for king, 3 for shadow)
   //   - Stomp onto active boss = LIGHT (1 dmg always — every hit chips armor a bit)
   //   - Side touch (no stomp) = take damage
-  const er={x:B.x-58,y:B.y-130+(B.yOff||0),w:116,h:130};
+  // Boss hitbox — widened so contact damage reliably catches the player at the boss's flanks
+  // (was 116x130, the boss sprite is ~150x180 so the hitbox was undersizing the danger zone)
+  const erH=(B.h||130);const er={x:B.x-78,y:B.y-(erH-20)+(B.yOff||0),w:156,h:erH};
   if(!B.dead&&aabb(pRect(),er)){
     if(p.vy>140&&p.prevy-p.h<er.y+14){
       // Growth-bone bonus: stomps deal 2x damage while big
@@ -1267,9 +1395,9 @@ function updateProjectiles(dt){
   // supply drops
   // GROWTH BONE sky-drop — random chance every level, independent of supply system.
   // ~1 drop per 25-40 seconds of play. Falls from above onto validated platform.
-  level._growT=(level._growT==null)?(18+Math.random()*22):(level._growT-dt);
+  level._growT=(level._growT==null)?(60+Math.random()*45):(level._growT-dt);
   if(level._growT<=0){
-    level._growT=22+Math.random()*22;
+    level._growT=55+Math.random()*45;
     const hasFloorBelow=(x)=>level.platforms.some(pl=>!pl.gone&&x>pl.x+24&&x<pl.x+pl.w-24);
     let sx=null;
     for(let i=0;i<10;i++){const c=Math.max(150,Math.min(level.w-150,player.x+(Math.random()<0.5?-1:1)*(220+Math.random()*240)));if(hasFloorBelow(c)){sx=c;break;}}
@@ -1365,20 +1493,56 @@ function winLevel(){
   if((best.stars||0)<=stars)SAVE.best[lvIdx]={d:runStats.drips,tot:level.dripsTotal,tm:Math.round(time),rank,stars};
   if(lvIdx+1>=SAVE.u&&lvIdx+1<LEVELS.length+0){SAVE.u=Math.min(LEVELS.length,lvIdx+2);AUDIO.sfx.unlock();}
   persist();
-  $('resTitle').textContent=LEVELS[lvIdx].name+' CLEAR!';
-  const rk=$('resRank');rk.textContent=rank;rk.style.color=rank==='S'?'#f5c542':rank==='A'?'#22c55e':rank==='B'?'#2fd6c4':'#aaa';
-  $('resDrips').textContent=runStats.drips+' / '+level.dripsTotal;
-  $('resTime').textContent=time.toFixed(1)+'s';
-  $('resKills').textContent=runStats.kills;
-  $('resCombo').textContent='x'+runStats.maxCombo;
-  $('resDeaths').textContent=runStats.deaths;
-  const lvScore=Math.round(runStats.drips*10+runStats.kills*30+Math.max(0,(par-time))*8+(rank==='S'?2000:rank==='A'?1200:rank==='B'?600:300));
-  runScore+=lvScore;
-  $('resScore').textContent='+'+lvScore.toLocaleString();
-  $('resTotal').textContent=runScore.toLocaleString();
-  const hw=window.RPG_SPRITES&&window.RPG_SPRITES.heroWin;$('resHero').src=hw||((window.RPG_SPRITES||{}).hero||'');
-  $('btnNext').style.display=lvIdx+1<LEVELS.length?'':'none';
-  showOv('ovResults',400);
+  // Bonus breakdown — Mario style, transparent point sources
+  const dripBonus = runStats.drips * 10;
+  const killBonus = runStats.kills * 30;
+  const timeBonus = Math.max(0, Math.round((par - time) * 8));
+  const rankBonus = rank==='S' ? 2000 : rank==='A' ? 1200 : rank==='B' ? 600 : 300;
+  const lvScore = Math.round(dripBonus + killBonus + timeBonus + rankBonus);
+  const scoreBefore = runScore;
+  $('resTitle').textContent = LEVELS[lvIdx].name + ' CLEAR!';
+  const rk = $('resRank'); rk.textContent = rank;
+  rk.style.color = rank==='S' ? '#f5c542' : rank==='A' ? '#22c55e' : rank==='B' ? '#2fd6c4' : '#aaa';
+  $('resDrips').textContent = '0 / ' + level.dripsTotal;
+  $('resTime').textContent = '0.0s';
+  $('resKills').textContent = '0';
+  $('resCombo').textContent = 'x0';
+  $('resDeaths').textContent = '0';
+  $('resScore').textContent = '+0';
+  $('resTotal').textContent = scoreBefore.toLocaleString();
+  const hw = window.RPG_SPRITES && window.RPG_SPRITES.heroWin;
+  $('resHero').src = hw || ((window.RPG_SPRITES||{}).hero || '');
+  $('btnNext').style.display = lvIdx+1 < LEVELS.length ? '' : 'none';
+  showOv('ovResults', 400);
+  // Tally count-up animation — Mario style, each stat rolls up in sequence
+  runScore += lvScore;
+  setTimeout(() => {
+    let t = 0, dur = 1200; // total animation 1.2s
+    const tick = setInterval(() => {
+      t += 50;
+      const p = Math.min(1, t/dur);
+      const ease = 1 - Math.pow(1-p, 2);
+      $('resDrips').textContent = Math.floor(runStats.drips * ease) + ' / ' + level.dripsTotal;
+      $('resTime').textContent = (time * ease).toFixed(1) + 's';
+      $('resKills').textContent = Math.floor(runStats.kills * ease);
+      $('resCombo').textContent = 'x' + Math.floor(runStats.maxCombo * ease);
+      $('resDeaths').textContent = Math.floor(runStats.deaths * ease);
+      $('resScore').textContent = '+' + Math.floor(lvScore * ease).toLocaleString();
+      $('resTotal').textContent = Math.floor(scoreBefore + lvScore * ease).toLocaleString();
+      if (Math.random() < 0.3) try { AUDIO.sfx.coin && AUDIO.sfx.coin(); } catch(_) {}
+      if (p >= 1) {
+        clearInterval(tick);
+        try { AUDIO.sfx.levelup && AUDIO.sfx.levelup(); } catch(_) {}
+        $('resDrips').textContent = runStats.drips + ' / ' + level.dripsTotal;
+        $('resTime').textContent = time.toFixed(1) + 's';
+        $('resKills').textContent = runStats.kills;
+        $('resCombo').textContent = 'x' + runStats.maxCombo;
+        $('resDeaths').textContent = runStats.deaths;
+        $('resScore').textContent = '+' + lvScore.toLocaleString();
+        $('resTotal').textContent = runScore.toLocaleString();
+      }
+    }, 50);
+  }, 550);
 }
 function finale(){
   if(state!=='play')return;state='finale';AUDIO.sfx.win();
@@ -1395,6 +1559,7 @@ function update(dt){
   gt+=dt;runStats.time+=dt;
   updateSolids(dt);
   updatePlayer(dt);if(state!=='play')return;
+  tickMidEvents(dt);
   updateEnemies(dt);
   if(level.boss)updateBoss(dt);
   updateProjectiles(dt);
@@ -1714,6 +1879,26 @@ function drawWeather(pal){
       ctx.fillStyle='rgba(255,'+(120+Math.floor(e.s*100))+',60,'+(0.25+e.s*0.4)+')';ctx.fillRect(e.x,e.y,3,3);}}
   if(pal.fog){ctx.fillStyle='rgba(20,80,60,.13)';
     for(let i=0;i<3;i++){const fx=((gt*12*(i+1))%(VW+500))-250+i*300;ctx.beginPath();ctx.ellipse(fx,380+i*60,260,60,0,0,7);ctx.fill();}}
+  // Mid-level light flicker overlay (atmospheric)
+  if(level&&level._flick>0){
+    const alpha=Math.min(0.5, level._flick*0.6) * (Math.floor(gt*22)%2?1:0.35);
+    ctx.fillStyle='rgba(10,6,16,'+alpha+')';ctx.fillRect(0,0,VW,VH);
+    // Lightning streaks
+    if(Math.random()<0.3){
+      ctx.fillStyle='rgba(255,255,200,0.3)';
+      ctx.fillRect(Math.random()*VW,0,2,VH);
+    }
+  }
+  // Falling debris render
+  if(level&&level._debris){
+    ctx.fillStyle='#5c3a20';
+    for(const d of level._debris){
+      if(d.dead)continue;
+      const dx=d.x-camX, dy=d.y-camY;
+      ctx.fillRect(dx-10, dy-10, 20, 20);
+      ctx.fillStyle='rgba(255,80,80,0.5)';ctx.fillRect(dx-12,dy+8,24,2);ctx.fillStyle='#5c3a20';
+    }
+  }
 }
 function drawWeatherNone(){}
 function drawHUD(){
