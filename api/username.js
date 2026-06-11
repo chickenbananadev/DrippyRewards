@@ -74,8 +74,8 @@ const TIERS = [
   { id: 'gold',     min: 100000,   beat: false, label: 'Gold Drippy' },
   { id: 'diamond',  min: 500000,   beat: false, label: 'Diamond Drippy' },
   { id: 'void',     min: 1000000,  beat: false, label: 'Void Drippy' },
-  // Shadow = the apex. Three paths: burn 5M $DRIPPY · OR · pay 0.20 SOL · OR · beat the Eternal Drip finale.
-  { id: 'shadow',   min: 5000000,  beat: false, label: 'Shadow Drippy', orBeat: true },
+  // Shadow = the apex. TWO paths only: (burn 5M AND beat Eternal Drip) · OR · pay 0.20 SOL.
+  { id: 'shadow',   min: 5000000,  beat: true, label: 'Shadow Drippy' },
 ];
 // Wallets that bought a tier via SOL stay flagged here so threshold changes never revoke them.
 const PURCHASED_PREFIX = 'drippy:skin:purchased:'; // <wallet> -> SET of skin ids
@@ -103,13 +103,7 @@ async function computeUnlocks(wallet, hostHeader){
   const purchased = Array.isArray(purchasedRaw) ? purchasedRaw : [];
   const skins = {};
   for (const t of TIERS) {
-    let ok;
-    if (t.orBeat) {
-      // Dual path: meets burn min OR has beaten the finale
-      ok = (burned >= t.min) || beat;
-    } else {
-      ok = burned >= t.min && (!t.beat || beat);
-    }
+    let ok = burned >= t.min && (!t.beat || beat);
     if (t.requireHolder && !isHolder) ok = false;
     if (purchased.includes(t.id)) ok = true;
     skins[t.id] = ok;

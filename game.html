@@ -617,22 +617,37 @@ const LEVELS=[
   L.bossTitle='THE SHADOW';
   L.boss={kind:'shadow',final:false,x:1500,y:488,hp:12,maxhp:12,phase:1,state:'intro',t:0,dir:-1,spd:380,dazeT:0,summons:false,dead:false,shotHint:0};
   return L;}},
- {name:'ETERNAL DRIP',icon:'🌌',music:'final',par:140,build(){
-  const L=mkL('ETERNAL DRIP SINGULARITY','final','void',2200);
-  gseg(L,0,2200,488);
-  L.platforms.push({x:-60,y:120,w:70,h:380,bx:-60,by:120});L.platforms.push({x:2190,y:120,w:70,h:380,bx:2190,by:120});
-  plat(L,420,320,150,{mv:{ax:'y',range:90,spd:1.1,ph:0}});plat(L,1630,320,150,{mv:{ax:'y',range:90,spd:1.1,ph:1}});
-  plat(L,1025,250,160,{mv:{ax:'x',range:150,spd:0.9,ph:0}});
-  spring(L,150,488);spring(L,2050,488);
-  crate(L,300,488,'shield');crate(L,1850,488,'bone');
-  coinRow(L,520,430,5,60);coinRow(L,1180,430,5,60);coinArc(L,1025,200,6,110);bigDrip(L,1025,140);
-  pow(L,420,300,'gold');
-  en(L,'wraith',650,300,{variant:'tele',baseY:300,hp:3,shoot:0,cd:0,skin:'wraith'});
-  en(L,'wraith',1550,300,{variant:'tele',baseY:300,hp:3,shoot:0,cd:0,skin:'wraith'});
-  en(L,'bat',1100,260,{variant:'dive',baseY:260});
-  bb(L,400,90,250,120,5);bb(L,1300,90,250,120,5);
+ {name:'ETERNAL DRIP',icon:'🌌',music:'final',par:160,build(){
+  // The apex finale. Buffed 2026-06-11: 50% more boss HP, faster boss, more hazards,
+  // tighter platforming gauntlet — Shadow skin is meant to be EARNED.
+  const L=mkL('ETERNAL DRIP SINGULARITY','final','void',2400);
+  gseg(L,0,2400,488);
+  L.platforms.push({x:-60,y:120,w:70,h:380,bx:-60,by:120});L.platforms.push({x:2390,y:120,w:70,h:380,bx:2390,by:120});
+  // Tighter moving platforms — faster and narrower
+  plat(L,360,330,120,{mv:{ax:'y',range:120,spd:1.5,ph:0}});
+  plat(L,720,250,120,{mv:{ax:'x',range:180,spd:1.2,ph:0.3}});
+  plat(L,1080,300,140,{mv:{ax:'x',range:160,spd:1.0,ph:0}});
+  plat(L,1500,250,120,{mv:{ax:'x',range:180,spd:1.2,ph:0.7}});
+  plat(L,1880,330,120,{mv:{ax:'y',range:120,spd:1.5,ph:1.2}});
+  // Hazard gauntlet
+  spikes(L,580,540,90);spikes(L,950,540,100);spikes(L,1350,540,100);spikes(L,1700,540,90);
+  laser(L,820,180,488,2.4,0);
+  laser(L,1380,180,488,2.4,1.2);
+  // Resources
+  spring(L,150,488);spring(L,2250,488);
+  crate(L,300,488,'shield');crate(L,1180,488,'bone');crate(L,2080,488,'shield');
+  coinRow(L,520,430,5,60);coinRow(L,1180,430,5,60);coinArc(L,1080,210,6,110);bigDrip(L,1080,140);
+  pow(L,360,310,'gold');pow(L,1880,310,'gold');
+  // Cosmic wraith gauntlet (3 instead of 2, all tougher)
+  en(L,'wraith',650,300,{variant:'tele',baseY:300,hp:4,shoot:0,cd:0,skin:'wraith'});
+  en(L,'wraith',1280,260,{variant:'tele',baseY:260,hp:4,shoot:0,cd:0,skin:'wraith'});
+  en(L,'wraith',1720,300,{variant:'tele',baseY:300,hp:4,shoot:0,cd:0,skin:'wraith'});
+  en(L,'bat',900,250,{variant:'dive',baseY:250});
+  en(L,'bat',1500,250,{variant:'dive',baseY:250});
+  bb(L,400,90,250,120,5);bb(L,1300,90,250,120,5);bb(L,2100,90,250,120,5);
   L.bossTitle='THE ETERNAL DRIP';
-  L.boss={kind:'shadow',final:true,x:1600,y:488,hp:16,maxhp:16,phase:1,state:'intro',t:0,dir:-1,spd:430,dazeT:0,summons:false,dead:false,shotHint:0};
+  // Boss HP 16 → 24 (+50%), speed 430 → 510, faster phase shifts
+  L.boss={kind:'shadow',final:true,x:1800,y:488,hp:24,maxhp:24,phase:1,state:'intro',t:0,dir:-1,spd:510,dazeT:0,summons:false,dead:false,shotHint:0};
   return L;}},
 ];
 
@@ -647,15 +662,16 @@ function newPlayer(x,y){return{x,y,w:34,h:56,vx:0,vy:0,face:1,onGround:false,gro
 
 function applySkinPerks(p){
   // Read the active skin's perks (defined in SKINS_DEF). Light, non-multiplicative
-  // bonuses applied at level start. Score multipliers are NOT in scope here —
-  // the skill-based ranking still matters.
+  // bonuses applied at level start. Skin shown next to score on the board.
   const sk=(SKINS_DEF||[]).find(s=>s.id===(window.currentSkin||'default'));
+  p.spdMul=1; // always reset
   if(!sk||!sk.perks)return;
   const pp=sk.perks;
   if(pp.startHearts){p.hpMax+=pp.startHearts;p.hp=p.hpMax;}
   if(pp.startShield)p.shield=true;
   if(pp.startCoins){p.gold=(p.gold||0)+pp.startCoins;runScore+=pp.startCoins;}
   if(pp.extraLife)p._extraLife=true;
+  if(pp.spdMul)p.spdMul=pp.spdMul;
 }
 function startLevel(i){
   lvIdx=i;level=LEVELS[i].build();
@@ -718,7 +734,7 @@ function updatePlayer(dt){
   const p=player;p.prevy=p.y;
   if(p.ground&&(p.ground.dx||p.ground.dy)){p.x+=p.ground.dx;p.y+=p.ground.dy;}
   if(p.ground&&p.ground.belt){p.x+=p.ground.belt*dt;}
-  const run=held('shift');let max=(run?RUN:WALK)*(p.gold>0?1.35:1);
+  const run=held('shift');let max=(run?RUN:WALK)*(p.gold>0?1.35:1)*(p.spdMul||1);
   let dir=0;if(held('arrowleft','a'))dir-=1;if(held('arrowright','d'))dir+=1;
   const icy=!!level.pal.ice;
   const acc=(p.onGround?ACC:AIRACC)*(icy&&p.onGround?0.42:1);
@@ -848,7 +864,18 @@ function hurt(soft){
   if(p.hp<=0)lose();
 }
 function respawn(){const c=runStats.checkpoint;player.x=c.x;player.y=c.y;player.vx=0;player.vy=0;player.iframe=1.4;player.pound=0;cam.x=Math.max(0,c.x-VW*0.4);}
-function lose(){if(state!=='play')return;state='lose';AUDIO.sfx.over();AUDIO.stopMusic();
+function lose(){if(state!=='play')return;
+  // Shadow-tier extra life: auto-revive once at checkpoint with full HP
+  if(player&&player._extraLife){
+    player._extraLife=false;
+    player.hp=player.hpMax;
+    player.iframe=2.0;
+    respawn();
+    AUDIO.sfx.coin&&AUDIO.sfx.coin();
+    addFloat(player.x,player.y-90,'EXTRA LIFE','#f5c542',true);
+    return;
+  }
+  state='lose';AUDIO.sfx.over();AUDIO.stopMusic();
   $('loseTxt').textContent='You collected '+runStats.drips+' drips. The checkpoint hydrant has your back.';
   $('btnLogScore').style.display=qualifies(runScore)?'':'none';
   showOv('ovLose',500);}
@@ -1503,18 +1530,18 @@ const SKINS_DEF=[
     spr:'hero', perks:{}},
   {id:'believer',nm:'TRUE BELIEVER',req:'Connect + hold any $DRIPPY',badge:'🐾',perk:'+5 starting coins · purple paws',
     spr:'believer_idle', perks:{startCoins:5}},
-  {id:'bronze',  nm:'BRONZE',      req:'Burn ≥ 5K',   badge:'🥉',perk:'+10 coins · 1 daily revive',
-    spr:'bronze_idle',  buySol:0.01, perks:{startCoins:10, dailyRevives:1}},
-  {id:'silver',  nm:'SILVER',      req:'Burn ≥ 25K',  badge:'🥈',perk:'+25 coins · 2 revives · start with Shield',
-    spr:'silver_idle',  buySol:0.03, perks:{startCoins:25, dailyRevives:2, startShield:true}},
-  {id:'gold',    nm:'GOLD',        req:'Burn ≥ 100K', badge:'🥇',perk:'+50 coins · 3 revives · Shield + Bone',
-    spr:'gold_idle',    buySol:0.05, perks:{startCoins:50, dailyRevives:3, startShield:true, startBone:true}},
-  {id:'diamond', nm:'DIAMOND',     req:'Burn ≥ 500K', badge:'💎',perk:'+1 max heart (4HP) · 50 coins · Shield',
-    spr:'diamond_idle', buySol:0.07, perks:{startCoins:50, startHearts:1, startShield:true, dailyRevives:3}},
-  {id:'void',    nm:'VOID',        req:'Burn ≥ 1M',   badge:'🌌',perk:'+1 heart · 100 coins · Shield + Bone · cosmic FX',
-    spr:'void_idle',    buySol:0.10, perks:{startCoins:100, startHearts:1, startShield:true, startBone:true, dailyRevives:5, cosmicFx:true}},
-  {id:'shadow',  nm:'SHADOW',      req:'Burn 5M · or 0.20 SOL · or beat Eternal Drip',badge:'☠️',perk:'+2 hearts (5HP) · extra life · 200 coins · Shield + Bone · Dark Mirror',
-    spr:'shadow_idle',  buySol:0.20, perks:{startCoins:200, startHearts:2, startShield:true, startBone:true, extraLife:true, dailyRevives:99, cosmicFx:true}},
+  {id:'bronze',  nm:'BRONZE',      req:'Burn ≥ 5K',   badge:'🥉',perk:'+10 coins · 1 revive · +2% speed',
+    spr:'bronze_idle',  buySol:0.01, perks:{startCoins:10, dailyRevives:1, spdMul:1.02}},
+  {id:'silver',  nm:'SILVER',      req:'Burn ≥ 25K',  badge:'🥈',perk:'+25 coins · 2 revives · Shield · +4% speed',
+    spr:'silver_idle',  buySol:0.03, perks:{startCoins:25, dailyRevives:2, startShield:true, spdMul:1.04}},
+  {id:'gold',    nm:'GOLD',        req:'Burn ≥ 100K', badge:'🥇',perk:'+50 coins · 3 revives · Shield + Bone · +6% speed',
+    spr:'gold_idle',    buySol:0.05, perks:{startCoins:50, dailyRevives:3, startShield:true, startBone:true, spdMul:1.06}},
+  {id:'diamond', nm:'DIAMOND',     req:'Burn ≥ 500K', badge:'💎',perk:'+1 heart (4HP) · 50 coins · Shield · +8% speed',
+    spr:'diamond_idle', buySol:0.07, perks:{startCoins:50, startHearts:1, startShield:true, dailyRevives:3, spdMul:1.08}},
+  {id:'void',    nm:'VOID',        req:'Burn ≥ 1M',   badge:'🌌',perk:'+1 heart · 100 coins · Shield+Bone · +10% speed · cosmic FX',
+    spr:'void_idle',    buySol:0.10, perks:{startCoins:100, startHearts:1, startShield:true, startBone:true, dailyRevives:5, cosmicFx:true, spdMul:1.10}},
+  {id:'shadow',  nm:'SHADOW',      req:'Burn 5M AND beat Eternal Drip · or 0.20 SOL',badge:'☠️',perk:'+2 hearts (5HP) · extra life · 200 coins · Shield + Bone · +12% speed · Dark Mirror',
+    spr:'shadow_idle',  buySol:0.20, perks:{startCoins:200, startHearts:2, startShield:true, startBone:true, extraLife:true, dailyRevives:99, cosmicFx:true, spdMul:1.12}},
 ];
 window.SESSION=null; // {wallet, username, burned, beat, skins:{bronze:true,...}, selectedSkin}
 
