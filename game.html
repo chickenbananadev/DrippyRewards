@@ -786,7 +786,7 @@ function updatePlayer(dt){
   const p=player;p.prevy=p.y;
   if(p.ground&&(p.ground.dx||p.ground.dy)){p.x+=p.ground.dx;p.y+=p.ground.dy;}
   if(p.ground&&p.ground.belt){p.x+=p.ground.belt*dt;}
-  const run=held('shift');let max=(run?RUN:WALK)*(p.gold>0?1.35:1)*(p.spdMul||1);
+  const run=held('shift');let max=(run?RUN:WALK)*(p.gold>0?1.35:1)*(p.spdMul||1)*(p.grow>0?1.2:1);
   let dir=0;if(held('arrowleft','a'))dir-=1;if(held('arrowright','d'))dir+=1;
   const icy=!!level.pal.ice;
   const acc=(p.onGround?ACC:AIRACC)*(icy&&p.onGround?0.42:1);
@@ -844,7 +844,7 @@ function updatePlayer(dt){
   if(held('z')&&p.atkcd<=0&&p.pound<=0){p.atkcd=0.3;p.attack=0.16;AUDIO.sfx.shoot();
     projectiles.push({x:p.x+p.face*24,y:p.y-p.h*0.55,vx:p.face*580,life:1.0});}
   // powerup timers
-  p.iframe-=dt;p.gold-=dt;p.magnet-=dt;p.x2-=dt;
+  p.iframe-=dt;p.gold-=dt;p.magnet-=dt;p.x2-=dt;p.grow=Math.max(0,(p.grow||0)-dt);
   // pickups
   for(const pu of level.powerups){if(pu.got)continue;if(Math.abs(p.x-pu.x)<32&&Math.abs(p.y-p.h/2-pu.y)<40){pu.got=true;applyPow(pu.kind,pu.x,pu.y);}}
   // coins
@@ -919,9 +919,10 @@ function landPound(){
     // Power slam is the riskiest move (no aerial control) so it deals the biggest hit.
     //   Dazed boss: 4 (king) / 5 (shadow) — devastating
     //   Active boss: 2 (king) / 3 (shadow) — still chips real armor
-    if(level.boss.state==='dazed') bossHit(level.boss.kind==='shadow'?5:4);
-    else                            bossHit(level.boss.kind==='shadow'?3:2);
-    addFloat(level.boss.x, level.boss.y-200, 'POWER SLAM!', '#ef4444', true);
+    const gMulPound = (player.grow>0) ? 2 : 1;
+    if(level.boss.state==='dazed') bossHit((level.boss.kind==='shadow'?5:4)*gMulPound);
+    else                            bossHit((level.boss.kind==='shadow'?3:2)*gMulPound);
+    addFloat(level.boss.x, level.boss.y-200, player.grow>0?'GIANT SLAM!':'POWER SLAM!', '#ef4444', true);
   }
   if(held(' '))p.vy=-520,p.jumps=1,p.onGround=false;
 }
@@ -932,6 +933,14 @@ function applyPow(kind,x,y){
   else if(kind==='x2'){p.x2=12;addFloat(x,y-30,'2X DRIP','#ffd966',true);}
   else if(kind==='shield'){p.shield=true;AUDIO.sfx.shieldup();addFloat(x,y-30,'CHAIN SHIELD','#a259ff',true);}
   else if(kind==='bone'){p.hpMax=Math.min(5,Math.max(p.hpMax,p.hp+1));p.hp=Math.min(p.hpMax,p.hp+1);AUDIO.sfx.heal();addFloat(x,y-30,'+1 HEART','#ef7676',true);}
+  else if(kind==='biggie'){
+    // Growth bone — Drippy grows ~50% bigger for 8s, +stomp damage, +walk speed.
+    p.grow=8;
+    AUDIO.sfx.gold&&AUDIO.sfx.gold();
+    addFloat(x,y-30,'🦴 GROWTH BONE!','#ffd966',true);
+    addShake(5,0.25);
+    ringP(x,y,'#ffd966',16,260);
+  }
   ringP(x,y,'#f5c542',10,150);
 }
 function breakCrate(cr){
@@ -1152,14 +1161,16 @@ function updateBoss(dt){
   const er={x:B.x-58,y:B.y-130+(B.yOff||0),w:116,h:130};
   if(!B.dead&&aabb(pRect(),er)){
     if(p.vy>140&&p.prevy-p.h<er.y+14){
+      // Growth-bone bonus: stomps deal 2x damage while big
+      const gMul = (p.grow>0) ? 2 : 1;
       if(B.state==='dazed'){
-        bossHit(B.kind==='shadow'?3:2);
+        bossHit((B.kind==='shadow'?3:2)*gMul);
         p.vy=-540;p.jumps=1;
+        if(p.grow>0)addFloat(B.x,B.y-180,'BIG STOMP!','#ffd966',true);
       } else {
-        // Every stomp on an active boss now lands at least 1 dmg (was: full armor block for kings)
-        bossHit(1);
+        bossHit(1*gMul);
         p.vy=-520;p.jumps=1;
-        AUDIO.sfx.clank();addFloat(B.x,B.y-180,'CHIP!','#ffd966');
+        AUDIO.sfx.clank();addFloat(B.x,B.y-180,p.grow>0?'BIG CHIP!':'CHIP!','#ffd966');
       }
     } else hurt();
   }
@@ -1194,6 +1205,20 @@ function updateProjectiles(dt){
   if(level.boss)level.boss.shotHint=(level.boss.shotHint||0)-dt;
   projectiles=projectiles.filter(pr=>pr.life>0&&pr.x>cam.x-80&&pr.x<cam.x+VW+80&&pr.y<level.h+80);
   // supply drops
+  // GROWTH BONE sky-drop — random chance every level, independent of supply system.
+  // ~1 drop per 25-40 seconds of play. Falls from above onto validated platform.
+  level._growT=(level._growT==null)?(18+Math.random()*22):(level._growT-dt);
+  if(level._growT<=0){
+    level._growT=22+Math.random()*22;
+    const hasFloorBelow=(x)=>level.platforms.some(pl=>!pl.gone&&x>pl.x+24&&x<pl.x+pl.w-24);
+    let sx=null;
+    for(let i=0;i<10;i++){const c=Math.max(150,Math.min(level.w-150,player.x+(Math.random()<0.5?-1:1)*(220+Math.random()*240)));if(hasFloorBelow(c)){sx=c;break;}}
+    if(sx!=null){
+      drops.push({x:sx,y:cam.y-60,sway:Math.random()*6,anchorX:sx,kind:'biggie'});
+      level.eventT=1.8;level.eventMsg='🦴 GROWTH BONE INCOMING';
+      AUDIO.sfx.whistle&&AUDIO.sfx.whistle();
+    }
+  }
   if(level.supply){level.supply.t-=dt;
     if(level.supply.t<=0){level.supply.t=level.supply.every;AUDIO.sfx.whistle();
       level.eventT=2.5;level.eventMsg='SUPPLY DROP ▸';
@@ -1217,8 +1242,15 @@ function updateProjectiles(dt){
     let landY=null;
     for(const pl of level.platforms){if(pl.gone)continue;if(d.x>pl.x-8&&d.x<pl.x+pl.w+8&&pl.y>=d.y&&(landY==null||pl.y<landY))landY=pl.y;}
     if(landY!=null&&d.y>=landY-26){d.dead=true;AUDIO.sfx.land();spawnP(d.x,landY,'#b0a890',8,140);
-      const loots=['gold','shield','magnet','x2','bone'];
-      level.crates.push({x:d.x-22,y:landY-44,w:44,h:44,hp:1,loot:loots[Math.floor(Math.random()*loots.length)],dead:false});}
+      if(d.kind==='biggie'){
+        // Bone lands as a directly-grabbable power-up (no crate to break)
+        level.powerups.push({x:d.x,y:landY-22,kind:'biggie',got:false});
+        ringP(d.x,landY,'#ffd966',12,200);
+      } else {
+        const loots=['gold','shield','magnet','x2','bone'];
+        level.crates.push({x:d.x-22,y:landY-44,w:44,h:44,hp:1,loot:loots[Math.floor(Math.random()*loots.length)],dead:false});
+      }
+    }
   }
   // Safety net: any drop that falls below the visible ground without landing gets removed,
   // and a fallback crate spawns at the player's current foothold so the supply isn't wasted.
@@ -1396,18 +1428,38 @@ function render(){
     const r=c.v>1?13:8;ctx.fillStyle=c.v>1?'#ffd966':'#f5c542';ctx.beginPath();ctx.ellipse(x,y,r,r*1.3,0,0,7);ctx.fill();
     ctx.fillStyle='#fff7d6';ctx.fillRect(x-2,y-r*0.7,3,r*1.4);
   }
-  for(const pu of level.powerups){if(pu.got)continue;const x=pu.x-camX,y=pu.y-camY+Math.sin(gt*2.6+pu.x)*5;
+  for(const pu of level.powerups){
+    if(pu.got)continue;
+    const x=pu.x-camX,y=pu.y-camY+Math.sin(gt*2.6+pu.x)*5;
+    const isBig=pu.kind==='biggie';
+    // Growth bone gets a bigger pulsing golden halo so it's unmistakable
+    if(isBig){
+      const r=22+Math.sin(gt*6)*4;
+      ctx.strokeStyle='rgba(255,217,102,'+(0.5+Math.sin(gt*9)*0.3)+')';ctx.lineWidth=3;
+      ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.stroke();
+    }
     ctx.fillStyle='rgba(10,6,16,.7)';ctx.beginPath();ctx.arc(x,y,17,0,7);ctx.fill();
-    ctx.strokeStyle='#f5c542';ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y,17,0,7);ctx.stroke();
+    ctx.strokeStyle=isBig?'#ffd966':'#f5c542';ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y,17,0,7);ctx.stroke();
     ctx.font='16px monospace';ctx.textAlign='center';ctx.textBaseline='middle';
     ctx.fillText(pu.kind==='gold'?'★':pu.kind==='magnet'?'🧲':pu.kind==='x2'?'2x':pu.kind==='shield'?'🛡':'🦴',x,y+1);
-    ctx.textBaseline='alphabetic';ctx.textAlign='left';}
+    ctx.textBaseline='alphabetic';ctx.textAlign='left';
+  }
   // goal
   if(level.goal)drawGoal(level.goal);
   if(level.bowl)drawBowl(level.bowl);
   for(const car of level.cars)if(car.l>=0.7)drawCar(car);
   // supply drops
-  for(const d of drops)blit(SPR('drop'),d.x,d.y+40,90,1);
+  for(const d of drops){
+    blit(SPR('drop'),d.x,d.y+40,90,1);
+    // Growth bone gets a golden glow + 🦴 marker so players see it coming
+    if(d.kind==='biggie'){
+      const gx=d.x-camX, gy=d.y-camY;
+      ctx.strokeStyle='rgba(255,217,102,'+(0.4+Math.sin(gt*8)*0.3)+')';ctx.lineWidth=3;
+      ctx.beginPath();ctx.arc(gx,gy+20,30,0,7);ctx.stroke();
+      ctx.fillStyle='#ffd966';ctx.font='22px monospace';ctx.textAlign='center';
+      ctx.fillText('🦴',gx,gy+8);ctx.textAlign='left';
+    }
+  }
   // shockwaves
   for(const s of (level.shocks||[])){const y=488-camY;ctx.strokeStyle='rgba(245,90,60,'+Math.max(0,s.life)+')';ctx.lineWidth=5;
     ctx.beginPath();ctx.moveTo(s.x-s.r-camX,y);ctx.lineTo(s.x-s.r-camX+18,y-14);ctx.stroke();
@@ -1529,9 +1581,16 @@ function drawPlayer(){
   const p=player;if(p.iframe>0&&p.gold<=0&&Math.floor(performance.now()/80)%2)return;
   let img=curHeroImg();
   if(p.gold>0)img=tinted(img,Math.floor(gt*10)%2?'#ffd966':'#f5c542');
+  // Growth bone: render Drippy larger with a golden glow + slight pulse
+  const growScale=(p.grow>0)?(1.5+Math.sin(gt*8)*0.03):1;
   // shadow
-  ctx.fillStyle='rgba(0,0,0,.35)';ctx.beginPath();ctx.ellipse(p.x-camX,(p.ground?p.y:findShadowY(p))-camY+5,26,7,0,0,7);ctx.fill();
-  blit(img,p.x,p.y,72,p.face,0,p.sx,p.sy);
+  ctx.fillStyle='rgba(0,0,0,.35)';ctx.beginPath();ctx.ellipse(p.x-camX,(p.ground?p.y:findShadowY(p))-camY+5,26*growScale,7,0,0,7);ctx.fill();
+  // Golden ring underneath when growing
+  if(p.grow>0){
+    ctx.strokeStyle='rgba(255,217,102,'+(0.4+Math.sin(gt*10)*0.2)+')';ctx.lineWidth=3;
+    ctx.beginPath();ctx.arc(p.x-camX,p.y-camY-14,50,0,7);ctx.stroke();
+  }
+  blit(img,p.x,p.y,72*growScale,p.face,0,p.sx,p.sy);
   if(p.shield){ctx.strokeStyle='rgba(162,89,255,.8)';ctx.lineWidth=2.5;ctx.beginPath();ctx.arc(p.x-camX,p.y-36-camY,40+Math.sin(gt*5)*3,0,7);ctx.stroke();}
   if(p.pound>0){ctx.fillStyle='rgba(245,197,66,.4)';ctx.fillRect(p.x-camX-16,p.y-camY-70,32,60);}
   if(Math.abs(p.vx)>380&&p.onGround){ctx.strokeStyle='rgba(255,255,255,.25)';ctx.lineWidth=2;
@@ -1619,6 +1678,7 @@ function drawHUD(){
   if(p.magnet>0)chip('MAGNET '+p.magnet.toFixed(0),'#2fd6c4',p.magnet/12);
   if(p.x2>0)chip('2X DRIP '+p.x2.toFixed(0),'#f5c542',p.x2/12);
   if(p.shield)chip('SHIELD','#a259ff',null);
+  if(p.grow>0)chip('🦴 BIG '+p.grow.toFixed(1),'#ffd966',p.grow/8);
   if(p.dashcd>0){ctx.fillStyle='rgba(47,214,196,.4)';ctx.font='9px "Press Start 2P"';ctx.fillText('DASH...',24,118);}
   // right side
   ctx.textAlign='right';ctx.font='12px "Press Start 2P"';
