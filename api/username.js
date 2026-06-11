@@ -64,8 +64,8 @@ function clearSessionCookie(res){
     `${SESSION_COOKIE}=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0`);
 }
 
-// Burn tier thresholds — LOWERED 2026-06-11 (v3). Shadow = top burn tier @ 2M.
-// Tiers scale 5K → 2M. Shadow also unlockable by beating Eternal Drip (skill path).
+// Burn tier thresholds — v4: Shadow apex @ 5M (or 0.20 SOL or beat Eternal Drip).
+// Tiers scale 5K → 5M. Each tier also has gameplay perks (extra hearts, revives, starting items).
 const TIERS = [
   { id: 'holder',   min: 0,        beat: false, label: 'Holder' },
   { id: 'believer', min: 0,        beat: false, label: 'True Believer Drippy', requireHolder: true },
@@ -74,8 +74,8 @@ const TIERS = [
   { id: 'gold',     min: 100000,   beat: false, label: 'Gold Drippy' },
   { id: 'diamond',  min: 500000,   beat: false, label: 'Diamond Drippy' },
   { id: 'void',     min: 1000000,  beat: false, label: 'Void Drippy' },
-  // Shadow = the ultimate flex. Two paths: burn 2M $DRIPPY OR beat the Eternal Drip finale.
-  { id: 'shadow',   min: 2000000,  beat: false, label: 'Shadow Drippy', orBeat: true },
+  // Shadow = the apex. Three paths: burn 5M $DRIPPY · OR · pay 0.20 SOL · OR · beat the Eternal Drip finale.
+  { id: 'shadow',   min: 5000000,  beat: false, label: 'Shadow Drippy', orBeat: true },
 ];
 // Wallets that bought a tier via SOL stay flagged here so threshold changes never revoke them.
 const PURCHASED_PREFIX = 'drippy:skin:purchased:'; // <wallet> -> SET of skin ids

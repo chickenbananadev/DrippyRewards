@@ -216,6 +216,12 @@ module.exports = async (req, res) => {
       if (rl !== null && rl !== 'OK') { res.status(429).json({ error: 'one log per 20s' }); return; }
       await redis(['ZADD', ZKEY, 'GT', 'CH', String(score), name]);
       if (b.beat) await redis(['HSET', FLAGS, name, '1']);
+      // Persist the skin used — only stamp when this submission IS the new top score for this name
+      const SKIN_KEY = 'drippy:game:skin';
+      const allowedSkins = ['default','believer','bronze','silver','gold','diamond','void','shadow'];
+      const skin = allowedSkins.includes(String(b.skin || '').toLowerCase()) ? String(b.skin).toLowerCase() : 'default';
+      const curTop = await redis(['ZSCORE', ZKEY, name]);
+      if (Math.round(Number(curTop) || 0) === score) await redis(['HSET', SKIN_KEY, name, skin]);
       const rank = await redis(['ZREVRANK', ZKEY, name]);
       res.status(200).json({ ok: true, rank: rank != null ? Number(rank) + 1 : null });
       return;
@@ -223,8 +229,16 @@ module.exports = async (req, res) => {
     const raw = await redis(['ZREVRANGE', ZKEY, '0', '24', 'WITHSCORES']);
     const flagsRaw = await redis(['HGETALL', FLAGS]);
     const flags = {}; if (Array.isArray(flagsRaw)) for (let i = 0; i < flagsRaw.length; i += 2) flags[flagsRaw[i]] = flagsRaw[i + 1];
+    const SKIN_KEY = 'drippy:game:skin';
+    const skinsRaw = await redis(['HGETALL', SKIN_KEY]);
+    const skins = {}; if (Array.isArray(skinsRaw)) for (let i = 0; i < skinsRaw.length; i += 2) skins[skinsRaw[i]] = skinsRaw[i + 1];
     const scores = [];
-    if (Array.isArray(raw)) for (let i = 0; i < raw.length; i += 2) scores.push({ n: raw[i], s: Math.round(Number(raw[i + 1]) || 0), beat: flags[raw[i]] === '1' });
+    if (Array.isArray(raw)) for (let i = 0; i < raw.length; i += 2) scores.push({
+      n: raw[i],
+      s: Math.round(Number(raw[i + 1]) || 0),
+      beat: flags[raw[i]] === '1',
+      skin: skins[raw[i]] || null
+    });
     res.status(200).json({ scores });
     return;
   }

@@ -169,7 +169,7 @@ canvas{image-rendering:pixelated;width:100%;height:100%;display:block;object-fit
 <!-- HIGH SCORES -->
 <div class="ov" id="ovScores">
   <h2>TOP DOGS</h2>
-  <div style="font-size:11px;color:var(--purple);margin:-8px 0 12px;letter-spacing:1px;font-family:'Press Start 2P'">PURE SKILL · NO MODIFIERS</div>
+  <div style="font-size:11px;color:var(--purple);margin:-8px 0 12px;letter-spacing:1px;font-family:'Press Start 2P'">THE PACK'S STRONGEST · SKIN SHOWN PER RUN</div>
   <div class="rescard" id="hsList" style="min-width:340px"></div>
   <div><button class="btn ghost" id="btnHsBack">◂ BACK</button></div>
 </div>
@@ -645,11 +645,24 @@ function newPlayer(x,y){return{x,y,w:34,h:56,vx:0,vy:0,face:1,onGround:false,gro
   wall:0,pound:0,poundPrep:0,combo:0,
   gold:0,magnet:0,x2:0,shield:false};}
 
+function applySkinPerks(p){
+  // Read the active skin's perks (defined in SKINS_DEF). Light, non-multiplicative
+  // bonuses applied at level start. Score multipliers are NOT in scope here —
+  // the skill-based ranking still matters.
+  const sk=(SKINS_DEF||[]).find(s=>s.id===(window.currentSkin||'default'));
+  if(!sk||!sk.perks)return;
+  const pp=sk.perks;
+  if(pp.startHearts){p.hpMax+=pp.startHearts;p.hp=p.hpMax;}
+  if(pp.startShield)p.shield=true;
+  if(pp.startCoins){p.gold=(p.gold||0)+pp.startCoins;runScore+=pp.startCoins;}
+  if(pp.extraLife)p._extraLife=true;
+}
 function startLevel(i){
   lvIdx=i;level=LEVELS[i].build();
   if(i===0)runScore=0;
   level.dripsTotal=level.coins.reduce((s,c)=>s+c.v,0);
   player=newPlayer(90,420);if(GOD){player.hp=99;player.hpMax=99;}
+  if(i===0)applySkinPerks(player); // perks only granted at the start of a run (level 1), not every level
   cam={x:0,y:0};projectiles=[];drops=[];particles=[];floaters=[];effects=[];
   runStats={drips:0,kills:0,deaths:0,time:0,maxCombo:0,checkpoint:{x:90,y:420}};
   state='play';gt=0;
@@ -1416,8 +1429,12 @@ $('btnFinMap').onclick=()=>showSelect();
 function getScores(){try{return JSON.parse(localStorage.getItem('drippyScores')||'[]');}catch(e){return [];}}
 function qualifies(s){const sc=getScores();return s>0&&(sc.length<10||s>sc[sc.length-1].s);}
 function renderScoreRows(sc,label){
+  const SKIN_BADGE={default:'🐶',believer:'🐾',bronze:'🥉',silver:'🥈',gold:'🥇',diamond:'💎',void:'🌌',shadow:'☠️'};
   const head='<div class="row"><span class="k" style="color:var(--purple)">'+label+'</span><span class="v"></span></div>';
-  $('hsList').innerHTML+=head+(sc.length?sc.map((e,i)=>'<div class="row"><span class="k">'+(i+1)+'. '+e.n+(e.beat?' 👑':'')+'</span><span class="v">'+Number(e.s).toLocaleString()+'</span></div>').join(''):
+  $('hsList').innerHTML+=head+(sc.length?sc.map((e,i)=>{
+    const sb=e.skin&&SKIN_BADGE[e.skin]?(' '+SKIN_BADGE[e.skin]):'';
+    return '<div class="row"><span class="k">'+(i+1)+'. '+e.n+(e.beat?' 👑':'')+sb+'</span><span class="v">'+Number(e.s).toLocaleString()+'</span></div>';
+  }).join(''):
     '<div class="row"><span class="k">No legends yet — go run the city</span><span class="v">—</span></div>');}
 function renderWeeklyRows(sc,label,week){
   const header='<div class="row"><span class="k" style="color:var(--gold)">🏆 '+label+(week?' · '+week:'')+'</span><span class="v" style="color:var(--gold);font-size:9px">100K $DRIPPY → #1</span></div>';
@@ -1463,6 +1480,7 @@ $('btnHsSave').onclick=()=>{let n=($('hsName').value||'').trim().toUpperCase().s
   if(location.protocol.indexOf('http')===0){
     const body={name:n,score:runScore,beat:pendingBeat};
     if(wallet)body.wallet=wallet;
+    body.skin=(window.currentSkin||'default'); // tag the run with the skin used
     fetch('/api/leaderboard?board=game',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'include',body:JSON.stringify(body)})
       .then(()=>renderScores()).catch(()=>{});
   }
@@ -1473,15 +1491,30 @@ $('btnLogScore').onclick=()=>openEntry(false);
 $('btnFinLog').onclick=()=>openEntry(true);
 
 /* ---------- skins + wallet ---------- */
+// Each skin's "perks" object is applied at run start by applySkinPerks().
+// startCoins  = coins granted on level start
+// startHearts = extra max HP added (default base = 3 → diamond=4, void=4, shadow=5)
+// startShield = start with the Shield power-up active
+// startBone   = start with the Bone (attack boost) power-up active
+// extraLife   = +1 life per run (auto-respawn once before death)
+// dailyRevives= free checkpoint revives per day
 const SKINS_DEF=[
-  {id:'default', nm:'DEFAULT',     req:'Always',badge:'🐶',perk:'',spr:'hero'},
-  {id:'believer',nm:'TRUE BELIEVER',req:'Connect + hold any $DRIPPY',badge:'🐾',perk:'OG supporter · purple pawprints',spr:'believer_idle'},
-  {id:'bronze',  nm:'BRONZE',      req:'Burn ≥ 5K',   badge:'🥉',perk:'+1 daily revive',         spr:'bronze_idle',  buySol:0.01},
-  {id:'silver',  nm:'SILVER',      req:'Burn ≥ 25K',  badge:'🥈',perk:'Random start pickup',     spr:'silver_idle',  buySol:0.03},
-  {id:'gold',    nm:'GOLD',        req:'Burn ≥ 100K', badge:'🥇',perk:'Daily Challenge bonus',   spr:'gold_idle',    buySol:0.05},
-  {id:'diamond', nm:'DIAMOND',     req:'Burn ≥ 500K', badge:'💎',perk:'2x cosmetic drops',       spr:'diamond_idle', buySol:0.07},
-  {id:'void',    nm:'VOID',        req:'Burn ≥ 1M',   badge:'🌌',perk:'Lobby FX + emotes',       spr:'void_idle',    buySol:0.10},
-  {id:'shadow',  nm:'SHADOW',      req:'Burn 2M · or beat Eternal Drip',badge:'☠️',perk:'Apex flex · Dark Mirror emote',spr:'shadow_idle'},
+  {id:'default', nm:'DEFAULT',     req:'Always',badge:'🐶',perk:'',
+    spr:'hero', perks:{}},
+  {id:'believer',nm:'TRUE BELIEVER',req:'Connect + hold any $DRIPPY',badge:'🐾',perk:'+5 starting coins · purple paws',
+    spr:'believer_idle', perks:{startCoins:5}},
+  {id:'bronze',  nm:'BRONZE',      req:'Burn ≥ 5K',   badge:'🥉',perk:'+10 coins · 1 daily revive',
+    spr:'bronze_idle',  buySol:0.01, perks:{startCoins:10, dailyRevives:1}},
+  {id:'silver',  nm:'SILVER',      req:'Burn ≥ 25K',  badge:'🥈',perk:'+25 coins · 2 revives · start with Shield',
+    spr:'silver_idle',  buySol:0.03, perks:{startCoins:25, dailyRevives:2, startShield:true}},
+  {id:'gold',    nm:'GOLD',        req:'Burn ≥ 100K', badge:'🥇',perk:'+50 coins · 3 revives · Shield + Bone',
+    spr:'gold_idle',    buySol:0.05, perks:{startCoins:50, dailyRevives:3, startShield:true, startBone:true}},
+  {id:'diamond', nm:'DIAMOND',     req:'Burn ≥ 500K', badge:'💎',perk:'+1 max heart (4HP) · 50 coins · Shield',
+    spr:'diamond_idle', buySol:0.07, perks:{startCoins:50, startHearts:1, startShield:true, dailyRevives:3}},
+  {id:'void',    nm:'VOID',        req:'Burn ≥ 1M',   badge:'🌌',perk:'+1 heart · 100 coins · Shield + Bone · cosmic FX',
+    spr:'void_idle',    buySol:0.10, perks:{startCoins:100, startHearts:1, startShield:true, startBone:true, dailyRevives:5, cosmicFx:true}},
+  {id:'shadow',  nm:'SHADOW',      req:'Burn 5M · or 0.20 SOL · or beat Eternal Drip',badge:'☠️',perk:'+2 hearts (5HP) · extra life · 200 coins · Shield + Bone · Dark Mirror',
+    spr:'shadow_idle',  buySol:0.20, perks:{startCoins:200, startHearts:2, startShield:true, startBone:true, extraLife:true, dailyRevives:99, cosmicFx:true}},
 ];
 window.SESSION=null; // {wallet, username, burned, beat, skins:{bronze:true,...}, selectedSkin}
 
