@@ -1,0 +1,46 @@
+# Environment / secrets — NEVER commit these
+.env
+.env.*
+!.env.example
+.vercel
+secrets.json
+credentials.json
+*.pem
+*.key
+*-private*
+mnemonic.txt
+seed-phrase.txt
+treasury-key*
+wallet-key*
+keypair*.json
+
+# Dependencies
+node_modules/
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# Build artifacts
+dist/
+build/
+.next/
+.cache/
+out/
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+npm-debug.log*
+yarn-error.log*
+
+# Local test scratch
+/tmp/
+scratch/
