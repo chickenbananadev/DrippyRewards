@@ -911,8 +911,19 @@ setInterval(loadEvents, 60000);
       refreshLbAdmin();
     });
   });
-  // Refresh leaderboard view whenever modal opens
-  $('adminOpen').addEventListener('click', () => { setTimeout(refreshLbAdmin, 50); });
+  // Refresh leaderboard view whenever modal opens, and reveal the section
+  $('adminOpen').addEventListener('click', () => {
+    setTimeout(() => {
+      refreshLbAdmin();
+      const box = document.querySelector('#adminModal .modal-box');
+      const header = $('adminLbHeader');
+      if (box && header) {
+        // Scroll the modal-box so the leaderboard section is visible
+        const top = header.offsetTop - 12;
+        box.scrollTo({ top, behavior: 'smooth' });
+      }
+    }, 120);
+  });
   refreshLbAdmin();
 
   const fileInput = $('adminImage');

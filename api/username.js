@@ -64,28 +64,43 @@ function clearSessionCookie(res){
     `${SESSION_COOKIE}=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0`);
 }
 
-// Burn tier thresholds (mirrors front-end)
+// Burn tier thresholds (mirrors front-end). 'believer' requires currentHoldings > 0.
 const TIERS = [
-  { id: 'holder',  min: 0,        beat: false, label: 'Holder' },
-  { id: 'bronze',  min: 100000,   beat: false, label: 'Bronze Drippy' },
-  { id: 'silver',  min: 500000,   beat: false, label: 'Silver Drippy' },
-  { id: 'gold',    min: 1000000,  beat: false, label: 'Gold Drippy' },
-  { id: 'diamond', min: 5000000,  beat: false, label: 'Diamond Drippy' },
-  { id: 'shadow',  min: 0,        beat: true,  label: 'Shadow Drippy' },
-  { id: 'void',    min: 10000000, beat: true,  label: 'Void Drippy' },
+  { id: 'holder',   min: 0,        beat: false, label: 'Holder' },
+  { id: 'believer', min: 0,        beat: false, label: 'True Believer Drippy', requireHolder: true },
+  { id: 'bronze',   min: 100000,   beat: false, label: 'Bronze Drippy' },
+  { id: 'silver',   min: 500000,   beat: false, label: 'Silver Drippy' },
+  { id: 'gold',     min: 1000000,  beat: false, label: 'Gold Drippy' },
+  { id: 'diamond',  min: 5000000,  beat: false, label: 'Diamond Drippy' },
+  { id: 'shadow',   min: 0,        beat: true,  label: 'Shadow Drippy' },
+  { id: 'void',     min: 10000000, beat: true,  label: 'Void Drippy' },
 ];
-async function computeUnlocks(wallet){
+async function fetchHolderStatus(wallet, hostHeader){
+  // Internal call to /api/wallet — same pattern share.js uses
+  try {
+    const origin = `https://${hostHeader || 'drippyrewards.com'}`;
+    const r = await fetch(`${origin}/api/wallet?address=${wallet}`, { cache: 'no-store' });
+    if (!r.ok) return { holds: 0, isHolder: false };
+    const d = await r.json();
+    const holds = Number(d?.currentHoldings?.uiAmount || 0);
+    return { holds, isHolder: holds > 0 };
+  } catch (e) {
+    return { holds: 0, isHolder: false };
+  }
+}
+async function computeUnlocks(wallet, hostHeader){
   const burnedRaw = await redis(['ZSCORE', BURN_LB_KEY, wallet]);
-  // sanitize: ledger may have raw (1e9) values from old code
   let burned = Number(burnedRaw) || 0;
-  if (burned > 1e9) burned = burned / 1e9; // 9-decimal contamination
+  if (burned > 1e9) burned = burned / 1e9; // 9-decimal contamination guard
   const beat = !!(await redis(['SISMEMBER', FINALE_BEAT_KEY, wallet]));
+  const { holds, isHolder } = await fetchHolderStatus(wallet, hostHeader);
   const skins = {};
   for (const t of TIERS) {
-    const ok = burned >= t.min && (!t.beat || beat);
+    let ok = burned >= t.min && (!t.beat || beat);
+    if (t.requireHolder && !isHolder) ok = false;
     skins[t.id] = ok;
   }
-  return { wallet, burned, beat, skins };
+  return { wallet, burned, beat, holds, isHolder, skins };
 }
 
 async function redis(command){
@@ -130,7 +145,7 @@ module.exports = async (req, res) => {
     const wallet = verifySession(cookie);
     if (!wallet) { res.status(200).json({ signedIn: false }); return; }
     const username = await redis(['GET', NAME_PREFIX + wallet]);
-    const unlocks = await computeUnlocks(wallet);
+    const unlocks = await computeUnlocks(wallet, req.headers.host);
     const skin = await redis(['GET', SELECTED_SKIN_PREFIX + wallet]);
     res.status(200).json({ signedIn: true, wallet, username: username || null, ...unlocks, selectedSkin: skin || null });
     return;
@@ -164,7 +179,7 @@ module.exports = async (req, res) => {
     }
     setSessionCookie(res, wallet);
     const username = await redis(['GET', NAME_PREFIX + wallet]);
-    const unlocks = await computeUnlocks(wallet);
+    const unlocks = await computeUnlocks(wallet, req.headers.host);
     res.status(200).json({ success: true, wallet, username: username || null, ...unlocks });
     return;
   }
@@ -180,7 +195,7 @@ module.exports = async (req, res) => {
   if (req.method === 'GET' && action === 'unlocks') {
     const wallet = String(req.query.wallet || '');
     if (!wallet || wallet.length < 32) { res.status(400).json({ error: 'wallet required' }); return; }
-    const unlocks = await computeUnlocks(wallet);
+    const unlocks = await computeUnlocks(wallet, req.headers.host);
     res.status(200).json(unlocks);
     return;
   }
@@ -195,7 +210,7 @@ module.exports = async (req, res) => {
     const skin = String(body && body.skin || '').toLowerCase();
     const allowed = ['default','bronze','silver','gold','diamond','shadow','void'];
     if (!allowed.includes(skin)) { res.status(400).json({ error: 'invalid skin' }); return; }
-    const unlocks = await computeUnlocks(wallet);
+    const unlocks = await computeUnlocks(wallet, req.headers.host);
     if (skin !== 'default' && !unlocks.skins[skin]) {
       res.status(403).json({ error: 'skin not unlocked', unlocks });
       return;
