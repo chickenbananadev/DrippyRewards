@@ -1405,13 +1405,26 @@ function getScores(){try{return JSON.parse(localStorage.getItem('drippyScores')|
 function qualifies(s){const sc=getScores();return s>0&&(sc.length<10||s>sc[sc.length-1].s);}
 function renderScoreRows(sc,label){
   const head='<div class="row"><span class="k" style="color:var(--purple)">'+label+'</span><span class="v"></span></div>';
-  $('hsList').innerHTML=head+(sc.length?sc.map((e,i)=>'<div class="row"><span class="k">'+(i+1)+'. '+e.n+(e.beat?' 👑':'')+'</span><span class="v">'+Number(e.s).toLocaleString()+'</span></div>').join(''):
+  $('hsList').innerHTML+=head+(sc.length?sc.map((e,i)=>'<div class="row"><span class="k">'+(i+1)+'. '+e.n+(e.beat?' 👑':'')+'</span><span class="v">'+Number(e.s).toLocaleString()+'</span></div>').join(''):
     '<div class="row"><span class="k">No legends yet — go run the city</span><span class="v">—</span></div>');}
+function renderWeeklyRows(sc,label,week){
+  const header='<div class="row"><span class="k" style="color:var(--gold)">🏆 '+label+(week?' · '+week:'')+'</span><span class="v" style="color:var(--gold);font-size:9px">100K $DRIPPY → #1</span></div>';
+  const sub='<div class="row" style="opacity:.55"><span class="k" style="font-size:9px">Must sign in + hold ≥100K $DRIPPY to claim</span><span class="v"></span></div>';
+  const body=sc.length?sc.map((e,i)=>{
+    const elig=e.eligible?'<span style="color:var(--gold)">✓</span>':'<span style="color:#666">·</span>';
+    return '<div class="row"><span class="k">'+elig+' '+(i+1)+'. '+(e.n||'DRIPPY')+'</span><span class="v">'+Number(e.s).toLocaleString()+'</span></div>';
+  }).join(''):'<div class="row"><span class="k">No runs yet this week</span><span class="v">—</span></div>';
+  $('hsList').innerHTML+=header+sub+body;
+}
 function renderScores(){
+  $('hsList').innerHTML='';
   renderScoreRows(getScores(),'THIS DEVICE');
   if(location.protocol.indexOf('http')===0){
+    fetch('/api/leaderboard?board=weekly',{cache:'no-store'}).then(r=>r.json()).then(d=>{
+      if(d&&Array.isArray(d.scores))renderWeeklyRows(d.scores,'WEEKLY TOURNAMENT',d.week);
+    }).catch(()=>{});
     fetch('/api/leaderboard?board=game',{cache:'no-store'}).then(r=>r.json()).then(d=>{
-      if(d&&Array.isArray(d.scores)&&d.scores.length)renderScoreRows(d.scores,'🌍 GLOBAL — THE WHOLE PACK');
+      if(d&&Array.isArray(d.scores)&&d.scores.length)renderScoreRows(d.scores,'🌍 ALL-TIME — TOP DOGS');
     }).catch(()=>{});
   }
 }
