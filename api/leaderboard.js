@@ -47,6 +47,14 @@ module.exports = async (req, res) => {
   if ((req.query.board || '') === 'game') {
     const ZKEY = 'drippy:game:leaderboard', FLAGS = 'drippy:game:beat', RL = 'drippy:game:rl:', MAX = 200000;
     const clean = n => String(n || '').toUpperCase().replace(/[^A-Z0-9 _.\-]/g, '').trim().slice(0, 12) || 'DRIPPY';
+    // Admin moderation: remove a name (test/abusive). DELETE ?board=game&name=X
+    if (req.method === 'DELETE') {
+      if ((req.headers['x-admin-secret'] || '') !== process.env.DRIPPY_EVENTS_SECRET) { res.status(401).json({ error: 'unauthorized' }); return; }
+      const name = String(req.query.name || '');
+      if (name) { await redis(['ZREM', ZKEY, name]); await redis(['HDEL', FLAGS, name]); }
+      res.status(200).json({ removed: name });
+      return;
+    }
     if (req.method === 'POST') {
       let b = req.body; if (typeof b === 'string') { try { b = JSON.parse(b); } catch (_) { b = null; } }
       if (!b) { res.status(400).json({ error: 'bad body' }); return; }
