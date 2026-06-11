@@ -1072,20 +1072,59 @@ function updateEnemies(dt){
 
 /* ---------- boss ---------- */
 function bossHit(n){
-  const B=level.boss;if(B.dead)return;
+  const B=level.boss,p=player;if(B.dead)return;
   B.hp-=n;B.flash=0.25;AUDIO.sfx.crit();addShake(6,0.25);hitstop(0.06);
   addFloat(B.x,B.y-170,'-'+n,'#f5c542',true);
+  // KNOCKBACK: every hit shoves the boss a bit away from the player so it doesn't
+  // stay glued in place under your stomps. Capped to arena bounds.
+  if (p) {
+    const kdir = Math.sign(B.x - p.x) || (Math.random()<0.5?-1:1);
+    const kAmt = 36 + n*12; // bigger hits → bigger knockback
+    B.x = Math.max(140, Math.min(level.w - 140, B.x + kdir * kAmt));
+  }
+  // RAGE: track hits taken during a single daze. Three hits → boss bursts out
+  // with an AOE that flings the player, then re-enters dash to retaliate.
+  if (B.state === 'dazed') {
+    B._hitsThisDaze = (B._hitsThisDaze || 0) + 1;
+    if (B._hitsThisDaze >= 3) {
+      B._hitsThisDaze = 0;
+      B.dazeT = 0;
+      B.state = 'rage';
+      B._rageT = 0.5;
+      AUDIO.sfx.roar && AUDIO.sfx.roar();
+      addShake(10, 0.45);
+      addFloat(B.x, B.y-200, 'ENRAGED!', '#ef4444', true);
+      level.shocks.push({x:B.x,r:30,band:30,life:0.8}); // hard hit AOE
+      // Punt the player off the boss head
+      if (p && Math.abs(p.x - B.x) < 220) {
+        p.vx = Math.sign(p.x - B.x || 1) * 640;
+        p.vy = -460;
+        p.jumps = 1;
+        p.iframe = Math.max(p.iframe, 0.5);
+      }
+    }
+  }
   const p2=B.kind==='shadow'?8:6, p3=B.kind==='shadow'?4:3;
   if(B.hp<=p2&&B.phase<2){B.phase=2;AUDIO.sfx.roar();addFloat(B.x,B.y-200,B.kind==='shadow'?'THE SHADOW DEEPENS':'HE\'S ANGRY','#ef4444',true);}
   if(B.hp<=p3&&B.phase<3){B.phase=3;AUDIO.sfx.roar();addFloat(B.x,B.y-200,'FINAL FURY','#ef4444',true);
     if(!B.summons&&B.kind!=='shadow'){B.summons=true;en(level,'bat',B.x-200,260,{variant:'dive',baseY:260});en(level,'bat',B.x+200,240,{variant:'dive',baseY:240});}}
   if(B.hp<=0){B.dead=true;B.state='dead';bossDefeat();}
-  else{B.state='idle';B.t=0;}
+  // CRITICAL: don't reset state on every hit. Only if boss was idle, restart idle timer.
+  // Dazed boss stays dazed (with the rage trigger above) — players can chain hits, but
+  // the boss is actively moving and the rage counter is ticking.
+  else if(B.state !== 'dazed' && B.state !== 'rage') { B.state='idle'; B.t=0; }
 }
 function bossDefeat(){
-  AUDIO.sfx.explode();AUDIO.stopMusic();addShake(12,0.7);hitstop(0.12);
-  for(let i=0;i<3;i++)setTimeout(()=>{addEffect('burst',level.boss.x+(Math.random()-0.5)*120,level.boss.y-60-Math.random()*60,140,0.6);AUDIO.sfx.explode();},i*350);
-  setTimeout(()=>{level.bowl={x:950,y:-80,vy:0,landed:false};AUDIO.sfx.win();},1400);
+  // Cinematic finisher: hard hitstop + bigger shake + screen-fill flash, then bursts.
+  AUDIO.sfx.explode();AUDIO.stopMusic();addShake(18,1.0);hitstop(0.35);
+  level._koFlash = 0.7; // white flash overlay duration (rendered in drawHUD)
+  addFloat(level.boss.x, level.boss.y - 240, 'K.O.', '#ffffff', true);
+  for(let i=0;i<5;i++)setTimeout(()=>{
+    addEffect('burst', level.boss.x+(Math.random()-0.5)*160, level.boss.y-60-Math.random()*80, 160, 0.7);
+    AUDIO.sfx.explode();
+    addShake(8, 0.3);
+  }, i*280);
+  setTimeout(()=>{level.bowl={x:950,y:-80,vy:0,landed:false};AUDIO.sfx.win();},1700);
 }
 function updateBoss(dt){
   const B=level.boss,p=player;if(!B)return;
@@ -1130,7 +1169,28 @@ function updateBoss(dt){
     B.x=B.sx0+(B.tx-B.sx0)*k;B.yOff=-Math.sin(k*Math.PI)*260;
     if(k>=1){B.yOff=0;B.state='idle';B.t=0.3;addShake(10,0.35);AUDIO.sfx.pound();level.shocks.push({x:B.x,r:30,band:26,life:1.1});spawnP(B.x,B.y,'#b0a890',14,260);}
   }
-  else if(B.state==='dazed'){B.dazeT-=dt;if(B.dazeT<=0){B.state='idle';B.t=0;}}
+  else if(B.state==='dazed'){
+    B.dazeT-=dt;
+    // CRAWL: dazed boss slowly drifts away from the player (not a sitting duck).
+    // Speed scales with phase so phase 3 wakes up faster and is harder to camp.
+    if (p) {
+      const fleeDir = Math.sign(B.x - p.x) || 1;
+      const crawl = (B.phase === 3 ? 0.28 : B.phase === 2 ? 0.20 : 0.14) * B.spd;
+      B.x = Math.max(140, Math.min(level.w-140, B.x + fleeDir * crawl * dt));
+    }
+    if(B.dazeT<=0){B.state='idle';B.t=0;B._hitsThisDaze=0;}
+  }
+  else if(B.state==='rage'){
+    B._rageT = (B._rageT || 0.5) - dt;
+    // Brief flash + slight backstep, then immediately go on offense (dash) toward player
+    if (p) B.x += Math.sign(B.x - p.x || 1) * 80 * dt;
+    if (B._rageT <= 0) {
+      B.state = 'dash';
+      B.dir = Math.sign(p.x - B.x) || 1;
+      B._hitsThisDaze = 0;
+      AUDIO.sfx.dash && AUDIO.sfx.dash();
+    }
+  }
 
   // Random "guard down" while idle — daze for variable length so player has windows
   // outside of the scripted corner-trigger. Phase 3 bosses open up more often.
@@ -1659,6 +1719,13 @@ function drawWeatherNone(){}
 function drawHUD(){
   if(state!=='play'&&state!=='pause')return;
   const p=player;
+  // K.O. flash on boss defeat — fades from white over ~0.7s
+  if (level._koFlash && level._koFlash > 0) {
+    ctx.fillStyle = 'rgba(255,255,255,' + Math.min(0.9, level._koFlash) + ')';
+    ctx.fillRect(0, 0, VW, VH);
+    level._koFlash -= 0.025;
+    if (level._koFlash <= 0) level._koFlash = 0;
+  }
   for(let i=0;i<p.hpMax&&i<7;i++){ctx.fillStyle=i<p.hp?'#ef4444':'rgba(80,60,70,.6)';heart(26+i*30,28,9);}
   ctx.font='16px "Press Start 2P"';ctx.fillStyle='#f5c542';
   // Drip counter + next 1-UP milestone target (every 50 drips)
