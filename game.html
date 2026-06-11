@@ -2085,8 +2085,12 @@ function renderWeeklyRows(sc, label, week){
 }
 function openEntry(beat){pendingBeat=beat;$('hsScore').textContent=runScore.toLocaleString();
   hideAll();$('ovEntry').classList.add('on');state='entry';
-  $('hsName').value=(function(){try{return localStorage.getItem('drippyName')||'';}catch(e){return '';}})();
-  // If signed in, hide the wallet field — we already know their wallet
+  // When signed in WITH a username, default to the username so leaderboard identity stays consistent
+  let defaultName = '';
+  try{ defaultName = localStorage.getItem('drippyName') || ''; }catch(e){}
+  if (window.SESSION && window.SESSION.username) defaultName = window.SESSION.username.toUpperCase();
+  $('hsName').value = defaultName;
+  // If signed in, hide the wallet field — we already know their wallet from the cookie
   const wrap=$('hsWalletWrap');
   if(window.SESSION&&window.SESSION.wallet){
     wrap.style.display='none';
@@ -2304,10 +2308,20 @@ async function renderWalletList(){
       return `<div style="display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:8px 11px;font-family:JetBrains Mono,monospace;font-size:11px">
         <span style="color:var(--cream)">${isPrimary?'🔑 ':'🔗 '}${short}</span>${unlinkBtn}</div>`;
     }).join('');
+    const uname = window.SESSION.username;
+    const displayId = uname || (w.slice(0,8) + '…' + w.slice(-8));
     list.innerHTML=`<div style="background:rgba(245,197,66,.1);border:2px solid var(--gold);border-radius:12px;padding:14px;text-align:center;margin-bottom:14px">
       <div style="font-family:'Press Start 2P';font-size:12px;color:var(--gold);margin-bottom:6px">YOUR ACCOUNT ✓</div>
-      <div style="font-size:11px;color:var(--cream);font-family:JetBrains Mono,monospace">${window.SESSION.username||w.slice(0,8)+'…'+w.slice(-8)}</div>
+      <div style="font-size:13px;color:var(--cream);font-family:JetBrains Mono,monospace">${displayId}</div>
       <div style="font-size:10px;color:#9aa3b2;margin-top:6px">${linked.length} wallet${linked.length>1?'s':''} · ${b.toLocaleString()} burned · ${h.toLocaleString()} held</div>
+    </div>
+    <div style="font-family:'Press Start 2P';font-size:10px;color:var(--purple);letter-spacing:1px;margin:0 0 8px 4px">USERNAME</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:10px 12px;margin-bottom:12px">
+      <div style="font-family:JetBrains Mono,monospace;font-size:12px;color:var(--cream)">${uname ? '@' + uname : '<span style="color:#777">Not set</span>'}</div>
+      <button class="walletBtn" id="btnSetUsername" style="padding:5px 12px;font-size:10px;background:rgba(162,89,255,.18);border:1px solid rgba(162,89,255,.5);color:#c9b8ff;width:auto">${uname ? 'CHANGE' : 'SET'}</button>
+    </div>
+    <div style="font-size:10px;color:#777;margin:-8px 0 12px 4px;line-height:1.5">
+      Your username shows on public leaderboards. Your wallet address stays private (admins only). 3-20 chars · letters, numbers, underscore.
     </div>
     <div style="font-family:'Press Start 2P';font-size:10px;color:var(--purple);letter-spacing:1px;margin:0 0 8px 4px">LINKED WALLETS</div>
     <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px">${linkedRows}</div>
@@ -2315,9 +2329,10 @@ async function renderWalletList(){
     <button class="walletBtn" id="btnDisconnect" style="justify-content:center;font-size:11px;margin-top:8px">DISCONNECT</button>`;
     $('btnDisconnect').onclick=async()=>{
       await fetch('/api/username?action=signout',{method:'POST',credentials:'include'}).catch(()=>{});
-      window.SESSION=null;updateWalletPill();renderWalletList();
+      window.SESSION=null;window._activeWallet=null;updateWalletPill();renderWalletList();
     };
     $('btnLinkMore').onclick=()=>startLinkFlow();
+    $('btnSetUsername').onclick=()=>setUsernameFlow();
     list.querySelectorAll('.unlinkBtn').forEach(btn=>{
       btn.onclick=async()=>{
         const addr=btn.dataset.w;
@@ -2472,12 +2487,81 @@ async function signInWith(w){
     const d=await resp.json();
     if(!resp.ok){throw new Error(d.error||'sign-in failed');}
     window.SESSION=d;
+    // Save the active wallet provider so the user can sign later actions (e.g. setting a username)
+    // without re-picking from the wallet list. Cleared on sign-out.
+    window._activeWallet = w;
     if(d.selectedSkin&&d.skins&&d.skins[d.selectedSkin]){window.currentSkin=d.selectedSkin;try{localStorage.setItem('drippySkin',d.selectedSkin);}catch(e){}}
     $('walletMsg').style.color='var(--green)';$('walletMsg').textContent='Signed in ✓';
     updateWalletPill();
     setTimeout(renderWalletList,500);
   }catch(e){
     $('walletMsg').style.color='var(--red)';$('walletMsg').textContent=(e&&e.message||'Sign-in failed').slice(0,60);
+  }
+}
+
+/* Set or change the on-account username — wallet-bound, signature-verified, public on leaderboards.
+   Username displays publicly; wallet address stays private (admins only). */
+async function setUsernameFlow(){
+  if(!window.SESSION || !window.SESSION.wallet){
+    $('walletMsg').style.color='var(--red)';$('walletMsg').textContent='Sign in first.';return;
+  }
+  // Get the desired username
+  const current = window.SESSION.username || '';
+  const raw = prompt(
+    'USERNAME RULES\n'+
+    '• 3-20 characters\n'+
+    '• Letters, numbers, underscores only\n'+
+    '• Globally unique — first claim wins\n'+
+    '• Shows publicly on leaderboards in place of your wallet\n'+
+    '• Your wallet stays private (admins only)\n\n'+
+    'Enter a username:',
+    current
+  );
+  if(raw == null) return;
+  const clean = String(raw).trim().replace(/[^a-zA-Z0-9_]/g, '').slice(0, 20);
+  if (clean.length < 3) {
+    $('walletMsg').style.color='var(--red)';$('walletMsg').textContent='Username must be 3-20 chars (letters, numbers, underscores).';return;
+  }
+  if (clean === current) {
+    $('walletMsg').style.color='#9aa3b2';$('walletMsg').textContent='No change.';return;
+  }
+  // We need a fresh signature from the wallet that owns the account (the primary).
+  const wallet = window.SESSION.wallet;
+  const w = window._activeWallet;
+  if(!w || !w.provider){
+    $('walletMsg').style.color='var(--red)';
+    $('walletMsg').textContent='Wallet disconnected — click DISCONNECT then sign in again to change username.';
+    return;
+  }
+  $('walletMsg').style.color='#9aa3b2';$('walletMsg').textContent='Claiming @' + clean + '… approve in your wallet.';
+  try{
+    const ts = Date.now();
+    const msg = 'Claim username on drippyrewards.com\nUsername: ' + clean + '\nWallet: ' + wallet.slice(0,8) + '…' + wallet.slice(-4) + '\n:: ' + ts;
+    // Show user the exact message before the wallet popup (security pattern)
+    const ok = confirm(
+      '🔒 USERNAME CLAIM — SIGNATURE ONLY\n\n'+
+      'Your wallet will sign this message:\n\n"' + msg + '"\n\n'+
+      'This is NOT a transaction. No SOL or tokens move. '+
+      'It cryptographically binds the username @' + clean + ' to your wallet.\n\n'+
+      'Click OK to continue.'
+    );
+    if(!ok){$('walletMsg').textContent='Cancelled.';return;}
+    const encoded = new TextEncoder().encode(msg);
+    const sigRes = await w.provider.signMessage(encoded, 'utf8');
+    const sigBytes = sigRes.signature ? sigRes.signature : sigRes;
+    const sigB58 = b58enc(sigBytes);
+    const resp = await fetch('/api/username', {
+      method:'POST', headers:{'Content-Type':'application/json'}, credentials:'include',
+      body: JSON.stringify({ wallet, username: clean, signature: sigB58, message: msg })
+    });
+    const d = await resp.json();
+    if(!resp.ok){throw new Error(d.error || 'username claim failed');}
+    window.SESSION.username = d.username;
+    $('walletMsg').style.color='var(--green)';$('walletMsg').textContent='Claimed ✓ @' + d.username;
+    updateWalletPill();
+    setTimeout(renderWalletList, 700);
+  }catch(e){
+    $('walletMsg').style.color='var(--red)';$('walletMsg').textContent=(e && e.message || 'Username claim failed').slice(0, 80);
   }
 }
 
