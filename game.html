@@ -18,7 +18,7 @@ html,body{height:100%;background:#07040d;color:var(--cream);font-family:'JetBrai
 #wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#07040d}
 canvas{image-rendering:pixelated;width:100%;height:100%;display:block;object-fit:contain;touch-action:none}
 .pix{font-family:'Press Start 2P',monospace}
-.ov{position:fixed;inset:0;z-index:20;display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:22px;
+.ov{position:fixed;inset:0;z-index:20;display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:22px;overflow-y:auto;-webkit-overflow-scrolling:touch;
   background:radial-gradient(ellipse 90% 60% at 50% 30%,rgba(107,45,201,.42),transparent 60%),rgba(7,4,13,.93)}
 .ov.on{display:flex}
 .ov h1{font-family:'Press Start 2P',monospace;font-size:clamp(22px,7vw,44px);color:var(--gold);line-height:1.35;text-shadow:0 4px 0 #6b2dc9,0 0 26px rgba(245,197,66,.5)}
@@ -30,7 +30,14 @@ canvas{image-rendering:pixelated;width:100%;height:100%;display:block;object-fit
 .btn{font-family:'Press Start 2P',monospace;font-size:13px;border:0;border-radius:12px;padding:15px 26px;margin:18px 6px 0;cursor:pointer;color:#1a1005;background:linear-gradient(135deg,#d4a431,#f5c542);box-shadow:0 5px 0 #7a5a10}
 .btn:active{transform:translateY(3px);box-shadow:0 2px 0 #7a5a10}
 .btn.ghost{background:transparent;color:var(--cream);border:1px solid rgba(162,89,255,.45);box-shadow:none}
-.lvgrid{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-top:20px;max-width:720px}
+.lvgrid{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-top:20px;max-width:720px;padding-bottom:24px}
+@media (max-width:700px){
+  .ov{justify-content:flex-start;padding-top:18px}
+  .lvgrid{gap:8px;max-width:100%}
+  .skinGrid{grid-template-columns:repeat(2,1fr)!important;gap:10px;padding-bottom:24px}
+  .walletList{padding-bottom:24px}
+  .ov h1{font-size:clamp(20px,6vw,36px)}
+}
 .lvcard{width:128px;background:rgba(27,18,40,.75);border:1px solid rgba(162,89,255,.35);border-radius:14px;padding:13px 10px;cursor:pointer;transition:transform .12s,border-color .12s}
 .lvcard:hover{transform:translateY(-4px);border-color:var(--gold)}
 .lvcard.locked{opacity:.38;cursor:not-allowed}
@@ -256,7 +263,10 @@ addEventListener('keydown',e=>{
   const k=e.key.toLowerCase();K[k]=true;
   if([' ','arrowup','arrowleft','arrowright','arrowdown'].includes(k)){e.preventDefault();
     if(document.activeElement&&document.activeElement.tagName==='BUTTON')document.activeElement.blur();}
-  if(k==='p'||k==='escape')togglePause();});
+  if(k==='p'||k==='escape')togglePause();
+  if(k==='s'&&!held('shift')){ // S toggles sound (Shift+S reserved for sprint)
+    try{ const on=AUDIO.toggleMute&&AUDIO.toggleMute(); addFloat(player?player.x:VW/2,(player?player.y:VH/2)-50,on?'🔇 MUTED':'🔊 SOUND ON','#f5c542',true);}catch(_){}
+  }});
 addEventListener('keyup',e=>{if(e.target&&e.target.tagName==='INPUT')return;K[e.key.toLowerCase()]=false;});
 function held(...ks){return ks.some(k=>K[k]);}
 document.addEventListener('click',e=>{const t=e.target;if(t&&t.tagName==='BUTTON')t.blur();},true);
@@ -677,9 +687,33 @@ function applySkinPerks(p){
   if(pp.extraLife)p._extraLife=true;
   if(pp.spdMul)p.spdMul=pp.spdMul;
 }
+/* Easter eggs: hidden bonus crates at random positions on platforms a player
+   wouldn't expect — encourages exploration. Each level rolls 2–4 of them on
+   eligible surfaces. Hidden crates carry rare loot (gold/x2/bone). */
+function seedEasterEggs(L){
+  const surfaces = L.platforms.filter(pl => !pl.gone && pl.w > 80 && pl.y < 540);
+  if (!surfaces.length) return;
+  const count = 2 + Math.floor(Math.random()*3); // 2..4
+  const placed = new Set();
+  for (let i = 0; i < count; i++) {
+    const pl = surfaces[Math.floor(Math.random()*surfaces.length)];
+    // Skip if this platform already has an egg or is the spawn platform
+    if (placed.has(pl) || pl.x < 200) continue;
+    placed.add(pl);
+    const x = pl.x + 30 + Math.random() * (pl.w - 90);
+    const eggLoots = ['gold','x2','bone','gold','magnet']; // weighted rare
+    L.crates.push({
+      x: x - 22, y: pl.y - 44, w: 44, h: 44, hp: 1,
+      loot: eggLoots[Math.floor(Math.random()*eggLoots.length)],
+      dead: false,
+      isEgg: true   // marker for render (subtle sparkle in drawCrate, if wanted later)
+    });
+  }
+}
 function startLevel(i){
   lvIdx=i;level=LEVELS[i].build();
   if(i===0)runScore=0;
+  seedEasterEggs(level);
   level.dripsTotal=level.coins.reduce((s,c)=>s+c.v,0);
   player=newPlayer(90,420);if(GOD){player.hp=99;player.hpMax=99;}
   if(i===0)applySkinPerks(player); // perks only granted at the start of a run (level 1), not every level
@@ -842,8 +876,13 @@ function landPound(){
   for(const e of level.enemies){if(e.dead)continue;const gr=e.type!=='bat'&&e.variant!=='tele';
     if(gr&&Math.abs(e.x-p.x)<120&&Math.abs(e.y-p.y)<40){dmgEnemy(e,2,true);}}
   if(level.boss&&!level.boss.dead&&Math.abs(level.boss.x-p.x)<130&&Math.abs(level.boss.y-p.y)<40){
-    if(level.boss.state==='dazed')bossHit(level.boss.kind==='shadow'?3:2);
-    else if(level.boss.kind==='shadow')bossHit(1);}
+    // Power slam is the riskiest move (no aerial control) so it deals the biggest hit.
+    //   Dazed boss: 4 (king) / 5 (shadow) — devastating
+    //   Active boss: 2 (king) / 3 (shadow) — still chips real armor
+    if(level.boss.state==='dazed') bossHit(level.boss.kind==='shadow'?5:4);
+    else                            bossHit(level.boss.kind==='shadow'?3:2);
+    addFloat(level.boss.x, level.boss.y-200, 'POWER SLAM!', '#ef4444', true);
+  }
   if(held(' '))p.vy=-520,p.jumps=1,p.onGround=false;
 }
 function applyPow(kind,x,y){
@@ -1003,17 +1042,45 @@ function updateBoss(dt){
     if(k>=1){B.yOff=0;B.state='idle';B.t=0.3;addShake(10,0.35);AUDIO.sfx.pound();level.shocks.push({x:B.x,r:30,band:26,life:1.1});spawnP(B.x,B.y,'#b0a890',14,260);}
   }
   else if(B.state==='dazed'){B.dazeT-=dt;if(B.dazeT<=0){B.state='idle';B.t=0;}}
-  // shockwaves
+
+  // Random "guard down" while idle — daze for variable length so player has windows
+  // outside of the scripted corner-trigger. Phase 3 bosses open up more often.
+  if(B.state==='idle'){
+    B._openCd=(B._openCd||0)-dt;
+    if(B._openCd<=0){
+      const baseChance=B.phase===3?0.55:B.phase===2?0.4:0.28;
+      if(Math.random()<baseChance){
+        B.state='dazed';B.dazeT=0.45+Math.random()*0.85;AUDIO.sfx.land&&AUDIO.sfx.land();
+        addFloat(B.x,B.y-180,'OPENING!','#22c55e',true);
+      }
+      B._openCd=2.2+Math.random()*2.4; // next opening attempt in 2.2-4.6s
+    }
+  }
+
+  // Shockwaves — only hurt player if they're on the SAME ground level as the boss.
+  // Standing on the high side-wall platforms in the arena should not take damage.
   for(const s of level.shocks){s.r+=460*dt;s.life-=dt;
-    if(p.onGround&&Math.abs(Math.abs(p.x-s.x)-s.r)<s.band&&s.life>0)hurt();}
+    const onSameFloor = p.onGround && Math.abs(p.y - B.y) < 70;
+    if(onSameFloor && Math.abs(Math.abs(p.x-s.x)-s.r)<s.band && s.life>0) hurt();}
   level.shocks=level.shocks.filter(s=>s.life>0);
-  // contact with boss
+
+  // Contact with boss — tiered damage:
+  //   - Power slam (pound) onto a dazed boss = HEAVY (handled in landPound where state==dazed)
+  //   - Stomp onto dazed boss = MEDIUM (2 for king, 3 for shadow)
+  //   - Stomp onto active boss = LIGHT (1 dmg always — every hit chips armor a bit)
+  //   - Side touch (no stomp) = take damage
   const er={x:B.x-58,y:B.y-130+(B.yOff||0),w:116,h:130};
   if(!B.dead&&aabb(pRect(),er)){
     if(p.vy>140&&p.prevy-p.h<er.y+14){
-      if(B.state==='dazed'){bossHit(B.kind==='shadow'?2:1);p.vy=-540;p.jumps=1;}
-      else if(B.kind==='shadow'){bossHit(1);p.vy=-520;p.jumps=1;}
-      else{p.vy=-460;p.jumps=1;AUDIO.sfx.clank();addFloat(B.x,B.y-180,'ARMORED!','#aaa');}
+      if(B.state==='dazed'){
+        bossHit(B.kind==='shadow'?3:2);
+        p.vy=-540;p.jumps=1;
+      } else {
+        // Every stomp on an active boss now lands at least 1 dmg (was: full armor block for kings)
+        bossHit(1);
+        p.vy=-520;p.jumps=1;
+        AUDIO.sfx.clank();addFloat(B.x,B.y-180,'CHIP!','#ffd966');
+      }
     } else hurt();
   }
 }
@@ -1035,7 +1102,13 @@ function updateProjectiles(dt){
           dmgEnemy(e,1);pr.life=0;break;}}
       for(const cr of level.crates){if(!cr.dead&&pr.x>cr.x&&pr.x<cr.x+cr.w&&pr.y>cr.y&&pr.y<cr.y+cr.h){breakCrate(cr);pr.life=0;}}
       const B=level.boss;
-      if(B&&!B.dead&&Math.abs(pr.x-B.x)<60&&Math.abs(pr.y-(B.y-70))<70){pr.life=0;AUDIO.sfx.clank();if(B.shotHint<=0){B.shotHint=3;addFloat(B.x,B.y-180,B.kind==='shadow'?'YOUR SHADOW KNOWS — STOMP!':'ARMORED — STOMP!','#aaa');}}
+      if(B&&!B.dead&&Math.abs(pr.x-B.x)<60&&Math.abs(pr.y-(B.y-70))<70){
+        pr.life=0;
+        // Projectiles deal light damage. Heavier during boss's vulnerable windows.
+        const dmg = (B.state==='dazed') ? 2 : 1;
+        bossHit(dmg);
+        if(B.state!=='dazed' && B.shotHint<=0){B.shotHint=3;addFloat(B.x,B.y-160,'BOOM','#ffd966');}
+      }
     } else if(aabb(pRect(),{x:pr.x-9,y:pr.y-9,w:18,h:18})){hurt();pr.life=0;}
   }
   if(level.boss)level.boss.shotHint=(level.boss.shotHint||0)-dt;
@@ -1044,15 +1117,40 @@ function updateProjectiles(dt){
   if(level.supply){level.supply.t-=dt;
     if(level.supply.t<=0){level.supply.t=level.supply.every;AUDIO.sfx.whistle();
       level.eventT=2.5;level.eventMsg='SUPPLY DROP ▸';
-      const x=Math.max(120,Math.min(level.w-120,player.x+(Math.random()<0.5?-1:1)*(180+Math.random()*180)));
-      drops.push({x,y:cam.y-60,sway:Math.random()*6});}}
+      // Pre-validate spawn position: find an x where there IS a landable surface below.
+      // Try 12 candidates near the player; if none work, drop directly on the player's column.
+      const hasFloorBelow = (x) => level.platforms.some(pl => !pl.gone && x > pl.x + 24 && x < pl.x + pl.w - 24);
+      let spawnX = null;
+      for (let i = 0; i < 12; i++) {
+        const cand = Math.max(150, Math.min(level.w - 150, player.x + (Math.random()<0.5?-1:1)*(180 + Math.random()*200)));
+        if (hasFloorBelow(cand)) { spawnX = cand; break; }
+      }
+      if (spawnX == null) spawnX = hasFloorBelow(player.x) ? player.x : (level.platforms.find(pl => !pl.gone) || {x:player.x,w:0}).x + 80;
+      drops.push({ x: spawnX, y: cam.y - 60, sway: Math.random()*6, anchorX: spawnX });
+    }}
   for(const d of drops){
-    d.y+=72*dt;d.sway+=dt;d.x+=Math.sin(d.sway*2)*18*dt;
+    d.y+=72*dt;d.sway+=dt;
+    // Constrain horizontal drift to ±20px of anchor so it can't sway off the validated landing spot
+    const target = d.anchorX ?? d.x;
+    const drift = Math.sin(d.sway*2)*18*dt;
+    if (Math.abs((d.x + drift) - target) < 22) d.x += drift; else d.x += drift * 0.15;
     let landY=null;
     for(const pl of level.platforms){if(pl.gone)continue;if(d.x>pl.x-8&&d.x<pl.x+pl.w+8&&pl.y>=d.y&&(landY==null||pl.y<landY))landY=pl.y;}
     if(landY!=null&&d.y>=landY-26){d.dead=true;AUDIO.sfx.land();spawnP(d.x,landY,'#b0a890',8,140);
       const loots=['gold','shield','magnet','x2','bone'];
       level.crates.push({x:d.x-22,y:landY-44,w:44,h:44,hp:1,loot:loots[Math.floor(Math.random()*loots.length)],dead:false});}
+  }
+  // Safety net: any drop that falls below the visible ground without landing gets removed,
+  // and a fallback crate spawns at the player's current foothold so the supply isn't wasted.
+  for (const d of drops) {
+    if (!d.dead && d.y > level.h - 40) {
+      d.dead = true;
+      if (player.ground && player.ground.y) {
+        const loots = ['gold','shield','magnet','x2','bone'];
+        level.crates.push({x: player.x - 22, y: player.ground.y - 44, w:44, h:44, hp:1, loot: loots[Math.floor(Math.random()*loots.length)], dead:false});
+        addFloat(player.x, player.y - 70, 'SUPPLY!', '#f5c542', true);
+      }
+    }
   }
   drops=drops.filter(d=>!d.dead&&d.y<level.h);
   level.eventT-=dt;
@@ -1194,7 +1292,17 @@ function render(){
   if(level.water){const wy=level.water.y-camY;ctx.fillStyle='rgba(20,90,80,.75)';ctx.fillRect(0,wy,VW,VH-wy);
     ctx.fillStyle='rgba(47,214,196,.5)';for(let x=0;x<VW;x+=26)ctx.fillRect(x,wy+Math.sin(gt*2+x*0.06)*3,14,3);}
   // crates / checkpoints / coins / powerups
-  for(const cr of level.crates){if(cr.dead)continue;blit(SPR('crate'),cr.x+cr.w/2,cr.y+cr.h,cr.h,1);}
+  for(const cr of level.crates){
+    if(cr.dead)continue;
+    blit(SPR('crate'),cr.x+cr.w/2,cr.y+cr.h,cr.h,1);
+    // Easter egg sparkle: subtle pulsing star above the crate, gentle hint without giveaway
+    if(cr.isEgg){
+      const sx=cr.x+cr.w/2-camX, sy=cr.y+cr.h-44-camY;
+      const tw=0.6+Math.abs(Math.sin(gt*3+cr.x*0.01))*0.4;
+      ctx.globalAlpha=tw*0.7;ctx.fillStyle='#f5c542';ctx.font='12px monospace';ctx.textAlign='center';
+      ctx.fillText('✦',sx,sy);ctx.globalAlpha=1;ctx.textAlign='left';
+    }
+  }
   for(const ck of level.checkpoints){blit(SPR(ck.on?'hydrantOn':'hydrant'),ck.x,ck.y,76,1);
     if(ck.on&&Math.random()<0.15)spawnP(ck.x,ck.y-70,'#7fe8dc',1,60);}
   for(const c of level.coins){if(c.got)continue;const x=c.x-camX,y=c.y-camY+Math.sin(gt*3.4+c.x)*4;
@@ -1280,7 +1388,15 @@ function drawPlatform(pl,pal){const x=pl.x-camX,y=pl.y-camY;
   ctx.fillStyle='rgba(255,255,255,.14)';ctx.fillRect(x+jx,y,pl.w,2);
   if(pl.belt){ctx.fillStyle='#1a1422';ctx.fillRect(x,y,pl.w,12);
     ctx.fillStyle='#f5c542';const sp=24,off2=((gt*pl.belt)%sp+sp)%sp;
-    for(let i=-sp;i<pl.w;i+=sp){const cx2=x+i+off2;if(cx2>x&&cx2<x+pl.w-8){ctx.beginPath();ctx.moveTo(cx2,y+9);ctx.lineTo(cx2+8,y+6);ctx.lineTo(cx2,y+3);ctx.fill();}}}
+    // Arrow direction must match belt direction. Positive belt → arrow tip points right; negative → tip points left.
+    const dir=pl.belt>=0?1:-1;
+    for(let i=-sp;i<pl.w;i+=sp){const cx2=x+i+off2;if(cx2>x&&cx2<x+pl.w-8){
+      ctx.beginPath();
+      ctx.moveTo(cx2,y+9);
+      ctx.lineTo(cx2+8*dir,y+6);  // tip flips based on direction
+      ctx.lineTo(cx2,y+3);
+      ctx.fill();
+    }}}
   if(pl.mv){ctx.fillStyle='rgba(162,89,255,.5)';ctx.fillRect(x+pl.w/2-8,y+pl.h-4,16,3);}
 }
 function drawJet(j,pal){const x=j.x-camX;if(x<-60||x>VW+60)return;
