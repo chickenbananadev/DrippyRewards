@@ -219,7 +219,7 @@ setInterval(loadStats, 45000);
 /* ---------------- Drippy Run: top global scores on the promo card ---------------- */
 (async function loadGameTop(){
   try{
-    const r = await fetch('/api/game-scores', { cache: 'no-store' });
+    const r = await fetch('/api/leaderboard?board=game', { cache: 'no-store' });
     if(!r.ok) return;
     const d = await r.json();
     if(!d || !Array.isArray(d.scores) || !d.scores.length) return;

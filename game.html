@@ -1251,7 +1251,7 @@ function renderScoreRows(sc,label){
 function renderScores(){
   renderScoreRows(getScores(),'THIS DEVICE');
   if(location.protocol.indexOf('http')===0){
-    fetch('/api/game-scores',{cache:'no-store'}).then(r=>r.json()).then(d=>{
+    fetch('/api/leaderboard?board=game',{cache:'no-store'}).then(r=>r.json()).then(d=>{
       if(d&&Array.isArray(d.scores)&&d.scores.length)renderScoreRows(d.scores,'🌍 GLOBAL — THE WHOLE PACK');
     }).catch(()=>{});
   }
@@ -1265,7 +1265,7 @@ $('btnHsSave').onclick=()=>{let n=($('hsName').value||'').trim().toUpperCase().s
   const sc=getScores();sc.push({n,s:runScore,beat:pendingBeat,d:Date.now()});sc.sort((a,b)=>b.s-a.s);
   try{localStorage.setItem('drippyScores',JSON.stringify(sc.slice(0,10)));}catch(e){}
   if(location.protocol.indexOf('http')===0){
-    fetch('/api/game-scores',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:n,score:runScore,beat:pendingBeat})})
+    fetch('/api/leaderboard?board=game',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:n,score:runScore,beat:pendingBeat})})
       .then(()=>renderScores()).catch(()=>{});
   }
   AUDIO.sfx.levelup();renderScores();hideAll();$('ovScores').classList.add('on');state='scores';};

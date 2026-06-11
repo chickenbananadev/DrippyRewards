@@ -33,11 +33,42 @@ async function redis(command){
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   res.setHeader('Cache-Control', 'no-store');
 
   if (req.method === 'OPTIONS') { res.status(204).end(); return; }
+
+  // ----- DRIPPY RUN global game leaderboard -----
+  // Folded in here (instead of a separate api/game-scores.js) to stay under
+  // Vercel Hobby's 12-serverless-function limit.
+  //   GET  ?board=game            -> { scores: [{ n, s, beat }] }  (top 25)
+  //   POST ?board=game {name,score,beat} -> { ok, rank }
+  if ((req.query.board || '') === 'game') {
+    const ZKEY = 'drippy:game:leaderboard', FLAGS = 'drippy:game:beat', RL = 'drippy:game:rl:', MAX = 200000;
+    const clean = n => String(n || '').toUpperCase().replace(/[^A-Z0-9 _.\-]/g, '').trim().slice(0, 12) || 'DRIPPY';
+    if (req.method === 'POST') {
+      let b = req.body; if (typeof b === 'string') { try { b = JSON.parse(b); } catch (_) { b = null; } }
+      if (!b) { res.status(400).json({ error: 'bad body' }); return; }
+      const name = clean(b.name), score = Math.round(Number(b.score) || 0);
+      if (!(score > 0) || score > MAX) { res.status(400).json({ error: 'score out of range' }); return; }
+      const ip = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() || 'unknown';
+      const rl = await redis(['SET', RL + ip, '1', 'NX', 'EX', '20']);
+      if (rl !== null && rl !== 'OK') { res.status(429).json({ error: 'one log per 20s' }); return; }
+      await redis(['ZADD', ZKEY, 'GT', 'CH', String(score), name]);
+      if (b.beat) await redis(['HSET', FLAGS, name, '1']);
+      const rank = await redis(['ZREVRANK', ZKEY, name]);
+      res.status(200).json({ ok: true, rank: rank != null ? Number(rank) + 1 : null });
+      return;
+    }
+    const raw = await redis(['ZREVRANGE', ZKEY, '0', '24', 'WITHSCORES']);
+    const flagsRaw = await redis(['HGETALL', FLAGS]);
+    const flags = {}; if (Array.isArray(flagsRaw)) for (let i = 0; i < flagsRaw.length; i += 2) flags[flagsRaw[i]] = flagsRaw[i + 1];
+    const scores = [];
+    if (Array.isArray(raw)) for (let i = 0; i < raw.length; i += 2) scores.push({ n: raw[i], s: Math.round(Number(raw[i + 1]) || 0), beat: flags[raw[i]] === '1' });
+    res.status(200).json({ scores });
+    return;
+  }
 
   if (!REDIS_URL || !REDIS_TOKEN) {
     res.status(200).json({ configured: false, entries: [], total: 0 });
