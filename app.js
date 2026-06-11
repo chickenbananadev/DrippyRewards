@@ -97,6 +97,45 @@ function tickCountdown(){
 setInterval(tickCountdown, 1000);
 tickCountdown();
 
+/* ---------------- payout celebration: gold rain when the pack gets paid ---------------- */
+let _lastDistAt = null;
+function celebratePayout(amountSol){
+  if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const meter = document.querySelector('.dripmeter');
+  if(meter){ meter.classList.add('splash'); setTimeout(() => meter.classList.remove('splash'), 950); }
+  for(let i = 0; i < 44; i++){
+    const dr = document.createElement('span');
+    dr.className = 'gold-rain';
+    dr.style.left = (Math.random() * 100).toFixed(1) + 'vw';
+    dr.style.animationDuration = (1.4 + Math.random() * 1.7).toFixed(2) + 's';
+    dr.style.animationDelay = (Math.random() * 0.9).toFixed(2) + 's';
+    document.body.appendChild(dr);
+    setTimeout(() => dr.remove(), 4300);
+  }
+  const t = document.createElement('div');
+  t.className = 'payout-toast';
+  t.textContent = '💸 The pack just got paid' + (amountSol ? ': +' + fmtSol(amountSol) : '') + '!';
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 4200);
+}
+
+/* ---------------- count-up: make the big numbers land ---------------- */
+function cuCell(key, num, fmt){
+  const cell = document.querySelector('[data-key="' + key + '"]');
+  if(!cell || isNaN(num)) return;
+  const v = cell.querySelector('.v');
+  if(!v || v.dataset.counted) return;
+  v.dataset.counted = '1';
+  if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const t0 = performance.now(), dur = 1100;
+  (function step(t){
+    const k = Math.min(1, (t - t0) / dur);
+    const ease = 1 - Math.pow(1 - k, 3);
+    try{ v.textContent = fmt(num * ease); }catch(_){ return; }
+    if(k < 1) requestAnimationFrame(step);
+  })(t0);
+}
+
 /* ---------------- consolidated stats ---------------- */
 async function loadStats(){
   try{
@@ -110,17 +149,19 @@ async function loadStats(){
       if(d.market.change24h != null){
         const ch = Number(d.market.change24h);
         setCell('change', (ch >= 0 ? '+' : '') + ch.toFixed(2) + '%', ch >= 0 ? 'up' : 'down');
+        window._mood = ch >= 0 ? 'bull' : 'bear';
       }
       setCell('mcap', fmtUsd(d.market.marketCap));
       setCell('vol', fmtUsd(d.market.volume24h));
       setCell('liq', fmtUsd(d.market.liquidityUsd));
     }
     if(d.supply) setCell('supply', fmtTokens(d.supply.circulating));
-    if(d.holders && d.holders.count != null) setCell('holders', d.holders.count.toLocaleString());
-    if(d.burns && d.burns.tokensBurned) setCell('burned', fmtTokens(d.burns.tokensBurned), 'purple');
+    if(d.holders && d.holders.count != null){ setCell('holders', d.holders.count.toLocaleString()); cuCell('holders', Number(d.holders.count), v => Math.round(v).toLocaleString()); }
+    if(d.burns && d.burns.tokensBurned){ setCell('burned', fmtTokens(d.burns.tokensBurned), 'purple'); cuCell('burned', Number(d.burns.tokensBurned), fmtTokens); }
     if(d.burns && d.burns.supplyBurnedPct != null) setCell('burnpct', Number(d.burns.supplyBurnedPct).toFixed(2) + '%', 'purple');
     if(d.distribution && d.distribution.totalDistributedSol != null){
       setCell('rewards', fmtSol(d.distribution.totalDistributedSol).replace(' SOL','') + ' SOL', 'gold');
+      cuCell('rewards', Number(d.distribution.totalDistributedSol), v => fmtSol(v).replace(' SOL','') + ' SOL');
     }
 
     // Distribution card
@@ -129,6 +170,8 @@ async function loadStats(){
       if(dist.lastDistributionAt){
         _anchor = new Date(dist.lastDistributionAt).getTime(); // sync the countdown
         const lt = $('distLastTime'); if(lt) lt.textContent = timeAgo(dist.lastDistributionAt);
+        if(_lastDistAt && dist.lastDistributionAt !== _lastDistAt) celebratePayout(dist.lastAmountSol);
+        _lastDistAt = dist.lastDistributionAt;
       }
       const la = $('distLastAmount'); if(la) la.textContent = fmtSol(dist.lastAmountSol);
       const tt = $('distTotal'); if(tt) tt.textContent = fmtSol(dist.totalDistributedSol);
@@ -228,7 +271,7 @@ function copyAddr(srcId, btnId){
   const btn = $(btnId);
   if(!btn.dataset.orig) btn.dataset.orig = btn.textContent;
   const done = () => {
-    btn.textContent = 'Copied!';
+    btn.textContent = 'copied 🐾';
     btn.classList.add('copied');
     setTimeout(() => { btn.textContent = btn.dataset.orig; btn.classList.remove('copied'); }, 1800);
   };
@@ -802,10 +845,13 @@ setInterval(loadEvents, 60000);
   const banner = $('heroBanner');
   if(!banner) return;
   const WOOFS = ['WOOF!', 'WOOF WOOF!', 'drip drip.', 'good dog.', 'pays well.', 'AWOOOO!', '*tail wags*', 'the pack eats.'];
+  const BULL_WOOFS = ['we pumping. WOOF.', 'green candles taste like bacon.', 'UP ONLY.', 'the drip is dripping.'];
+  const BEAR_WOOFS = ['diamond paws.', 'we hold. we fetch later.', 'red is just discount gold.', 'still getting paid every 30 min.'];
   banner.addEventListener('click', (e) => {
+    const pool = WOOFS.concat(window._mood === 'bull' ? BULL_WOOFS : window._mood === 'bear' ? BEAR_WOOFS : []);
     const pop = document.createElement('div');
     pop.className = 'woof-pop';
-    pop.textContent = WOOFS[Math.floor(Math.random() * WOOFS.length)];
+    pop.textContent = pool[Math.floor(Math.random() * pool.length)];
     pop.style.left = e.clientX + 'px';
     pop.style.top = (e.clientY - 10) + 'px';
     pop.style.fontSize = (20 + Math.random() * 16).toFixed(0) + 'px';

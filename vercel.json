@@ -5,5 +5,9 @@
     "api/backfill-burns.js": { "maxDuration": 30 },
     "api/stats.js": { "maxDuration": 20 },
     "api/*.js": { "maxDuration": 10 }
-  }
+  },
+  "rewrites": [
+    { "source": "/game", "destination": "/game.html" },
+    { "source": "/play", "destination": "/game.html" }
+  ]
 }

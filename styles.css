@@ -698,3 +698,31 @@ footer{border-top:1px solid var(--card-border);padding:50px 0 40px;text-align:ce
 }
 
 @media(prefers-reduced-motion:reduce){.intro{display:none}}
+
+/* ============ Drippy Run promo ============ */
+.nav-game{color:var(--gold-bright,#f5c542)!important;font-weight:700}
+.game-card{display:grid;grid-template-columns:1.25fr 1fr;gap:24px;margin-top:26px;align-items:center}
+@media(max-width:760px){.game-card{grid-template-columns:1fr}}
+.game-shot{position:relative;display:block;border-radius:18px;overflow:hidden;border:1px solid var(--card-border-gold,rgba(212,164,49,.5));text-decoration:none}
+.game-shot img{width:100%;display:block;transition:transform .35s ease}
+.game-shot:hover img{transform:scale(1.04)}
+.game-play{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:rgba(10,6,16,.78);border:2px solid var(--gold-bright,#f5c542);color:var(--gold-bright,#f5c542);font-weight:800;letter-spacing:2px;padding:13px 26px;border-radius:14px;font-size:15px;transition:transform .2s ease,background .2s ease}
+.game-shot:hover .game-play{transform:translate(-50%,-50%) scale(1.08);background:rgba(58,26,94,.85)}
+.game-meta{display:flex;flex-direction:column;gap:12px}
+.game-feat{font-size:13.5px;color:var(--cream-dim,rgba(246,233,196,.72));line-height:1.55;background:rgba(27,18,40,.5);border:1px solid rgba(162,89,255,.22);border-radius:12px;padding:10px 14px}
+.game-meta .btn{align-self:flex-start;margin-top:6px}
+
+/* ============ payout celebration ============ */
+.gold-rain{position:fixed;top:-24px;width:7px;height:15px;border-radius:0 0 50% 50%;background:linear-gradient(180deg,#ffd966,#d4a431);z-index:80;pointer-events:none;box-shadow:0 0 8px rgba(245,197,66,.55);animation:goldfall linear forwards}
+@keyframes goldfall{to{transform:translateY(112vh)}}
+.payout-toast{position:fixed;top:70px;left:50%;transform:translateX(-50%);z-index:90;background:#1b1228;border:1px solid var(--gold-bright,#f5c542);color:#ffd966;padding:12px 22px;border-radius:14px;font-weight:700;font-size:14px;box-shadow:0 8px 30px rgba(0,0,0,.55);animation:toastin .4s ease,toastout .5s ease 3.4s forwards;pointer-events:none;max-width:88vw;text-align:center}
+@keyframes toastin{from{opacity:0;transform:translate(-50%,-12px)}}
+@keyframes toastout{to{opacity:0;transform:translate(-50%,-12px)}}
+.dripmeter.splash .drop{animation:bowlsplash .85s ease}
+@keyframes bowlsplash{0%{transform:scale(1)}30%{transform:scale(1.28) rotate(-4deg)}60%{transform:scale(.9)}100%{transform:scale(1)}}
+
+/* ============ copy paw pop ============ */
+.copy-btn.copied{animation:pawpop .4s ease}
+@keyframes pawpop{30%{transform:scale(1.12)}60%{transform:scale(.96)}}
+
+@media(prefers-reduced-motion:reduce){.gold-rain,.payout-toast{display:none}.dripmeter.splash .drop,.copy-btn.copied{animation:none}}
