@@ -144,8 +144,9 @@ module.exports = async (req, res) => {
       return;
     }
 
-    // GET — top 25 with display names + verified/holder status
-    const raw = await redis(['ZREVRANGE', ZWEEK, '0', '24', 'WITHSCORES']);
+    // GET — top N with display names + verified/holder status (default 25, max 50)
+    const wkLimit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 25));
+    const raw = await redis(['ZREVRANGE', ZWEEK, '0', String(wkLimit - 1), 'WITHSCORES']);
     const STATUS_KEY = `drippy:game:weekly:status:${weekKey}`;
     const statusMap = {};
     const rawStatus = await redis(['HGETALL', STATUS_KEY]);
@@ -227,7 +228,8 @@ module.exports = async (req, res) => {
       res.status(200).json({ ok: true, rank: rank != null ? Number(rank) + 1 : null });
       return;
     }
-    const raw = await redis(['ZREVRANGE', ZKEY, '0', '24', 'WITHSCORES']);
+    const gmLimit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 25));
+    const raw = await redis(['ZREVRANGE', ZKEY, '0', String(gmLimit - 1), 'WITHSCORES']);
     const flagsRaw = await redis(['HGETALL', FLAGS]);
     const flags = {}; if (Array.isArray(flagsRaw)) for (let i = 0; i < flagsRaw.length; i += 2) flags[flagsRaw[i]] = flagsRaw[i + 1];
     const SKIN_KEY = 'drippy:game:skin';
