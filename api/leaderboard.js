@@ -145,34 +145,54 @@ module.exports = async (req, res) => {
     }
 
     // GET — top N with display names + verified/holder status (default 25, max 50)
+    // PRIVACY: by default, wallet addresses are masked to "XXXX…YYYY" in the response.
+    // Admins with the correct x-admin-secret header receive the FULL wallet so they can
+    // moderate, audit, or DM holders. The wallet is never sent to the public API.
+    const isAdminGet = (req.headers['x-admin-secret'] || '') === process.env.DRIPPY_EVENTS_SECRET;
     const wkLimit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 25));
     const raw = await redis(['ZREVRANGE', ZWEEK, '0', String(wkLimit - 1), 'WITHSCORES']);
     const STATUS_KEY = `drippy:game:weekly:status:${weekKey}`;
     const statusMap = {};
     const rawStatus = await redis(['HGETALL', STATUS_KEY]);
     if (Array.isArray(rawStatus)) for (let i = 0; i < rawStatus.length; i += 2) statusMap[rawStatus[i]] = rawStatus[i+1];
-    const scores = [];
-    const wallets = [];
+    // Build a temp shape that keeps the full wallet for username lookup, then mask at the end
+    // based on isAdminGet. This avoids the indexOf/array-out-of-sync bug.
+    const temp = [];
     if (Array.isArray(raw)) for (let i = 0; i < raw.length; i += 2) {
       const m = raw[i]; const s = Math.round(Number(raw[i+1]) || 0);
       const status = statusMap[m] || (m.startsWith('anon:') ? 'anon' : 'holder');
-      // member is the raw Redis member string — admin needs this verbatim to DELETE/PUT
-      if (m.startsWith('anon:')) {
-        const parts = m.split(':');
-        scores.push({ n: parts[1] || 'DRIPPY', s, status: 'anon', eligible: false, verified: false, member: m });
-      } else {
-        scores.push({ wallet: m, s, status, eligible: status === 'verified' || status === 'holder', verified: status === 'verified', member: m });
-        wallets.push(m);
+      temp.push({ m, s, status, isAnon: m.startsWith('anon:') });
+    }
+    // Resolve usernames for non-anon entries
+    await Promise.all(temp.map(async (e) => {
+      if (e.isAnon) return;
+      e._uname = await redis(['GET', 'drippy:username:' + e.m]);
+    }));
+    // Final masked/unmasked response shape
+    const scores = temp.map(e => {
+      if (e.isAnon) {
+        const parts = e.m.split(':');
+        return {
+          n: parts[1] || 'DRIPPY',
+          s: e.s,
+          status: 'anon',
+          eligible: false,
+          verified: false,
+          member: isAdminGet ? e.m : undefined
+        };
       }
-    }
-    // Look up usernames for wallet entries
-    if (wallets.length) {
-      await Promise.all(scores.map(async (e) => {
-        if (!e.wallet) return;
-        const name = await redis(['GET', 'drippy:username:' + e.wallet]);
-        e.n = name || (e.wallet.slice(0,4) + '...' + e.wallet.slice(-4));
-      }));
-    }
+      const short = e.m.slice(0, 4) + '…' + e.m.slice(-4);
+      return {
+        n: e._uname || short,
+        wallet: isAdminGet ? e.m : short,
+        walletFull: isAdminGet ? e.m : undefined,
+        s: e.s,
+        status: e.status,
+        eligible: e.status === 'verified' || e.status === 'holder',
+        verified: e.status === 'verified',
+        member: isAdminGet ? e.m : undefined
+      };
+    });
     res.status(200).json({ week: weekKey, scores });
     return;
   }

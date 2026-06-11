@@ -821,33 +821,52 @@ setInterval(loadEvents, 60000);
     list.innerHTML = '<div class="ev-admin-row">Loading…</div>';
     try{
       const url = _lbAdminBoard === 'weekly'
-        ? '/api/leaderboard?board=weekly'
-        : '/api/leaderboard?board=game';
-      const r = await fetch(url, { cache: 'no-store' });
+        ? '/api/leaderboard?board=weekly&limit=50'
+        : '/api/leaderboard?board=game&limit=50';
+      // Pass admin secret so server returns FULL wallet addresses (instead of masked
+      // XXXX...YYYY that public sees). Required for moderation + audit.
+      const headers = { 'Cache-Control': 'no-store' };
+      if (key) headers['x-admin-secret'] = key;
+      const r = await fetch(url, { cache: 'no-store', headers });
       const d = await r.json();
       list.innerHTML = '';
       const items = Array.isArray(d.scores) ? d.scores : [];
       if(!items.length){
         list.innerHTML = '<div class="ev-admin-row">No scores on this board yet</div>';
+        if (!key) list.innerHTML += '<div class="ev-admin-row" style="color:#9aa3b2;font-size:11px">Enter admin key above to see full wallets</div>';
         return;
       }
       items.forEach((e, i) => {
         // member key:
         //   game (all-time) → server keyed by name (e.n)
-        //   weekly         → server returns the raw member key as e.member (wallet or 'anon:NAME:ip')
+        //   weekly         → server returns the raw member key (full wallet for admin, masked for public)
         const isWeekly = _lbAdminBoard === 'weekly';
         const member = isWeekly ? (e.member || e.wallet || ('anon:' + (e.n || 'DRIPPY') + ':unknown')) : (e.n || '');
+        // walletFull is only set if admin secret was sent — that's the moderation handle
+        const fullWallet = e.walletFull || (typeof e.wallet === 'string' && e.wallet.length >= 32 ? e.wallet : '');
         const tag = isWeekly
           ? (e.verified ? ' ✓' : e.status === 'holder' ? ' 🐾' : ' (anon)')
           : (e.beat ? ' 👑' : '');
         const skinBadge = e.skin ? ({default:'🐶',believer:'🐾',bronze:'🥉',silver:'🥈',gold:'🥇',diamond:'💎',void:'🌌',shadow:'☠️'}[e.skin] || '') : '';
-        const label = '#' + (i+1) + ' · ' + (e.n || (e.wallet ? (e.wallet.slice(0,4)+'…'+e.wallet.slice(-4)) : 'DRIPPY')) + tag + (skinBadge ? ' ' + skinBadge : '');
+        const displayName = e.n || (typeof e.wallet === 'string' ? e.wallet : 'DRIPPY');
+        const label = '#' + (i+1) + ' · ' + displayName + tag + (skinBadge ? ' ' + skinBadge : '');
         const row = document.createElement('div');
         row.className = 'ev-admin-row';
         row.style.cssText = 'display:flex;align-items:center;gap:8px;flex-wrap:wrap';
+        // Admin-only wallet readout under the row (full address + copy button)
+        const walletRow = fullWallet
+          ? '<div style="flex-basis:100%;display:flex;align-items:center;gap:8px;font-family:JetBrains Mono,monospace;font-size:10.5px;color:#7aa3d4;padding-top:3px;margin-top:3px;border-top:1px dashed rgba(122,163,212,0.18)">'
+            + '<span style="opacity:.7">📋 Wallet:</span>'
+            + '<span style="user-select:all;flex:1;overflow:hidden;text-overflow:ellipsis" title="' + fullWallet + '">' + fullWallet + '</span>'
+            + '<button data-wallet="' + fullWallet + '" class="lbCopyWallet" style="padding:2px 7px;font-size:10px;background:rgba(122,163,212,.15);border:1px solid rgba(122,163,212,.4);border-radius:4px;color:#7aa3d4;cursor:pointer">COPY</button>'
+            + '</div>'
+          : (isWeekly && !key
+              ? '<div style="flex-basis:100%;font-size:10px;color:#9aa3b2;padding-top:3px;margin-top:3px;border-top:1px dashed rgba(255,255,255,0.08)">🔒 Enter admin key to reveal wallet</div>'
+              : '');
         row.innerHTML =
           '<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis">' + label + '</span>' +
-          '<span style="font-family:JetBrains Mono,monospace;color:#f5c542;font-weight:700">' + Number(e.s).toLocaleString() + '</span>';
+          '<span style="font-family:JetBrains Mono,monospace;color:#f5c542;font-weight:700">' + Number(e.s).toLocaleString() + '</span>' +
+          walletRow;
         const editBtn = document.createElement('button');
         editBtn.textContent = '✏️';
         editBtn.title = 'Edit score';
@@ -893,6 +912,14 @@ setInterval(loadEvents, 60000);
         row.appendChild(editBtn);
         row.appendChild(delBtn);
         list.appendChild(row);
+        // Wire up COPY button if the wallet was rendered
+        const copyBtn = row.querySelector('.lbCopyWallet');
+        if (copyBtn) copyBtn.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          const w = copyBtn.getAttribute('data-wallet');
+          try { navigator.clipboard.writeText(w); copyBtn.textContent = 'COPIED ✓'; setTimeout(() => copyBtn.textContent = 'COPY', 1200); }
+          catch (e) { lbMsg('Copy failed; select the address manually.', 'err'); }
+        });
       });
     }catch(err){ list.innerHTML = '<div class="ev-admin-row">Could not load: ' + err.message + '</div>'; }
   }
