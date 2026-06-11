@@ -588,6 +588,14 @@
     <div class="modal-msg" id="adminMsg"></div>
     <h3 style="margin-top:18px">Currently scheduled</h3>
     <div class="ev-admin-list" id="adminEvList"></div>
+
+    <h3 style="margin-top:22px">🎮 Game leaderboard</h3>
+    <div class="lb-admin-tabs" id="lbAdminTabs" style="display:flex;gap:6px;margin-bottom:8px">
+      <button class="lb-admin-tab active" data-board="game" style="flex:1;padding:8px;background:rgba(245,197,66,.12);border:1px solid rgba(245,197,66,.35);border-radius:6px;color:#f5c542;cursor:pointer;font-weight:700">All-Time (Top Dogs)</button>
+      <button class="lb-admin-tab" data-board="weekly" style="flex:1;padding:8px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:6px;color:#aaa;cursor:pointer;font-weight:700">This Week</button>
+    </div>
+    <div class="ev-admin-list" id="adminLbList" style="max-height:340px;overflow-y:auto"></div>
+    <div class="modal-msg" id="adminLbMsg" style="margin-top:6px"></div>
   </div>
 </div>
 

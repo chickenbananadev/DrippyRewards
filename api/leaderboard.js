@@ -74,6 +74,26 @@ module.exports = async (req, res) => {
       } catch(_) {}
     }
 
+    // Admin: DELETE ?board=weekly&member=X (member can be a wallet or "anon:NAME:ip" form)
+    if (req.method === 'DELETE') {
+      if ((req.headers['x-admin-secret'] || '') !== process.env.DRIPPY_EVENTS_SECRET) { res.status(401).json({ error: 'unauthorized' }); return; }
+      const member = String(req.query.member || '');
+      if (member) await redis(['ZREM', ZWEEK, member]);
+      res.status(200).json({ removed: member });
+      return;
+    }
+    // Admin: PUT ?board=weekly {member, score} — set/edit any score on this week's board
+    if (req.method === 'PUT') {
+      if ((req.headers['x-admin-secret'] || '') !== process.env.DRIPPY_EVENTS_SECRET) { res.status(401).json({ error: 'unauthorized' }); return; }
+      let b = req.body; if (typeof b === 'string') { try { b = JSON.parse(b); } catch(_) { b = null; } }
+      if (!b) { res.status(400).json({ error: 'bad body' }); return; }
+      const member = String(b.member || '').trim();
+      const score = Math.round(Number(b.score) || 0);
+      if (!member || !(score >= 0)) { res.status(400).json({ error: 'member + numeric score required' }); return; }
+      await redis(['ZADD', ZWEEK, String(score), member]);
+      res.status(200).json({ ok: true, member, score });
+      return;
+    }
     if (req.method === 'POST') {
       let b = req.body; if (typeof b === 'string') { try { b = JSON.parse(b); } catch(_) { b = null; } }
       if (!b) { res.status(400).json({ error: 'bad body' }); return; }
@@ -134,6 +154,21 @@ module.exports = async (req, res) => {
       const name = String(req.query.name || '');
       if (name) { await redis(['ZREM', ZKEY, name]); await redis(['HDEL', FLAGS, name]); }
       res.status(200).json({ removed: name });
+      return;
+    }
+    // Admin edit: set a name's score (bypasses GT). PUT ?board=game {name, score, beat?}
+    if (req.method === 'PUT') {
+      if ((req.headers['x-admin-secret'] || '') !== process.env.DRIPPY_EVENTS_SECRET) { res.status(401).json({ error: 'unauthorized' }); return; }
+      let b = req.body; if (typeof b === 'string') { try { b = JSON.parse(b); } catch(_) { b = null; } }
+      if (!b) { res.status(400).json({ error: 'bad body' }); return; }
+      const name = clean(b.name);
+      const score = Math.round(Number(b.score) || 0);
+      if (!name || !(score >= 0)) { res.status(400).json({ error: 'name + numeric score required' }); return; }
+      // Plain ZADD (no GT): admin can set any value (including lowering)
+      await redis(['ZADD', ZKEY, String(score), name]);
+      if (b.beat === true)  await redis(['HSET', FLAGS, name, '1']);
+      if (b.beat === false) await redis(['HDEL', FLAGS, name]);
+      res.status(200).json({ ok: true, name, score });
       return;
     }
     if (req.method === 'POST') {

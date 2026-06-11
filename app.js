@@ -806,6 +806,115 @@ setInterval(loadEvents, 60000);
   }
   refreshAdminList();
 
+  /* ---- Game leaderboard CRUD ---- */
+  let _lbAdminBoard = 'game';  // 'game' (all-time) | 'weekly'
+  function lbMsg(text, kind){
+    const el = $('adminLbMsg');
+    if(!el) return;
+    el.textContent = text || '';
+    el.className = 'modal-msg' + (kind ? ' ' + kind : '');
+  }
+  async function refreshLbAdmin(){
+    const key = ($('adminKey').value || '').trim();
+    const list = $('adminLbList');
+    if(!list) return;
+    list.innerHTML = '<div class="ev-admin-row">Loading…</div>';
+    try{
+      const url = _lbAdminBoard === 'weekly'
+        ? '/api/leaderboard?board=weekly'
+        : '/api/leaderboard?board=game';
+      const r = await fetch(url, { cache: 'no-store' });
+      const d = await r.json();
+      list.innerHTML = '';
+      const items = Array.isArray(d.scores) ? d.scores : [];
+      if(!items.length){
+        list.innerHTML = '<div class="ev-admin-row">No scores on this board yet</div>';
+        return;
+      }
+      items.forEach((e, i) => {
+        // member key differs by board:
+        //   game (all-time) → server keyed by name (e.n)
+        //   weekly         → server keyed by e.wallet (signed-in) or "anon:NAME:ip" (anon)
+        const isWeekly = _lbAdminBoard === 'weekly';
+        const member = isWeekly ? (e.wallet || ('anon:' + (e.n || 'DRIPPY') + ':' + (e._ip || 'unknown'))) : (e.n || '');
+        const label  = isWeekly
+          ? '#' + (i+1) + ' · ' + (e.n || (e.wallet ? (e.wallet.slice(0,4)+'…'+e.wallet.slice(-4)) : 'DRIPPY')) + (e.eligible ? ' ✓' : '')
+          : '#' + (i+1) + ' · ' + (e.n || 'DRIPPY') + (e.beat ? ' 👑' : '');
+        const row = document.createElement('div');
+        row.className = 'ev-admin-row';
+        row.style.cssText = 'display:flex;align-items:center;gap:8px;flex-wrap:wrap';
+        row.innerHTML =
+          '<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis">' + label + '</span>' +
+          '<span style="font-family:JetBrains Mono,monospace;color:#f5c542;font-weight:700">' + Number(e.s).toLocaleString() + '</span>';
+        const editBtn = document.createElement('button');
+        editBtn.textContent = '✏️';
+        editBtn.title = 'Edit score';
+        editBtn.style.cssText = 'padding:4px 8px;background:rgba(162,89,255,.15);border:1px solid rgba(162,89,255,.4);border-radius:6px;color:#c9b8ff;cursor:pointer';
+        editBtn.addEventListener('click', async () => {
+          if(!key){ lbMsg('Enter the admin key first.', 'err'); return; }
+          const next = prompt('New score for "' + (e.n || member) + '" (current: ' + e.s + '):', String(e.s));
+          if(next === null) return;
+          const sc = Math.round(Number(next));
+          if(!isFinite(sc) || sc < 0){ lbMsg('Score must be a non-negative number.', 'err'); return; }
+          try{
+            const body = isWeekly ? { member, score: sc } : { name: e.n, score: sc, beat: e.beat };
+            const r2 = await fetch('/api/leaderboard?board=' + _lbAdminBoard, {
+              method: 'PUT',
+              headers: { 'Content-Type':'application/json', 'x-admin-secret': key },
+              body: JSON.stringify(body)
+            });
+            const j2 = await r2.json();
+            if(j2.ok){ lbMsg('Updated.', 'ok'); refreshLbAdmin(); }
+            else lbMsg(j2.error || 'Edit failed', 'err');
+          }catch(err){ lbMsg('Edit failed: ' + err.message, 'err'); }
+        });
+        const delBtn = document.createElement('button');
+        delBtn.textContent = '🗑️';
+        delBtn.title = 'Delete';
+        delBtn.style.cssText = 'padding:4px 8px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);border-radius:6px;color:#ffadad;cursor:pointer';
+        delBtn.addEventListener('click', async () => {
+          if(!key){ lbMsg('Enter the admin key first.', 'err'); return; }
+          if(!confirm('Delete "' + (e.n || member) + '" (score ' + e.s + ')? This can\'t be undone.')) return;
+          try{
+            const url = isWeekly
+              ? '/api/leaderboard?board=weekly&member=' + encodeURIComponent(member)
+              : '/api/leaderboard?board=game&name=' + encodeURIComponent(e.n);
+            const r2 = await fetch(url, {
+              method: 'DELETE',
+              headers: { 'x-admin-secret': key }
+            });
+            const j2 = await r2.json();
+            if(j2.removed !== undefined){ lbMsg('Removed.', 'ok'); refreshLbAdmin(); }
+            else lbMsg(j2.error || 'Delete failed', 'err');
+          }catch(err){ lbMsg('Delete failed: ' + err.message, 'err'); }
+        });
+        row.appendChild(editBtn);
+        row.appendChild(delBtn);
+        list.appendChild(row);
+      });
+    }catch(err){ list.innerHTML = '<div class="ev-admin-row">Could not load: ' + err.message + '</div>'; }
+  }
+  // Tab switching
+  document.querySelectorAll('.lb-admin-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.lb-admin-tab').forEach(b => {
+        b.classList.remove('active');
+        b.style.background = 'rgba(255,255,255,.05)';
+        b.style.border = '1px solid rgba(255,255,255,.12)';
+        b.style.color = '#aaa';
+      });
+      btn.classList.add('active');
+      btn.style.background = 'rgba(245,197,66,.12)';
+      btn.style.border = '1px solid rgba(245,197,66,.35)';
+      btn.style.color = '#f5c542';
+      _lbAdminBoard = btn.dataset.board;
+      refreshLbAdmin();
+    });
+  });
+  // Refresh leaderboard view whenever modal opens
+  $('adminOpen').addEventListener('click', () => { setTimeout(refreshLbAdmin, 50); });
+  refreshLbAdmin();
+
   const fileInput = $('adminImage');
   if(fileInput){
     fileInput.addEventListener('change', () => {
