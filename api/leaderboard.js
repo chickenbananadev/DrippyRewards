@@ -45,7 +45,7 @@ module.exports = async (req, res) => {
   //   GET  ?board=game            -> { scores: [{ n, s, beat }] }  (top 25)
   //   POST ?board=game {name,score,beat} -> { ok, rank }
   if ((req.query.board || '') === 'game') {
-    const ZKEY = 'drippy:game:leaderboard', FLAGS = 'drippy:game:beat', RL = 'drippy:game:rl:', MAX = 200000;
+    const ZKEY = 'drippy:game:leaderboard', FLAGS = 'drippy:game:beat', RL = 'drippy:game:rl:', MAX = 2000000;
     const clean = n => String(n || '').toUpperCase().replace(/[^A-Z0-9 _.\-]/g, '').trim().slice(0, 12) || 'DRIPPY';
     // Admin moderation: remove a name (test/abusive). DELETE ?board=game&name=X
     if (req.method === 'DELETE') {
