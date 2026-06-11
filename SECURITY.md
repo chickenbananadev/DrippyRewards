@@ -70,6 +70,14 @@ Plain summary of how we handle wallet connections. **No one can drain your walle
 
 ## Reporting
 
-Please report security issues responsibly through our official channels before disclosing publicly. Reporting details coming soon — we'll update this file with the dedicated security contact.
+Please report security issues responsibly through our official channel before disclosing publicly. **DM [@DrippyRewards on X](https://x.com/DrippyRewards)** with the details. We aim to respond within 24 hours.
+
+When reporting, please include:
+- A clear description of the issue
+- Steps to reproduce
+- The affected URL/endpoint
+- A proof-of-concept (if applicable)
+
+Please do not share live exploit details publicly until we've had a chance to patch.
 
 User-facing version of this doc lives at https://drippyrewards.com/security
