@@ -1536,30 +1536,81 @@ function b58enc(bytes){
   return out;
 }
 
+/* Wallet Standard discovery — modern Solana wallets (Solflare, Backpack, Jupiter Mobile, Glow, etc.)
+   register themselves by dispatching 'wallet-standard:register-wallet'. We collect them on load. */
+window._drippyStdWallets=window._drippyStdWallets||[];
+(function initWalletStandard(){
+  const reg=(w)=>{
+    try{
+      if(!w||!w.features)return;
+      if(!w.features['solana:signMessage'])return; // need sign capability
+      if(window._drippyStdWallets.find(x=>x.name===w.name))return;
+      window._drippyStdWallets.push(w);
+    }catch(e){}
+  };
+  window.addEventListener('wallet-standard:register-wallet',(e)=>{
+    try{e.detail({register:reg});}catch(_){try{reg(e.detail);}catch(_){}}
+  });
+  // Re-announce: any wallet already in memory should declare itself
+  try{window.dispatchEvent(new CustomEvent('wallet-standard:app-ready',{detail:{register:reg}}));}catch(e){}
+})();
+
+/* Adapt a Wallet Standard wallet to the simple {connect, signMessage, publicKey} interface. */
+function adaptStandard(w){
+  return {
+    publicKey:null,
+    async connect(){
+      const f=w.features['standard:connect'];
+      if(f&&f.connect){await f.connect();}
+      const acc=(w.accounts&&w.accounts[0])||null;
+      if(!acc)throw new Error('no account exposed');
+      this.publicKey={toString:()=>acc.address};
+      return {publicKey:this.publicKey};
+    },
+    async signMessage(message){
+      const f=w.features['solana:signMessage'];
+      if(!f||!f.signMessage)throw new Error('signMessage not supported');
+      const acc=(w.accounts&&w.accounts[0]);
+      if(!acc)throw new Error('not connected');
+      const res=await f.signMessage({account:acc,message});
+      const item=Array.isArray(res)?res[0]:res;
+      return {signature:item.signature};
+    }
+  };
+}
+
 function detectWallets(){
   const found=[];
-  // Direct provider injection (covers >95% of installs without needing wallet-standard lib)
-  if(window.phantom&&window.phantom.solana)found.push({name:'Phantom',sub:'Most popular Solana wallet',icon:'👻',provider:window.phantom.solana});
-  if(window.solflare)found.push({name:'Solflare',sub:'Web + mobile + Ledger',icon:'☀️',provider:window.solflare});
-  if(window.backpack)found.push({name:'Backpack',sub:'xNFT-ready wallet',icon:'🎒',provider:window.backpack});
-  if(window.glow)found.push({name:'Glow',sub:'Sleek Solana wallet',icon:'✨',provider:window.glow});
-  // Standard pattern: anything that drops itself on window.solana but isn't above
-  if(window.solana&&!found.length)found.push({name:'Solana Wallet',sub:'Browser extension',icon:'💼',provider:window.solana});
-  // Wallet Standard auto-discovery (the modern way)
-  try{
-    if(window.navigator&&window.navigator.wallets){
-      for(const w of window.navigator.wallets){
-        if(found.find(f=>f.name===w.name))continue;
-        const f=w.features&&(w.features['solana:signMessage']||w.features['standard:connect']);
-        if(f)found.push({name:w.name,sub:'Wallet Standard',icon:w.icon||'🔗',provider:w});
-      }
-    }
-  }catch(e){}
+  const add=(name,sub,icon,provider)=>{
+    if(!provider)return;
+    if(found.find(f=>f.name.toLowerCase()===name.toLowerCase()))return;
+    found.push({name,sub,icon,provider});
+  };
+  // 1. Direct injection (Phantom always does this; Solflare older versions; Coinbase)
+  if(window.phantom&&window.phantom.solana)add('Phantom','Most popular Solana wallet','👻',window.phantom.solana);
+  if(window.solflare)add('Solflare','Web · mobile · Ledger','☀️',window.solflare);
+  if(window.backpack)add('Backpack','xNFT-ready wallet','🎒',window.backpack);
+  if(window.glow)add('Glow','Sleek Solana wallet','✨',window.glow);
+  if(window.coinbaseSolana)add('Coinbase Wallet','Multi-chain','🔵',window.coinbaseSolana);
+  if(window.trustwallet&&window.trustwallet.solana)add('Trust Wallet','Multi-chain mobile','🛡️',window.trustwallet.solana);
+  // 2. Wallet Standard registrations (modern Solflare, Backpack, Jupiter Mobile, etc.)
+  for(const w of (window._drippyStdWallets||[])){
+    const icon=({Phantom:'👻',Solflare:'☀️',Backpack:'🎒',Glow:'✨','Jupiter Mobile':'🪐',Jupiter:'🪐'}[w.name])||'🔗';
+    add(w.name,'Wallet Standard',icon,adaptStandard(w));
+  }
   return found;
 }
 
-function renderWalletList(){
-  const list=$('walletList');list.innerHTML='';$('walletMsg').textContent='';
+async function renderWalletList(){
+  const list=$('walletList');$('walletMsg').textContent='';
+  list.innerHTML='<div style="text-align:center;padding:20px;color:#9aa3b2;font-size:11px">Detecting wallets…</div>';
+  // Re-fire app-ready so late-registering wallets (Solflare, Backpack, Jupiter) announce themselves
+  try{
+    const reg=(w)=>{try{if(!w||!w.features||!w.features['solana:signMessage'])return;if(!window._drippyStdWallets.find(x=>x.name===w.name))window._drippyStdWallets.push(w);}catch(e){}};
+    window.dispatchEvent(new CustomEvent('wallet-standard:app-ready',{detail:{register:reg}}));
+  }catch(e){}
+  await new Promise(r=>setTimeout(r,250));
+  list.innerHTML='';
   const wallets=detectWallets();
   if(window.SESSION&&window.SESSION.wallet){
     const w=window.SESSION.wallet;
@@ -1576,23 +1627,32 @@ function renderWalletList(){
     };
     return;
   }
-  if(!wallets.length){
-    list.innerHTML=`<div style="text-align:center;padding:20px;color:#9aa3b2;font-size:12px;line-height:1.6">
-      <div style="font-size:32px;margin-bottom:10px">👻</div>
-      No Solana wallet detected.<br><br>
-      Install <a href="https://phantom.app" target="_blank" style="color:var(--gold)">Phantom</a>,
-      <a href="https://solflare.com" target="_blank" style="color:var(--gold)">Solflare</a>, or
-      <a href="https://backpack.app" target="_blank" style="color:var(--gold)">Backpack</a> and refresh.<br><br>
-      <span style="font-size:10px">On mobile? Open this page inside your wallet app's browser.</span>
-    </div>`;
-    return;
-  }
   for(const w of wallets){
     const b=document.createElement('button');
     b.className='walletBtn';
     b.innerHTML=`<span class="ic">${w.icon}</span><span>${w.name}<span class="sub">${w.sub}</span></span>`;
     b.onclick=()=>signInWith(w);
     list.appendChild(b);
+  }
+  // Always show a mobile / Jupiter hint at the bottom — Jupiter has no desktop extension
+  const mobile=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const hint=document.createElement('div');
+  hint.style.cssText='margin-top:14px;padding:14px;background:rgba(162,89,255,0.08);border:1px dashed rgba(162,89,255,0.3);border-radius:10px;font-size:11px;color:#c9b8ff;line-height:1.6;text-align:left';
+  if(mobile){
+    hint.innerHTML=`<b style="color:var(--purple);font-family:'Press Start 2P';font-size:10px">📱 ON MOBILE?</b><br>
+      Open this page <b>inside your wallet app's browser</b>: tap the in-app browser icon in Phantom, Solflare, Jupiter, Backpack, or Trust and paste <code style="color:var(--gold)">drippyrewards.com/game</code>.`;
+  } else {
+    hint.innerHTML=`<b style="color:var(--purple);font-family:'Press Start 2P';font-size:10px">🪐 USING JUPITER?</b><br>
+      Jupiter is mobile-only — there's no desktop extension. To sign in with Jupiter, open <code style="color:var(--gold)">drippyrewards.com/game</code> in the <b>Jupiter mobile app's browser</b> (tap the globe / browser icon inside the app).<br><br>
+      <span style="color:#9aa3b2">On desktop? Install <a href="https://phantom.app" target="_blank" style="color:var(--gold)">Phantom</a>, <a href="https://solflare.com" target="_blank" style="color:var(--gold)">Solflare</a>, <a href="https://backpack.app" target="_blank" style="color:var(--gold)">Backpack</a>, or <a href="https://glow.app" target="_blank" style="color:var(--gold)">Glow</a> and refresh.</span>`;
+  }
+  list.appendChild(hint);
+  if(!wallets.length){
+    // Add the empty-state header above the hint
+    const empty=document.createElement('div');
+    empty.style.cssText='text-align:center;padding:14px;color:#9aa3b2;font-size:12px';
+    empty.innerHTML='<div style="font-size:32px;margin-bottom:6px">👻</div>No Solana wallet detected on this browser.';
+    list.insertBefore(empty,list.firstChild);
   }
 }
 
