@@ -960,6 +960,17 @@ setInterval(loadEvents, 60000);
   });
   // When admin opens, refresh both
   $('adminOpen').addEventListener('click', () => setTimeout(refreshLbAdmin, 80));
+  // Auto-refresh the leaderboard view when the admin key changes
+  // (so the full wallets reveal as soon as the key is entered, no extra clicks)
+  let _adminKeyDebounce = null;
+  $('adminKey').addEventListener('input', () => {
+    clearTimeout(_adminKeyDebounce);
+    _adminKeyDebounce = setTimeout(() => {
+      // Only refresh leaderboard if it's currently the visible section
+      const lb = document.getElementById('adminSectionLeaderboard');
+      if (lb && lb.style.display !== 'none') refreshLbAdmin();
+    }, 400);
+  });
   refreshLbAdmin();
 
   const fileInput = $('adminImage');

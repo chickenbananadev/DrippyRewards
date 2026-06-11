@@ -2035,11 +2035,11 @@ function renderDeviceSection(limit){
   };
 }
 function renderGlobalSection(gen, limit){
-  $('hsGlobal').innerHTML = '<div class="row"><span class="k" style="color:var(--purple)">🌍 ALL-TIME — TOP DOGS · TOP ' + limit + '</span><span class="v"></span></div>'
+  $('hsGlobal').innerHTML = '<div class="row"><span class="k" style="color:var(--purple)">🎮 FREE PLAY · TOP DOGS · ALL-TIME · TOP ' + limit + '</span><span class="v" style="font-size:9px;color:#9aa3b2">no prize</span></div>'
     + '<div class="row" style="opacity:.6"><span class="k" style="font-size:10px">Loading…</span><span class="v"></span></div>';
   fetch('/api/leaderboard?board=game&limit=' + limit, {cache:'no-store'}).then(r=>r.json()).then(d=>{
-    if (gen !== window._renderGen) return; // stale fetch — discard
-    const head = '<div class="row"><span class="k" style="color:var(--purple)">🌍 ALL-TIME — TOP DOGS · TOP ' + limit + '</span><span class="v"></span></div>';
+    if (gen !== window._renderGen) return;
+    const head = '<div class="row"><span class="k" style="color:var(--purple)">🎮 FREE PLAY · TOP DOGS · ALL-TIME · TOP ' + limit + '</span><span class="v" style="font-size:9px;color:#9aa3b2">no prize</span></div>';
     const sc = (d && Array.isArray(d.scores)) ? d.scores : [];
     const seeMoreBtn = (limit === 10)
       ? '<div class="row" style="justify-content:center"><button class="btn ghost" id="btnGlobalSeeMore" style="font-size:11px">SEE TOP 50 ▾</button></div>'
@@ -2050,12 +2050,12 @@ function renderGlobalSection(gen, limit){
   }).catch(()=>{ if(gen===window._renderGen) $('hsGlobal').innerHTML = '<div class="row"><span class="k">Could not load global board</span><span class="v">—</span></div>'; });
 }
 function renderWeeklySection(gen, limit){
-  $('hsWeekly').innerHTML = '<div class="row"><span class="k" style="color:var(--gold)">🏆 WEEKLY TOURNAMENT</span><span class="v" style="color:var(--gold);font-size:9px">100K $DRIPPY → #1</span></div>'
+  $('hsWeekly').innerHTML = '<div class="row"><span class="k" style="color:var(--gold)">🏆 PRIZE ENTRY · WEEKLY TOURNAMENT</span><span class="v" style="color:var(--gold);font-size:9px">100K $DRIPPY → #1</span></div>'
     + '<div class="row" style="opacity:.6"><span class="k" style="font-size:10px">Loading…</span><span class="v"></span></div>';
   fetch('/api/leaderboard?board=weekly&limit=' + limit, {cache:'no-store'}).then(r=>r.json()).then(d=>{
     if (gen !== window._renderGen) return;
     const week = d && d.week ? (' · ' + d.week) : '';
-    const head = '<div class="row"><span class="k" style="color:var(--gold)">🏆 WEEKLY TOURNAMENT' + week + ' · TOP ' + limit + '</span><span class="v" style="color:var(--gold);font-size:9px">100K $DRIPPY → #1</span></div>';
+    const head = '<div class="row"><span class="k" style="color:var(--gold)">🏆 PRIZE ENTRY · WEEKLY' + week + ' · TOP ' + limit + '</span><span class="v" style="color:var(--gold);font-size:9px">100K $DRIPPY → #1</span></div>';
     const legend = '<div class="row" style="opacity:.55"><span class="k" style="font-size:9px">✓ verified · 🐾 holder (sign in to claim) · · anon</span><span class="v"></span></div>';
     const sc = (d && Array.isArray(d.scores)) ? d.scores : [];
     const seeMoreBtn = (limit === 10)

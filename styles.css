@@ -242,7 +242,8 @@ h2{font-size:clamp(28px,4.6vw,46px);margin-bottom:14px}
 #jupiter-terminal{width:100%;max-width:420px;margin:0 auto;min-height:560px}
 .swap-fallback{display:none;text-align:center;padding:30px}
 .swap-fallback.show{display:block}
-.chart-frame{width:100%;height:480px;border:0;border-radius:var(--radius-sm);background:#0d0716}
+.chart-frame{width:100%;height:480px;min-height:380px;border:0;border-radius:var(--radius-sm);background:#0d0716;display:block}
+@media(max-width:760px){.chart-frame{height:62vh;min-height:340px;max-height:560px}.chart-mobile-fallback{display:block!important}}
 .trade-links{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
 .pill-link{
   font-family:var(--tag);text-transform:uppercase;letter-spacing:1.5px;font-size:12px;
