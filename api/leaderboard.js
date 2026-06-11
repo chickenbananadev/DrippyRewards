@@ -100,31 +100,66 @@ module.exports = async (req, res) => {
       const score = Math.round(Number(b.score) || 0);
       if (!(score > 0) || score > MAX) { res.status(400).json({ error: 'score out of range' }); return; }
       const ip = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() || 'unknown';
-      const rlKey = RLWK + (signedWallet || ip);
+      const rlKey = RLWK + (signedWallet || (b.wallet || ip));
       const rl = await redis(['SET', rlKey, '1', 'NX', 'EX', '20']);
       if (rl !== null && rl !== 'OK') { res.status(429).json({ error: 'one log per 20s' }); return; }
-      // Member = wallet if signed in (eligible), else "anon:ip:name" (ineligible for prize)
       const cleanName = String(b.name || 'DRIPPY').toUpperCase().replace(/[^A-Z0-9 _.\-]/g,'').trim().slice(0,12) || 'DRIPPY';
-      const member = signedWallet ? signedWallet : `anon:${cleanName}:${ip.slice(0,12)}`;
+
+      // Three eligibility paths:
+      //   1. Signed in cookie → wallet auto-pulled, status='verified' (can auto-claim prize)
+      //   2. Unsigned but provided a wallet that currently holds ≥25K $DRIPPY → status='holder' (must sign in to claim)
+      //   3. Neither → anonymous (ineligible)
+      const STATUS_KEY = `drippy:game:weekly:status:${weekKey}`;
+      let member, status = 'anon';
+      if (signedWallet) {
+        member = signedWallet; status = 'verified';
+      } else if (b.wallet && /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(String(b.wallet))) {
+        // Lightweight on-chain holdings check via internal /api/wallet
+        try {
+          const origin = `https://${req.headers.host || 'drippyrewards.com'}`;
+          const r2 = await fetch(`${origin}/api/wallet?address=${b.wallet}`, { cache: 'no-store' });
+          const d = await r2.json();
+          const holds = Number(d?.currentHoldings?.uiAmount || 0);
+          if (holds >= 25000) { member = String(b.wallet); status = 'holder'; }
+        } catch(e) {}
+      }
+      if (!member) { member = `anon:${cleanName}:${ip.slice(0,12)}`; status = 'anon'; }
+
       await redis(['ZADD', ZWEEK, 'GT', 'CH', String(score), member]);
-      // Expire the weekly key 21 days after week end (keeps last 2-3 weeks viewable)
+      // Track status per member (verified/holder/anon) — verified beats holder if both exist
+      const existing = await redis(['HGET', STATUS_KEY, member]);
+      if (!existing || (existing === 'holder' && status === 'verified')) {
+        await redis(['HSET', STATUS_KEY, member, status]);
+      }
       await redis(['EXPIRE', ZWEEK, String(28*24*3600)]);
+      await redis(['EXPIRE', STATUS_KEY, String(28*24*3600)]);
       const rank = await redis(['ZREVRANK', ZWEEK, member]);
-      res.status(200).json({ ok:true, week:weekKey, eligible: !!signedWallet, rank: rank!=null ? Number(rank)+1 : null });
+      res.status(200).json({
+        ok: true, week: weekKey,
+        status, // 'verified' | 'holder' | 'anon'
+        eligible: status === 'verified' || status === 'holder',
+        verified: status === 'verified',
+        rank: rank != null ? Number(rank) + 1 : null
+      });
       return;
     }
 
-    // GET — top 25 with display names
+    // GET — top 25 with display names + verified/holder status
     const raw = await redis(['ZREVRANGE', ZWEEK, '0', '24', 'WITHSCORES']);
+    const STATUS_KEY = `drippy:game:weekly:status:${weekKey}`;
+    const statusMap = {};
+    const rawStatus = await redis(['HGETALL', STATUS_KEY]);
+    if (Array.isArray(rawStatus)) for (let i = 0; i < rawStatus.length; i += 2) statusMap[rawStatus[i]] = rawStatus[i+1];
     const scores = [];
     const wallets = [];
     if (Array.isArray(raw)) for (let i = 0; i < raw.length; i += 2) {
       const m = raw[i]; const s = Math.round(Number(raw[i+1]) || 0);
+      const status = statusMap[m] || (m.startsWith('anon:') ? 'anon' : 'holder');
       if (m.startsWith('anon:')) {
         const parts = m.split(':');
-        scores.push({ n: parts[1] || 'DRIPPY', s, eligible: false });
+        scores.push({ n: parts[1] || 'DRIPPY', s, status: 'anon', eligible: false, verified: false });
       } else {
-        scores.push({ wallet: m, s, eligible: true });
+        scores.push({ wallet: m, s, status, eligible: status === 'verified' || status === 'holder', verified: status === 'verified' });
         wallets.push(m);
       }
     }
