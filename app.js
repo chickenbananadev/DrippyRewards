@@ -216,6 +216,22 @@ async function loadStats(){
 loadStats();
 setInterval(loadStats, 45000);
 
+/* ---------------- Drippy Run: top global scores on the promo card ---------------- */
+(async function loadGameTop(){
+  try{
+    const r = await fetch('/api/game-scores', { cache: 'no-store' });
+    if(!r.ok) return;
+    const d = await r.json();
+    if(!d || !Array.isArray(d.scores) || !d.scores.length) return;
+    const el = $('gameTop');
+    if(!el) return;
+    el.innerHTML = '🏁 Top runs: ' + d.scores.slice(0,3).map((e,i) =>
+      '<b>' + (i+1) + '.</b> ' + String(e.n).replace(/[<>&]/g,'') + (e.beat ? ' 👑' : '') + ' <span style="color:var(--gold-bright,#f5c542)">' + Number(e.s).toLocaleString() + '</span>'
+    ).join(' &nbsp;·&nbsp; ');
+    el.style.display = '';
+  }catch(_){}
+})();
+
 /* ---------------- Jupiter swap widget ---------------- */
 let _jupTries = 0;
 function initJupiter(){

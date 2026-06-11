@@ -6,6 +6,7 @@
 <title>DRIPPY RUN — The Eternal Bowl | $DRIPPY</title>
 <meta name="description" content="Run the city, stomp the rival packs, and take back the Eternal Bowl. 10 levels, 2 bosses, power-ups and high scores. The official $DRIPPY arcade game.">
 <meta name="theme-color" content="#07040d">
+<link rel="icon" type="image/png" href="/favicon.png">
 <meta property="og:title" content="DRIPPY RUN — The Eternal Bowl">
 <meta property="og:description" content="The official $DRIPPY arcade game. 10 levels. 2 bosses. The drip never stops.">
 <meta property="og:image" content="https://drippyrewards.com/assets/drippy-run-promo.jpg">
@@ -1243,9 +1244,18 @@ $('btnFinMap').onclick=()=>showSelect();
 /* ---------- high scores ---------- */
 function getScores(){try{return JSON.parse(localStorage.getItem('drippyScores')||'[]');}catch(e){return [];}}
 function qualifies(s){const sc=getScores();return s>0&&(sc.length<10||s>sc[sc.length-1].s);}
-function renderScores(){const sc=getScores();
-  $('hsList').innerHTML=sc.length?sc.map((e,i)=>'<div class="row"><span class="k">'+(i+1)+'. '+e.n+(e.beat?' 👑':'')+'</span><span class="v">'+e.s.toLocaleString()+'</span></div>').join(''):
-    '<div class="row"><span class="k">No legends yet — go run the city</span><span class="v">—</span></div>';}
+function renderScoreRows(sc,label){
+  const head='<div class="row"><span class="k" style="color:var(--purple)">'+label+'</span><span class="v"></span></div>';
+  $('hsList').innerHTML=head+(sc.length?sc.map((e,i)=>'<div class="row"><span class="k">'+(i+1)+'. '+e.n+(e.beat?' 👑':'')+'</span><span class="v">'+Number(e.s).toLocaleString()+'</span></div>').join(''):
+    '<div class="row"><span class="k">No legends yet — go run the city</span><span class="v">—</span></div>');}
+function renderScores(){
+  renderScoreRows(getScores(),'THIS DEVICE');
+  if(location.protocol.indexOf('http')===0){
+    fetch('/api/game-scores',{cache:'no-store'}).then(r=>r.json()).then(d=>{
+      if(d&&Array.isArray(d.scores)&&d.scores.length)renderScoreRows(d.scores,'🌍 GLOBAL — THE WHOLE PACK');
+    }).catch(()=>{});
+  }
+}
 function openEntry(beat){pendingBeat=beat;$('hsScore').textContent=runScore.toLocaleString();
   hideAll();$('ovEntry').classList.add('on');state='entry';
   $('hsName').value=(function(){try{return localStorage.getItem('drippyName')||'';}catch(e){return '';}})();
@@ -1254,6 +1264,10 @@ $('btnHsSave').onclick=()=>{let n=($('hsName').value||'').trim().toUpperCase().s
   try{localStorage.setItem('drippyName',n);}catch(e){}
   const sc=getScores();sc.push({n,s:runScore,beat:pendingBeat,d:Date.now()});sc.sort((a,b)=>b.s-a.s);
   try{localStorage.setItem('drippyScores',JSON.stringify(sc.slice(0,10)));}catch(e){}
+  if(location.protocol.indexOf('http')===0){
+    fetch('/api/game-scores',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:n,score:runScore,beat:pendingBeat})})
+      .then(()=>renderScores()).catch(()=>{});
+  }
   AUDIO.sfx.levelup();renderScores();hideAll();$('ovScores').classList.add('on');state='scores';};
 $('btnScores').onclick=()=>{AUDIO.init();AUDIO.sfx.select();renderScores();hideAll();$('ovScores').classList.add('on');state='scores';};
 $('btnHsBack').onclick=()=>{AUDIO.sfx.select();showSelect();};
