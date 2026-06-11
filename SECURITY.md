@@ -70,6 +70,6 @@ Plain summary of how we handle wallet connections. **No one can drain your walle
 
 ## Reporting
 
-Found a security issue? Email `security@supremebuildinggroup.com` or DM `@JacobsAI` on Discord. We respond within 24 hours.
+Please report security issues responsibly through our official channels before disclosing publicly. Reporting details coming soon — we'll update this file with the dedicated security contact.
 
 User-facing version of this doc lives at https://drippyrewards.com/security
