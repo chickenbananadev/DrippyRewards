@@ -4,11 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover">
 <title>DRIPPY RUN — The Eternal Bowl</title>
-<link rel="icon" type="image/x-icon" href="/favicon.ico">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon.png">
-<link rel="icon" type="image/png" sizes="16x16" href="/favicon.png">
-<link rel="apple-touch-icon" sizes="180x180" href="/favicon.png">
-<link rel="shortcut icon" href="/favicon.ico">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
@@ -73,9 +68,12 @@ canvas{image-rendering:pixelated;width:100%;height:100%;display:block;object-fit
   <p>The Bowl ran dry and the rival packs took the city. Run Downtown, the Rooftops, the Deep and the Scrapyard — then take the Bowl back from the Hydrant King himself.</p>
   <div>
     <button class="btn" id="btnPlay">PLAY ▸</button>
-    <button class="btn ghost" id="btnScores">HIGH SCORES</button>
-    <button class="btn ghost" id="btnHow">HOW TO PLAY</button>
+    <button class="btn ghost" id="btnScores">TOP DOGS</button>
+    <button class="btn ghost" id="btnSkins">SKINS</button>
+    <button class="btn ghost" id="btnConnect">CONNECT WALLET</button>
+    <button class="btn ghost" id="btnHow">HOW</button>
   </div>
+  <div id="walletPill" style="display:none;margin-top:10px;font-size:11px;color:var(--gold);font-family:'Press Start 2P'"></div>
   <div class="keys" id="howto">
     <b>← →</b> move · <b>Shift</b> run · <b>Space</b> jump + double jump<br>
     <b>Space</b> at a wall = wall jump · <b>↓</b> in air = ground pound<br>
@@ -158,9 +156,48 @@ canvas{image-rendering:pixelated;width:100%;height:100%;display:block;object-fit
 
 <!-- HIGH SCORES -->
 <div class="ov" id="ovScores">
-  <h2>HIGH SCORES</h2>
+  <h2>TOP DOGS</h2>
+  <div style="font-size:11px;color:var(--purple);margin:-8px 0 12px;letter-spacing:1px;font-family:'Press Start 2P'">PURE SKILL · NO MODIFIERS</div>
   <div class="rescard" id="hsList" style="min-width:340px"></div>
   <div><button class="btn ghost" id="btnHsBack">◂ BACK</button></div>
+</div>
+
+<!-- SKIN SELECT -->
+<style>
+.skinGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;max-width:720px;margin:8px auto;padding:0 14px}
+.skinCard{background:rgba(255,255,255,0.04);border:2px solid rgba(255,255,255,0.08);border-radius:14px;padding:12px;text-align:center;cursor:pointer;position:relative;transition:transform .14s,border-color .14s}
+.skinCard:not(.locked):hover{transform:translateY(-2px);border-color:var(--gold)}
+.skinCard.selected{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold)}
+.skinCard.locked{opacity:.42;cursor:not-allowed;filter:grayscale(.7)}
+.skinCard img{image-rendering:pixelated;width:80px;height:auto;display:block;margin:6px auto 10px}
+.skinCard .nm{font-family:'Press Start 2P';font-size:11px;color:var(--cream);margin-bottom:4px;letter-spacing:1px}
+.skinCard .req{font-size:10px;color:#9aa3b2;line-height:1.4}
+.skinCard.locked .req{color:var(--red)}
+.skinCard .perk{font-size:9px;color:var(--purple);margin-top:6px;line-height:1.3}
+.skinCard .b{font-size:14px;position:absolute;top:6px;right:8px}
+</style>
+<div class="ov" id="ovSkins">
+  <h2>DRIPPY SKINS</h2>
+  <div style="font-size:11px;color:var(--gold);margin:-8px 0 4px;letter-spacing:1px;font-family:'Press Start 2P'">BURN. UNLOCK. FLEX.</div>
+  <div id="skinSubline" style="font-size:11px;color:#9aa3b2;margin-bottom:8px">Connect a wallet to unlock burn-tier skins</div>
+  <div class="skinGrid" id="skinGrid"></div>
+  <div style="margin-top:14px"><button class="btn ghost" id="btnSkinsBack">◂ BACK</button></div>
+</div>
+
+<!-- WALLET CONNECT -->
+<style>
+.walletList{display:flex;flex-direction:column;gap:10px;max-width:380px;margin:10px auto;padding:0 14px}
+.walletBtn{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,0.06);border:2px solid rgba(255,255,255,0.1);border-radius:12px;padding:14px 16px;cursor:pointer;font-family:'Press Start 2P';font-size:12px;color:var(--cream);text-align:left;transition:border-color .14s,transform .14s}
+.walletBtn:hover{border-color:var(--gold);transform:translateX(3px)}
+.walletBtn .ic{font-size:24px;width:32px}
+.walletBtn .sub{font-size:9px;color:#9aa3b2;display:block;margin-top:4px;font-family:'JetBrains Mono',monospace;letter-spacing:0}
+</style>
+<div class="ov" id="ovConnect">
+  <h2>CONNECT WALLET</h2>
+  <div style="font-size:11px;color:#9aa3b2;margin:-6px 0 8px">Sign a free message to prove ownership. No transaction, no gas.</div>
+  <div class="walletList" id="walletList"></div>
+  <div id="walletMsg" style="margin-top:10px;font-size:11px;color:var(--red);font-family:'Press Start 2P';min-height:14px"></div>
+  <div style="margin-top:14px"><button class="btn ghost" id="btnConnectBack">◂ BACK</button></div>
 </div>
 
 <script src="tails-end-sprites.js"></script>
@@ -187,6 +224,10 @@ function placeholder(col,glyph){const c=document.createElement('canvas');c.width
 const PLACE={hydrant:['#c43a2a','H'],hydrantOn:['#22c55e','H'],crate:['#6b4a2a','▣'],drop:['#a259ff','▼'],
   poof:['#7a5cba','☁'],burst:['#f5c542','✶'],heroHurt:['#d4a431','!'],heroWin:['#f5c542','★'],bulldogKO:['#555','K'],rugRoll:['#8a3a4a','◎']};
 function SPR(k){const im=IMG[k];if(im&&im.width)return im;if(!PLACE[k])return null;if(!PLACE[k]._c)PLACE[k]._c=placeholder(PLACE[k][0],PLACE[k][1]);return PLACE[k]._c;}
+/* skin override: hero -> idle, heroRun -> run, etc. window.currentSkin set by skin select */
+const SKIN_MAP={hero:'idle',heroRun:'run',heroJump:'jump',heroAttack:'attack',heroHurt:'hurt',heroWin:'win'};
+function HSPR(k){const sk=window.currentSkin;if(sk&&SKIN_MAP[k]){const im=IMG[sk+'_'+SKIN_MAP[k]];if(im&&im.width)return im;}return SPR(k);}
+try{window.currentSkin=localStorage.getItem('drippySkin')||null;}catch(e){window.currentSkin=null;}
 const tintCache={};
 function tinted(img,color){if(!color||!img)return img;const key=(img.src?img.src.slice(-12):'c')+img.width+color;if(tintCache[key])return tintCache[key];
   const c=document.createElement('canvas');c.width=img.width;c.height=img.height;const x=c.getContext('2d');
@@ -742,11 +783,11 @@ function updatePlayer(dt){
 }
 function curHeroImg(){
   const p=player;
-  if(p.state==='run')return SPR('heroRun');
-  if(p.state==='jump'||p.state==='pound')return SPR('heroJump');
-  if(p.state==='attack')return SPR('heroAttack');
-  if(p.state==='hurt')return SPR('heroHurt');
-  return SPR('hero');
+  if(p.state==='run')return HSPR('heroRun');
+  if(p.state==='jump'||p.state==='pound')return HSPR('heroJump');
+  if(p.state==='attack')return HSPR('heroAttack');
+  if(p.state==='hurt')return HSPR('heroHurt');
+  return HSPR('hero');
 }
 function landPound(){
   const p=player;p.pound=0;
@@ -1260,7 +1301,7 @@ function drawBillboard(b,pal){const x=b.x-camX*0.5,y=b.y-camY*0.4,t=gt;
     ctx.fillText('$DRIPPY',x+b.w/2,y+b.h*0.42);ctx.fillText((up?'▲ ':'▼ ')+pct,x+b.w/2,y+b.h*0.78);ctx.textAlign='left';}
   else if(b.kind===4){ctx.font='13px "Press Start 2P"';ctx.textAlign='center';ctx.fillStyle='#ffd966';
     ctx.fillText('WANTED',x+b.w/2,y+26);
-    const h=SPR('hero');if(h)ctx.drawImage(h,x+b.w/2-26,y+34,52,52*(h.height/h.width));
+    const h=HSPR('hero');if(h)ctx.drawImage(h,x+b.w/2-26,y+34,52,52*(h.height/h.width));
     ctx.font='9px "Press Start 2P"';ctx.fillStyle='#fff';ctx.fillText('REWARD: 1M $DRIPPY',x+b.w/2,y+b.h-12);ctx.textAlign='left';}
   else{ctx.font='14px "Press Start 2P"';ctx.textAlign='center';ctx.fillStyle=Math.floor(t*4)%2?'#ef4444':'#ffd966';
     ctx.fillText('⚠ FINAL ⚠',x+b.w/2,y+b.h*0.42);ctx.fillText(level.bossTitle||'HYDRANT KING',x+b.w/2,y+b.h*0.78);ctx.textAlign='left';}
@@ -1388,9 +1429,217 @@ $('btnHsSave').onclick=()=>{let n=($('hsName').value||'').trim().toUpperCase().s
   }
   AUDIO.sfx.levelup();renderScores();hideAll();$('ovScores').classList.add('on');state='scores';};
 $('btnScores').onclick=()=>{AUDIO.init();AUDIO.sfx.select();renderScores();hideAll();$('ovScores').classList.add('on');state='scores';};
-$('btnHsBack').onclick=()=>{AUDIO.sfx.select();showSelect();};
+$('btnHsBack').onclick=()=>{AUDIO.sfx.select();$('ovTitle').classList.add('on');hideAll();$('ovTitle').classList.add('on');state='menu';};
 $('btnLogScore').onclick=()=>openEntry(false);
 $('btnFinLog').onclick=()=>openEntry(true);
+
+/* ---------- skins + wallet ---------- */
+const SKINS_DEF=[
+  {id:'default',nm:'DEFAULT',req:'Always',badge:'🐶',perk:'',spr:'hero'},
+  {id:'bronze', nm:'BRONZE', req:'Burn ≥ 100K',badge:'🥉',perk:'+1 daily revive',spr:'bronze_idle'},
+  {id:'silver', nm:'SILVER', req:'Burn ≥ 500K',badge:'🥈',perk:'Random start pickup',spr:'silver_idle'},
+  {id:'gold',   nm:'GOLD',   req:'Burn ≥ 1M',  badge:'🥇',perk:'Daily Challenge bonus',spr:'gold_idle'},
+  {id:'diamond',nm:'DIAMOND',req:'Burn ≥ 5M',  badge:'💎',perk:'2x cosmetic drops',spr:'diamond_idle'},
+  {id:'shadow', nm:'SHADOW', req:'Beat Eternal Drip',badge:'☠️',perk:'Dark Mirror emote',spr:'shadow_idle'},
+  {id:'void',   nm:'VOID',   req:'Burn 10M + beat finale',badge:'🌌',perk:'Lobby FX + emotes',spr:'void_idle'},
+];
+window.SESSION=null; // {wallet, username, burned, beat, skins:{bronze:true,...}, selectedSkin}
+
+function spriteDataUrl(key){
+  // Use the raw base64 entry from RPG_SPRITES so the card thumbnail renders even before IMG is decoded
+  const src=window.RPG_SPRITES&&window.RPG_SPRITES[key];
+  return (typeof src==='string'&&src.indexOf('data:')===0)?src:'';
+}
+
+function renderSkins(){
+  const grid=$('skinGrid');grid.innerHTML='';
+  const sub=$('skinSubline');
+  if(window.SESSION&&window.SESSION.wallet){
+    const b=Math.round(window.SESSION.burned||0);
+    sub.textContent=`Signed in · ${window.SESSION.username||(window.SESSION.wallet.slice(0,4)+'…'+window.SESSION.wallet.slice(-4))} · ${b.toLocaleString()} $DRIPPY burned`;
+    sub.style.color='var(--gold)';
+  } else {
+    sub.textContent='Connect a wallet to unlock burn-tier skins';
+    sub.style.color='#9aa3b2';
+  }
+  const sel=window.currentSkin||'default';
+  for(const s of SKINS_DEF){
+    let unlocked=(s.id==='default');
+    if(window.SESSION&&window.SESSION.skins){
+      unlocked=unlocked||!!window.SESSION.skins[s.id];
+    }
+    const c=document.createElement('div');
+    c.className='skinCard'+(unlocked?'':' locked')+(sel===s.id?' selected':'');
+    const url=spriteDataUrl(s.spr);
+    c.innerHTML=`<div class="b">${s.badge}</div>`+
+      (url?`<img src="${url}" alt="${s.nm}"/>`:`<div style="height:80px;display:flex;align-items:center;justify-content:center;font-size:32px">${s.badge}</div>`)+
+      `<div class="nm">${s.nm}</div><div class="req">${s.req}</div>`+
+      (s.perk?`<div class="perk">${s.perk}</div>`:'');
+    c.onclick=()=>{
+      if(!unlocked){AUDIO.sfx.hurt&&AUDIO.sfx.hurt();$('walletMsg')&&($('walletMsg').textContent='');return;}
+      window.currentSkin=(s.id==='default'?null:s.id);
+      try{if(s.id==='default')localStorage.removeItem('drippySkin');else localStorage.setItem('drippySkin',s.id);}catch(e){}
+      if(window.SESSION&&window.SESSION.wallet){
+        fetch('/api/username?action=select_skin',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'include',body:JSON.stringify({skin:s.id})}).catch(()=>{});
+      }
+      AUDIO.sfx.coin&&AUDIO.sfx.coin();renderSkins();
+    };
+    grid.appendChild(c);
+  }
+}
+function showSkins(){hideAll();$('ovSkins').classList.add('on');state='skins';renderSkins();}
+function showConnect(){hideAll();$('ovConnect').classList.add('on');state='connect';renderWalletList();}
+$('btnSkins').onclick=()=>{AUDIO.init();AUDIO.sfx.select();showSkins();};
+$('btnSkinsBack').onclick=()=>{AUDIO.sfx.select();hideAll();$('ovTitle').classList.add('on');state='menu';};
+$('btnConnect').onclick=()=>{AUDIO.init();AUDIO.sfx.select();showConnect();};
+$('btnConnectBack').onclick=()=>{AUDIO.sfx.select();hideAll();$('ovTitle').classList.add('on');state='menu';};
+
+/* base58 encode (for sig bytes -> string that server's bs58.decode accepts) */
+function b58enc(bytes){
+  const ALPHA='123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+  if(!bytes||!bytes.length)return '';
+  // Count leading zeros
+  let zeros=0;while(zeros<bytes.length&&bytes[zeros]===0)zeros++;
+  // Convert to base58
+  const size=Math.ceil(bytes.length*138/100)+1;
+  const b=new Uint8Array(size);
+  let length=0;
+  for(let i=zeros;i<bytes.length;i++){
+    let carry=bytes[i];let j=0;
+    for(let k=size-1;(carry!==0||j<length)&&k>=0;k--,j++){
+      carry+=256*b[k];b[k]=carry%58;carry=(carry-b[k])/58;
+    }
+    length=j;
+  }
+  let it=size-length;
+  while(it<size&&b[it]===0)it++;
+  let out='1'.repeat(zeros);
+  for(;it<size;it++)out+=ALPHA[b[it]];
+  return out;
+}
+
+function detectWallets(){
+  const found=[];
+  // Direct provider injection (covers >95% of installs without needing wallet-standard lib)
+  if(window.phantom&&window.phantom.solana)found.push({name:'Phantom',sub:'Most popular Solana wallet',icon:'👻',provider:window.phantom.solana});
+  if(window.solflare)found.push({name:'Solflare',sub:'Web + mobile + Ledger',icon:'☀️',provider:window.solflare});
+  if(window.backpack)found.push({name:'Backpack',sub:'xNFT-ready wallet',icon:'🎒',provider:window.backpack});
+  if(window.glow)found.push({name:'Glow',sub:'Sleek Solana wallet',icon:'✨',provider:window.glow});
+  // Standard pattern: anything that drops itself on window.solana but isn't above
+  if(window.solana&&!found.length)found.push({name:'Solana Wallet',sub:'Browser extension',icon:'💼',provider:window.solana});
+  // Wallet Standard auto-discovery (the modern way)
+  try{
+    if(window.navigator&&window.navigator.wallets){
+      for(const w of window.navigator.wallets){
+        if(found.find(f=>f.name===w.name))continue;
+        const f=w.features&&(w.features['solana:signMessage']||w.features['standard:connect']);
+        if(f)found.push({name:w.name,sub:'Wallet Standard',icon:w.icon||'🔗',provider:w});
+      }
+    }
+  }catch(e){}
+  return found;
+}
+
+function renderWalletList(){
+  const list=$('walletList');list.innerHTML='';$('walletMsg').textContent='';
+  const wallets=detectWallets();
+  if(window.SESSION&&window.SESSION.wallet){
+    const w=window.SESSION.wallet;
+    const b=Math.round(window.SESSION.burned||0);
+    list.innerHTML=`<div style="background:rgba(245,197,66,.1);border:2px solid var(--gold);border-radius:12px;padding:14px;text-align:center">
+      <div style="font-family:'Press Start 2P';font-size:12px;color:var(--gold);margin-bottom:6px">CONNECTED ✓</div>
+      <div style="font-size:11px;color:var(--cream);font-family:JetBrains Mono,monospace">${window.SESSION.username||w.slice(0,8)+'…'+w.slice(-8)}</div>
+      <div style="font-size:10px;color:#9aa3b2;margin-top:6px">${b.toLocaleString()} $DRIPPY burned</div>
+    </div>
+    <button class="walletBtn" id="btnDisconnect" style="justify-content:center;font-size:11px">DISCONNECT</button>`;
+    $('btnDisconnect').onclick=async()=>{
+      await fetch('/api/username?action=signout',{method:'POST',credentials:'include'}).catch(()=>{});
+      window.SESSION=null;updateWalletPill();renderWalletList();
+    };
+    return;
+  }
+  if(!wallets.length){
+    list.innerHTML=`<div style="text-align:center;padding:20px;color:#9aa3b2;font-size:12px;line-height:1.6">
+      <div style="font-size:32px;margin-bottom:10px">👻</div>
+      No Solana wallet detected.<br><br>
+      Install <a href="https://phantom.app" target="_blank" style="color:var(--gold)">Phantom</a>,
+      <a href="https://solflare.com" target="_blank" style="color:var(--gold)">Solflare</a>, or
+      <a href="https://backpack.app" target="_blank" style="color:var(--gold)">Backpack</a> and refresh.<br><br>
+      <span style="font-size:10px">On mobile? Open this page inside your wallet app's browser.</span>
+    </div>`;
+    return;
+  }
+  for(const w of wallets){
+    const b=document.createElement('button');
+    b.className='walletBtn';
+    b.innerHTML=`<span class="ic">${w.icon}</span><span>${w.name}<span class="sub">${w.sub}</span></span>`;
+    b.onclick=()=>signInWith(w);
+    list.appendChild(b);
+  }
+}
+
+async function signInWith(w){
+  $('walletMsg').style.color='#9aa3b2';$('walletMsg').textContent='Waiting for wallet approval…';
+  try{
+    const r=await w.provider.connect();
+    const pk=(r&&r.publicKey?r.publicKey:w.provider.publicKey).toString();
+    const ts=Date.now();
+    const msg=`Sign in to drippyrewards.com\nWallet: ${pk.slice(0,8)}…${pk.slice(-4)}\n:: ${ts}`;
+    const encoded=new TextEncoder().encode(msg);
+    const sigRes=await w.provider.signMessage(encoded,'utf8');
+    const sigBytes=sigRes.signature?sigRes.signature:sigRes;
+    const sigB58=b58enc(sigBytes);
+    const resp=await fetch('/api/username?action=signin',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'include',body:JSON.stringify({wallet:pk,signature:sigB58,message:msg})});
+    const d=await resp.json();
+    if(!resp.ok){throw new Error(d.error||'sign-in failed');}
+    window.SESSION=d;
+    if(d.selectedSkin&&d.skins&&d.skins[d.selectedSkin]){window.currentSkin=d.selectedSkin;try{localStorage.setItem('drippySkin',d.selectedSkin);}catch(e){}}
+    $('walletMsg').style.color='var(--green)';$('walletMsg').textContent='Signed in ✓';
+    updateWalletPill();
+    setTimeout(renderWalletList,500);
+  }catch(e){
+    $('walletMsg').style.color='var(--red)';$('walletMsg').textContent=(e&&e.message||'Sign-in failed').slice(0,60);
+  }
+}
+
+function updateWalletPill(){
+  const p=$('walletPill');
+  if(window.SESSION&&window.SESSION.wallet){
+    const w=window.SESSION.wallet;
+    const tier=(window.SESSION.skins&&['void','shadow','diamond','gold','silver','bronze'].find(t=>window.SESSION.skins[t]))||'holder';
+    const badge={void:'🌌',shadow:'☠️',diamond:'💎',gold:'🥇',silver:'🥈',bronze:'🥉',holder:'🐾'}[tier];
+    p.style.display='block';
+    p.textContent=`${badge} ${window.SESSION.username||(w.slice(0,4)+'…'+w.slice(-4))} · ${tier.toUpperCase()}`;
+    $('btnConnect').textContent='WALLET ✓';
+  } else {
+    p.style.display='none';
+    $('btnConnect').textContent='CONNECT WALLET';
+  }
+}
+
+// Restore session on boot
+(async function(){
+  try{
+    const r=await fetch('/api/username?action=session',{credentials:'include'});
+    const d=await r.json();
+    if(d&&d.signedIn){
+      window.SESSION=d;
+      if(d.selectedSkin&&d.skins&&d.skins[d.selectedSkin]){window.currentSkin=d.selectedSkin;try{localStorage.setItem('drippySkin',d.selectedSkin);}catch(e){}}
+      updateWalletPill();
+    }
+  }catch(e){}
+})();
+
+// Hook into score submit: send credentials so weekly tournament knows it's the signed-in wallet
+const _origFetch=window.fetch;
+window.fetch=function(u,o){
+  try{ if(typeof u==='string'&&u.indexOf('/api/leaderboard?board=')===0&&o&&o.method==='POST'){o.credentials='include';
+    // Mirror the score into the weekly board too
+    const wkBody=o.body;
+    setTimeout(()=>{_origFetch('/api/leaderboard?board=weekly',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'include',body:wkBody}).catch(()=>{});},80);
+  } }catch(e){}
+  return _origFetch.apply(this,arguments);
+};
 
 /* ---------- main loop ---------- */
 let last=0;

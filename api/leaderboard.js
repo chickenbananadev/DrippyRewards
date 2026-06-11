@@ -39,6 +39,87 @@ module.exports = async (req, res) => {
 
   if (req.method === 'OPTIONS') { res.status(204).end(); return; }
 
+  // ----- WEEKLY TOURNAMENT board (Top Dogs — Skill) -----
+  // Eligibility: anyone can play, but to be eligible for the 100K $DRIPPY prize
+  // they must (a) be signed in with a verified wallet (POST carries session cookie),
+  // (b) hold >= 100K $DRIPPY at payout time (checked Sunday).
+  // Resets weekly. Key = drippy:game:weekly:<YYYY>-<WW>.
+  //   GET  ?board=weekly                        -> { week, scores: [{ wallet|n, s }] }
+  //   POST ?board=weekly { score, beat }        -> { ok, eligible, rank }  (session cookie required for eligibility flag)
+  if ((req.query.board || '') === 'weekly') {
+    const now = new Date();
+    const yr = now.getUTCFullYear();
+    // ISO week number
+    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    const dayNum = d.getUTCDay() || 7; d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    const wk = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+    const weekKey = `${yr}-W${String(wk).padStart(2,'0')}`;
+    const ZWEEK = `drippy:game:weekly:${weekKey}`;
+    const RLWK = 'drippy:game:weekly:rl:';
+    const MAX = 2000000;
+
+    // Session cookie reader (inline; we don't import username.js helpers)
+    const cookie = (req.headers.cookie || '').match(/drippy_session=([^;]+)/);
+    const SESSION_SECRET = process.env.DRIPPY_SESSION_SECRET || process.env.DRIPPY_EVENTS_SECRET || '';
+    let signedWallet = null;
+    if (cookie && SESSION_SECRET) {
+      try {
+        const crypto = require('crypto');
+        const parts = decodeURIComponent(cookie[1]).split('.');
+        if (parts.length === 3 && (Date.now() - Number(parts[1])) < 7*24*3600*1000) {
+          const expected = crypto.createHmac('sha256', SESSION_SECRET).update(`${parts[0]}|${parts[1]}`).digest('base64url');
+          if (parts[2] === expected) signedWallet = parts[0];
+        }
+      } catch(_) {}
+    }
+
+    if (req.method === 'POST') {
+      let b = req.body; if (typeof b === 'string') { try { b = JSON.parse(b); } catch(_) { b = null; } }
+      if (!b) { res.status(400).json({ error: 'bad body' }); return; }
+      const score = Math.round(Number(b.score) || 0);
+      if (!(score > 0) || score > MAX) { res.status(400).json({ error: 'score out of range' }); return; }
+      const ip = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() || 'unknown';
+      const rlKey = RLWK + (signedWallet || ip);
+      const rl = await redis(['SET', rlKey, '1', 'NX', 'EX', '20']);
+      if (rl !== null && rl !== 'OK') { res.status(429).json({ error: 'one log per 20s' }); return; }
+      // Member = wallet if signed in (eligible), else "anon:ip:name" (ineligible for prize)
+      const cleanName = String(b.name || 'DRIPPY').toUpperCase().replace(/[^A-Z0-9 _.\-]/g,'').trim().slice(0,12) || 'DRIPPY';
+      const member = signedWallet ? signedWallet : `anon:${cleanName}:${ip.slice(0,12)}`;
+      await redis(['ZADD', ZWEEK, 'GT', 'CH', String(score), member]);
+      // Expire the weekly key 21 days after week end (keeps last 2-3 weeks viewable)
+      await redis(['EXPIRE', ZWEEK, String(28*24*3600)]);
+      const rank = await redis(['ZREVRANK', ZWEEK, member]);
+      res.status(200).json({ ok:true, week:weekKey, eligible: !!signedWallet, rank: rank!=null ? Number(rank)+1 : null });
+      return;
+    }
+
+    // GET — top 25 with display names
+    const raw = await redis(['ZREVRANGE', ZWEEK, '0', '24', 'WITHSCORES']);
+    const scores = [];
+    const wallets = [];
+    if (Array.isArray(raw)) for (let i = 0; i < raw.length; i += 2) {
+      const m = raw[i]; const s = Math.round(Number(raw[i+1]) || 0);
+      if (m.startsWith('anon:')) {
+        const parts = m.split(':');
+        scores.push({ n: parts[1] || 'DRIPPY', s, eligible: false });
+      } else {
+        scores.push({ wallet: m, s, eligible: true });
+        wallets.push(m);
+      }
+    }
+    // Look up usernames for wallet entries
+    if (wallets.length) {
+      await Promise.all(scores.map(async (e) => {
+        if (!e.wallet) return;
+        const name = await redis(['GET', 'drippy:username:' + e.wallet]);
+        e.n = name || (e.wallet.slice(0,4) + '...' + e.wallet.slice(-4));
+      }));
+    }
+    res.status(200).json({ week: weekKey, scores });
+    return;
+  }
+
   // ----- DRIPPY RUN global game leaderboard -----
   // Folded in here (instead of a separate api/game-scores.js) to stay under
   // Vercel Hobby's 12-serverless-function limit.
