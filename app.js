@@ -832,14 +832,16 @@ setInterval(loadEvents, 60000);
         return;
       }
       items.forEach((e, i) => {
-        // member key differs by board:
+        // member key:
         //   game (all-time) → server keyed by name (e.n)
-        //   weekly         → server keyed by e.wallet (signed-in) or "anon:NAME:ip" (anon)
+        //   weekly         → server returns the raw member key as e.member (wallet or 'anon:NAME:ip')
         const isWeekly = _lbAdminBoard === 'weekly';
-        const member = isWeekly ? (e.wallet || ('anon:' + (e.n || 'DRIPPY') + ':' + (e._ip || 'unknown'))) : (e.n || '');
-        const label  = isWeekly
-          ? '#' + (i+1) + ' · ' + (e.n || (e.wallet ? (e.wallet.slice(0,4)+'…'+e.wallet.slice(-4)) : 'DRIPPY')) + (e.eligible ? ' ✓' : '')
-          : '#' + (i+1) + ' · ' + (e.n || 'DRIPPY') + (e.beat ? ' 👑' : '');
+        const member = isWeekly ? (e.member || e.wallet || ('anon:' + (e.n || 'DRIPPY') + ':unknown')) : (e.n || '');
+        const tag = isWeekly
+          ? (e.verified ? ' ✓' : e.status === 'holder' ? ' 🐾' : ' (anon)')
+          : (e.beat ? ' 👑' : '');
+        const skinBadge = e.skin ? ({default:'🐶',believer:'🐾',bronze:'🥉',silver:'🥈',gold:'🥇',diamond:'💎',void:'🌌',shadow:'☠️'}[e.skin] || '') : '';
+        const label = '#' + (i+1) + ' · ' + (e.n || (e.wallet ? (e.wallet.slice(0,4)+'…'+e.wallet.slice(-4)) : 'DRIPPY')) + tag + (skinBadge ? ' ' + skinBadge : '');
         const row = document.createElement('div');
         row.className = 'ev-admin-row';
         row.style.cssText = 'display:flex;align-items:center;gap:8px;flex-wrap:wrap';

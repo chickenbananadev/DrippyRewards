@@ -155,11 +155,12 @@ module.exports = async (req, res) => {
     if (Array.isArray(raw)) for (let i = 0; i < raw.length; i += 2) {
       const m = raw[i]; const s = Math.round(Number(raw[i+1]) || 0);
       const status = statusMap[m] || (m.startsWith('anon:') ? 'anon' : 'holder');
+      // member is the raw Redis member string — admin needs this verbatim to DELETE/PUT
       if (m.startsWith('anon:')) {
         const parts = m.split(':');
-        scores.push({ n: parts[1] || 'DRIPPY', s, status: 'anon', eligible: false, verified: false });
+        scores.push({ n: parts[1] || 'DRIPPY', s, status: 'anon', eligible: false, verified: false, member: m });
       } else {
-        scores.push({ wallet: m, s, status, eligible: status === 'verified' || status === 'holder', verified: status === 'verified' });
+        scores.push({ wallet: m, s, status, eligible: status === 'verified' || status === 'holder', verified: status === 'verified', member: m });
         wallets.push(m);
       }
     }
