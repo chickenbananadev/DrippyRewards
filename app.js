@@ -671,16 +671,27 @@ async function loadLeaderboard(type, me, burnRank, earnRank){
       return;
     }
     list.innerHTML = '';
+    // Tier badge for burn (Hall of Flame): shows what skin tier each wallet has unlocked
+    const burnTierBadge = (burned) => {
+      const b = Number(burned) || 0;
+      if (b >= 10_000_000) return '<span title="Void tier (10M+ burned)">🌌</span>';
+      if (b >= 5_000_000)  return '<span title="Diamond tier (5M+ burned)">💎</span>';
+      if (b >= 1_000_000)  return '<span title="Gold tier (1M+ burned)">🥇</span>';
+      if (b >= 500_000)    return '<span title="Silver tier (500K+ burned)">🥈</span>';
+      if (b >= 100_000)    return '<span title="Bronze tier (100K+ burned)">🥉</span>';
+      return '';
+    };
     d.entries.forEach(e => {
       const row = document.createElement('div');
       row.className = 'lb-row' + (e.wallet === _lbMe ? ' me' : '');
+      const badge = (_lbType === 'burn') ? burnTierBadge(e.tokensBurned) : '';
       const who = e.username
         ? '<span class="uname-tag">' + e.username + '</span> <span style="opacity:.5">' + shortAddr(e.wallet) + '</span>'
         : shortAddr(e.wallet);
       const val = _lbType === 'earn' ? fmtSol(e.totalReceivedSol) : fmtTokens(e.tokensBurned) + ' 🔥';
       row.innerHTML =
         '<span class="rank' + (e.rank <= 3 ? ' top' : '') + '">#' + e.rank + '</span>' +
-        '<span class="who">' + who + '</span>' +
+        '<span class="who">' + (badge ? badge + ' ' : '') + who + '</span>' +
         '<span class="val">' + val + '</span>';
       list.appendChild(row);
     });
