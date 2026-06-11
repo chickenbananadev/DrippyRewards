@@ -569,38 +569,49 @@
 <div class="modal" id="adminModal">
   <div class="modal-box">
     <button class="close" id="adminClose" aria-label="Close">✕</button>
-    <h3>📡 Manage Events</h3>
-    <input id="adminKey" type="password" placeholder="Admin key" autocomplete="off">
-    <input id="adminTitle" type="text" placeholder="Event title">
-    <input id="adminStart" type="datetime-local">
-    <select id="adminType">
-      <option value="space">🎙️ X Space</option>
-      <option value="ama">💬 AMA</option>
-      <option value="launch">🚀 Launch</option>
-      <option value="event">📡 Event</option>
-    </select>
-    <input id="adminLink" type="text" placeholder="Link (optional)">
-    <label class="admin-file">
-      <input id="adminImage" type="file" accept="image/*">
-      <span id="adminImageLabel">📷 Add event image (optional)</span>
-    </label>
-    <button id="adminPost">Post event</button>
-    <div class="modal-msg" id="adminMsg"></div>
-    <h3 style="margin-top:18px">Currently scheduled</h3>
-    <div class="ev-admin-list" id="adminEvList"></div>
+    <input id="adminKey" type="password" placeholder="Admin key" autocomplete="off" style="margin-bottom:14px">
+    <!-- Section tabs -->
+    <div id="adminSectionTabs" style="display:flex;gap:6px;margin-bottom:18px">
+      <button class="admin-section-tab active" data-section="events" style="flex:1;padding:11px;background:rgba(162,89,255,.18);border:1px solid rgba(162,89,255,.5);border-radius:8px;color:#c9b8ff;cursor:pointer;font-weight:700;font-family:'Press Start 2P',monospace;font-size:11px;letter-spacing:1px">📡 EVENTS</button>
+      <button class="admin-section-tab" data-section="leaderboard" style="flex:1;padding:11px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#aaa;cursor:pointer;font-weight:700;font-family:'Press Start 2P',monospace;font-size:11px;letter-spacing:1px">🎮 LEADERBOARD</button>
+    </div>
 
-    <div style="height:2px;background:linear-gradient(90deg,transparent,var(--gold,#f5c542),transparent);margin:26px 0 14px"></div>
-    <h3 id="adminLbHeader" style="margin-top:0;color:#f5c542;text-shadow:0 0 12px rgba(245,197,66,0.4)">🎮 GAME LEADERBOARD</h3>
-    <p style="font-size:12px;color:#9aa3b2;margin:-8px 0 12px;line-height:1.5">Edit or remove any score from the all-time Top Dogs board or this week's tournament board. Uses the same admin key as events above.</p>
+    <!-- EVENTS SECTION -->
+    <div id="adminSectionEvents">
+      <h3>📡 Manage Events</h3>
+      <input id="adminTitle" type="text" placeholder="Event title">
+      <input id="adminStart" type="datetime-local">
+      <select id="adminType">
+        <option value="space">🎙️ X Space</option>
+        <option value="ama">💬 AMA</option>
+        <option value="launch">🚀 Launch</option>
+        <option value="event">📡 Event</option>
+      </select>
+      <input id="adminLink" type="text" placeholder="Link (optional)">
+      <label class="admin-file">
+        <input id="adminImage" type="file" accept="image/*">
+        <span id="adminImageLabel">📷 Add event image (optional)</span>
+      </label>
+      <button id="adminPost">Post event</button>
+      <div class="modal-msg" id="adminMsg"></div>
+      <h3 style="margin-top:18px">Currently scheduled</h3>
+      <div class="ev-admin-list" id="adminEvList"></div>
+    </div>
+
+    <!-- LEADERBOARD SECTION -->
+    <div id="adminSectionLeaderboard" style="display:none">
+    <h3 id="adminLbHeader" style="margin-top:0;color:#f5c542;text-shadow:0 0 12px rgba(245,197,66,0.4)">🎮 Game Leaderboard</h3>
+    <p style="font-size:12px;color:#9aa3b2;margin:-8px 0 12px;line-height:1.5">Edit or remove any score from the all-time Top Dogs board or this week's tournament board.</p>
     <div class="lb-admin-tabs" id="lbAdminTabs" style="display:flex;gap:6px;margin-bottom:8px">
       <button class="lb-admin-tab active" data-board="game" style="flex:1;padding:8px;background:rgba(245,197,66,.12);border:1px solid rgba(245,197,66,.35);border-radius:6px;color:#f5c542;cursor:pointer;font-weight:700">All-Time (Top Dogs)</button>
       <button class="lb-admin-tab" data-board="weekly" style="flex:1;padding:8px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:6px;color:#aaa;cursor:pointer;font-weight:700">This Week</button>
     </div>
     <div class="ev-admin-list" id="adminLbList" style="max-height:340px;overflow-y:auto"></div>
     <div class="modal-msg" id="adminLbMsg" style="margin-top:6px"></div>
+    </div><!-- end #adminSectionLeaderboard -->
   </div>
 </div>
 
-<script src="app.js" defer></script>
+<script src="app.js?v=20260611c" defer></script>
 </body>
 </html>

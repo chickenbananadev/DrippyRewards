@@ -1474,14 +1474,14 @@ $('btnFinLog').onclick=()=>openEntry(true);
 
 /* ---------- skins + wallet ---------- */
 const SKINS_DEF=[
-  {id:'default', nm:'DEFAULT', req:'Always',badge:'🐶',perk:'',spr:'hero'},
+  {id:'default', nm:'DEFAULT',     req:'Always',badge:'🐶',perk:'',spr:'hero'},
   {id:'believer',nm:'TRUE BELIEVER',req:'Connect + hold any $DRIPPY',badge:'🐾',perk:'OG supporter · purple pawprints',spr:'believer_idle'},
-  {id:'bronze',  nm:'BRONZE',  req:'Burn ≥ 25K',  badge:'🥉',perk:'+1 daily revive',spr:'bronze_idle',     buySol:0.01},
-  {id:'silver',  nm:'SILVER',  req:'Burn ≥ 100K', badge:'🥈',perk:'Random start pickup',spr:'silver_idle', buySol:0.03},
-  {id:'gold',    nm:'GOLD',    req:'Burn ≥ 250K', badge:'🥇',perk:'Daily Challenge bonus',spr:'gold_idle', buySol:0.05},
-  {id:'diamond', nm:'DIAMOND', req:'Burn ≥ 1M',   badge:'💎',perk:'2x cosmetic drops',spr:'diamond_idle',  buySol:0.07},
-  {id:'shadow',  nm:'SHADOW',  req:'Beat Eternal Drip',badge:'☠️',perk:'Dark Mirror emote',spr:'shadow_idle'},
-  {id:'void',    nm:'VOID',    req:'Burn 5M + beat finale',badge:'🌌',perk:'Lobby FX + emotes',spr:'void_idle',buySol:0.10},
+  {id:'bronze',  nm:'BRONZE',      req:'Burn ≥ 5K',   badge:'🥉',perk:'+1 daily revive',         spr:'bronze_idle',  buySol:0.01},
+  {id:'silver',  nm:'SILVER',      req:'Burn ≥ 25K',  badge:'🥈',perk:'Random start pickup',     spr:'silver_idle',  buySol:0.03},
+  {id:'gold',    nm:'GOLD',        req:'Burn ≥ 100K', badge:'🥇',perk:'Daily Challenge bonus',   spr:'gold_idle',    buySol:0.05},
+  {id:'diamond', nm:'DIAMOND',     req:'Burn ≥ 500K', badge:'💎',perk:'2x cosmetic drops',       spr:'diamond_idle', buySol:0.07},
+  {id:'void',    nm:'VOID',        req:'Burn ≥ 1M',   badge:'🌌',perk:'Lobby FX + emotes',       spr:'void_idle',    buySol:0.10},
+  {id:'shadow',  nm:'SHADOW',      req:'Burn 2M · or beat Eternal Drip',badge:'☠️',perk:'Apex flex · Dark Mirror emote',spr:'shadow_idle'},
 ];
 window.SESSION=null; // {wallet, username, burned, beat, skins:{bronze:true,...}, selectedSkin}
 
@@ -1706,7 +1706,7 @@ function updateWalletPill(){
   const p=$('walletPill');
   if(window.SESSION&&window.SESSION.wallet){
     const w=window.SESSION.wallet;
-    const tier=(window.SESSION.skins&&['void','shadow','diamond','gold','silver','bronze','believer'].find(t=>window.SESSION.skins[t]))||null;
+    const tier=(window.SESSION.skins&&['shadow','void','diamond','gold','silver','bronze','believer'].find(t=>window.SESSION.skins[t]))||null;
     const badge={void:'🌌',shadow:'☠️',diamond:'💎',gold:'🥇',silver:'🥈',bronze:'🥉',believer:'🐾'}[tier]||'🐶';
     const lbl=tier?(tier==='believer'?'TRUE BELIEVER':tier.toUpperCase()):'SIGNED IN';
     p.style.display='block';

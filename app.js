@@ -911,19 +911,26 @@ setInterval(loadEvents, 60000);
       refreshLbAdmin();
     });
   });
-  // Refresh leaderboard view whenever modal opens, and reveal the section
-  $('adminOpen').addEventListener('click', () => {
-    setTimeout(() => {
-      refreshLbAdmin();
-      const box = document.querySelector('#adminModal .modal-box');
-      const header = $('adminLbHeader');
-      if (box && header) {
-        // Scroll the modal-box so the leaderboard section is visible
-        const top = header.offsetTop - 12;
-        box.scrollTo({ top, behavior: 'smooth' });
-      }
-    }, 120);
+  // Section tabs at top of modal: Events | Leaderboard
+  function setSection(name){
+    document.querySelectorAll('.admin-section-tab').forEach(b => {
+      const active = b.dataset.section === name;
+      b.classList.toggle('active', active);
+      b.style.background = active ? 'rgba(162,89,255,.18)' : 'rgba(255,255,255,.05)';
+      b.style.border     = active ? '1px solid rgba(162,89,255,.5)' : '1px solid rgba(255,255,255,.12)';
+      b.style.color      = active ? '#c9b8ff' : '#aaa';
+    });
+    const ev = $('adminSectionEvents');
+    const lb = $('adminSectionLeaderboard');
+    if (ev) ev.style.display = name === 'events' ? 'block' : 'none';
+    if (lb) lb.style.display = name === 'leaderboard' ? 'block' : 'none';
+    if (name === 'leaderboard') setTimeout(refreshLbAdmin, 30);
+  }
+  document.querySelectorAll('.admin-section-tab').forEach(btn => {
+    btn.addEventListener('click', () => setSection(btn.dataset.section));
   });
+  // When admin opens, refresh both
+  $('adminOpen').addEventListener('click', () => setTimeout(refreshLbAdmin, 80));
   refreshLbAdmin();
 
   const fileInput = $('adminImage');

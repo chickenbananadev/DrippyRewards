@@ -64,17 +64,18 @@ function clearSessionCookie(res){
     `${SESSION_COOKIE}=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0`);
 }
 
-// Burn tier thresholds — LOWERED 2026-06-11 to make Bronze/Silver more achievable
-// for casual burners. Existing earned-tier wallets remain unlocked.
+// Burn tier thresholds — LOWERED 2026-06-11 (v3). Shadow = top burn tier @ 2M.
+// Tiers scale 5K → 2M. Shadow also unlockable by beating Eternal Drip (skill path).
 const TIERS = [
   { id: 'holder',   min: 0,        beat: false, label: 'Holder' },
   { id: 'believer', min: 0,        beat: false, label: 'True Believer Drippy', requireHolder: true },
-  { id: 'bronze',   min: 25000,    beat: false, label: 'Bronze Drippy' },
-  { id: 'silver',   min: 100000,   beat: false, label: 'Silver Drippy' },
-  { id: 'gold',     min: 250000,   beat: false, label: 'Gold Drippy' },
-  { id: 'diamond',  min: 1000000,  beat: false, label: 'Diamond Drippy' },
-  { id: 'shadow',   min: 0,        beat: true,  label: 'Shadow Drippy' },
-  { id: 'void',     min: 5000000,  beat: true,  label: 'Void Drippy' },
+  { id: 'bronze',   min: 5000,     beat: false, label: 'Bronze Drippy' },
+  { id: 'silver',   min: 25000,    beat: false, label: 'Silver Drippy' },
+  { id: 'gold',     min: 100000,   beat: false, label: 'Gold Drippy' },
+  { id: 'diamond',  min: 500000,   beat: false, label: 'Diamond Drippy' },
+  { id: 'void',     min: 1000000,  beat: false, label: 'Void Drippy' },
+  // Shadow = the ultimate flex. Two paths: burn 2M $DRIPPY OR beat the Eternal Drip finale.
+  { id: 'shadow',   min: 2000000,  beat: false, label: 'Shadow Drippy', orBeat: true },
 ];
 // Wallets that bought a tier via SOL stay flagged here so threshold changes never revoke them.
 const PURCHASED_PREFIX = 'drippy:skin:purchased:'; // <wallet> -> SET of skin ids
@@ -102,7 +103,13 @@ async function computeUnlocks(wallet, hostHeader){
   const purchased = Array.isArray(purchasedRaw) ? purchasedRaw : [];
   const skins = {};
   for (const t of TIERS) {
-    let ok = burned >= t.min && (!t.beat || beat);
+    let ok;
+    if (t.orBeat) {
+      // Dual path: meets burn min OR has beaten the finale
+      ok = (burned >= t.min) || beat;
+    } else {
+      ok = burned >= t.min && (!t.beat || beat);
+    }
     if (t.requireHolder && !isHolder) ok = false;
     if (purchased.includes(t.id)) ok = true;
     skins[t.id] = ok;
