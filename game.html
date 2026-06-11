@@ -3,14 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover">
-<title>DRIPPY RUN — The Eternal Bowl | $DRIPPY</title>
-<meta name="description" content="Run the city, stomp the rival packs, and take back the Eternal Bowl. 10 levels, 2 bosses, power-ups and high scores. The official $DRIPPY arcade game.">
-<meta name="theme-color" content="#07040d">
-<link rel="icon" type="image/png" href="/favicon.png">
-<meta property="og:title" content="DRIPPY RUN — The Eternal Bowl">
-<meta property="og:description" content="The official $DRIPPY arcade game. 10 levels. 2 bosses. The drip never stops.">
-<meta property="og:image" content="https://drippyrewards.com/assets/drippy-run-promo.jpg">
-<meta property="og:type" content="website">
+<title>DRIPPY RUN — The Eternal Bowl</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
@@ -78,7 +71,6 @@ canvas{image-rendering:pixelated;width:100%;height:100%;display:block;object-fit
     <button class="btn ghost" id="btnScores">HIGH SCORES</button>
     <button class="btn ghost" id="btnHow">HOW TO PLAY</button>
   </div>
-  <p style="margin-top:16px"><a href="/" style="color:rgba(162,89,255,.85);font-size:12px;text-decoration:none">← back to drippyrewards.com</a></p>
   <div class="keys" id="howto">
     <b>← →</b> move · <b>Shift</b> run · <b>Space</b> jump + double jump<br>
     <b>Space</b> at a wall = wall jump · <b>↓</b> in air = ground pound<br>
@@ -241,6 +233,11 @@ const PALS={
   sky:{sky:['#0a1430','#14275c','#1f3a78','#0c1838'],far:'#11204a',mid:'#182c5c',ground:'#2c3a5c',gtop:'#48598a',acc:'#ffd966',win:'rgba(255,217,102,.07)',wind:true},
   vault:{sky:['#0e0a04','#241a08','#3a2a0c','#120d04'],far:'#1a1206',mid:'#261a08',ground:'#33270e',gtop:'#5c4718',acc:'#ffd24a',win:'rgba(255,210,74,.09)',dark:true},
   void:{sky:['#070310','#150826','#26104a','#0a0416'],far:'#0e0618',mid:'#180a28',ground:'#221034',gtop:'#3c1f5c',acc:'#b14aff',win:'rgba(177,74,255,.09)'},
+  alley:{sky:['#0a0614','#1a0a2a','#2a0e3a','#0c0618'],far:'#140a22',mid:'#1e0e30',ground:'#24202c',gtop:'#3a3346',acc:'#ff3ea5',win:'rgba(255,62,165,.10)'},
+  glizzy:{sky:['#2a1850','#5a2a72','#9a4a6a','#e08a4a'],far:'#2a1a44',mid:'#3a2255',ground:'#3a2a1c',gtop:'#6a4a2c',acc:'#ffcf3a',win:'rgba(255,200,80,.10)'},
+  desert:{sky:['#3a2a6a','#7a4a6a','#d07a4a','#f5b54a'],far:'#5a4060',mid:'#8a5a4a',ground:'#7a5a2c',gtop:'#b58a3c',acc:'#ffd24a',win:'rgba(255,210,74,.10)',embers:true},
+  meme:{sky:['#0a0626','#2a0a4a','#5a0a6a','#1a0628'],far:'#160a36',mid:'#260c48',ground:'#2a1042',gtop:'#5a2a78',acc:'#2ff0ff',win:'rgba(47,240,255,.12)'},
+  gothic:{sky:['#0c0818','#1a1230','#2a1a48','#0e0a1c'],far:'#140e26',mid:'#1e1638',ground:'#28222e',gtop:'#4a3a2c',acc:'#ffd24a',win:'rgba(186,140,255,.10)',dark:true},
 };
 
 /* ---------- level definitions ---------- */
@@ -456,6 +453,98 @@ const LEVELS=[
   en(L,'rug',4800,488,{variant:'thrower',hp:2,cd:0});
   bb(L,500,100,240,120,3);bb(L,1700,90,250,120,4);bb(L,2900,100,240,120,2);bb(L,4000,90,240,120,0);bb(L,5000,100,240,120,4);
   L.goal={x:5180,y:488};return L;}},
+ {name:'BACK ALLEY',icon:'🐱',music:'neon',par:95,build(){
+  const L=mkL('BACK ALLEY','neon','alley',2300);
+  gseg(L,0,2300,488);
+  L.platforms.push({x:-60,y:120,w:70,h:380,bx:-60,by:120});L.platforms.push({x:2290,y:120,w:70,h:380,bx:2290,by:120});
+  plat(L,460,350,150,{mv:{ax:'x',range:120,spd:1.1,ph:0}});plat(L,820,300,150);plat(L,1300,330,150);plat(L,1700,290,150,{mv:{ax:'y',range:80,spd:1.2,ph:1}});
+  spring(L,240,488);spring(L,2000,488);spikes(L,1480,540,90);
+  crate(L,300,488,'shield');crate(L,1100,488,'magnet');crate(L,1850,488,'bone');
+  coinRow(L,140,430,6,60);coinArc(L,480,290,5,90);coinRow(L,1320,280,5,56);coinArc(L,1740,230,5,90);bigDrip(L,860,250);bigDrip(L,2050,260);
+  chk(L,1150,488);pow(L,1740,220,'gold');
+  en(L,'bulldog',650,488,{variant:'patrol',patrol:[380,940],spd:48,hp:2,skin:'catScout',h:108});
+  en(L,'bulldog',1050,488,{variant:'gunner',patrol:[980,1230],spd:38,hp:2,skin:'knifeCat',h:100,shotCol:'#e0e0e0'});
+  en(L,'bulldog',1450,488,{variant:'charge',patrol:[1280,1720],spd:60,hp:3,skin:'catBruiser',h:114});
+  en(L,'bulldog',1660,488,{variant:'gunner',patrol:[1540,1820],spd:34,hp:2,skin:'catSprayer',h:100,shotCol:'#b14aff'});
+  en(L,'bulldog',2000,488,{variant:'charge',patrol:[1880,2200],spd:95,hp:2,skin:'catRacer',h:96});
+  bb(L,300,100,250,120,1);bb(L,1300,90,250,120,2);
+  L.bossTitle='MIDNIGHT TOM';
+  L.boss={kind:'king',final:false,x:2160,y:488,hp:9,maxhp:9,phase:1,state:'intro',t:0,dir:-1,spd:300,dazeT:0,summons:false,dead:false,shotHint:0,skin:'midnightTom',koSkin:'midnightTom',h:150};
+  return L;}},
+ {name:'GLIZZY LAND',icon:'🌭',music:'rooftops',par:100,build(){
+  const L=mkL('GLIZZY LAND','rooftops','glizzy',2500);
+  gseg(L,0,2500,488);
+  L.platforms.push({x:-60,y:120,w:70,h:380,bx:-60,by:120});L.platforms.push({x:2490,y:120,w:70,h:380,bx:2490,by:120});
+  plat(L,420,360,150);plat(L,720,300,150);plat(L,1150,340,150,{mv:{ax:'x',range:120,spd:1.0,ph:0}});plat(L,1550,300,150);plat(L,1950,340,150);
+  spring(L,240,488);spring(L,1380,488);spring(L,2200,488);
+  crate(L,320,488,'magnet');crate(L,1250,488,'shield');crate(L,2050,488,'bone');
+  coinRow(L,140,430,6,60);coinArc(L,440,300,5,90);coinArc(L,1190,280,5,90);coinRow(L,1580,250,5,56);bigDrip(L,760,250);bigDrip(L,1990,280);
+  chk(L,1300,488);pow(L,1580,240,'x2');
+  en(L,'bulldog',600,488,{variant:'gunner',patrol:[400,900],spd:36,hp:2,skin:'glizzyVendor',h:108,arc:true,shotCol:'#ffcf3a'});
+  en(L,'bulldog',1000,488,{variant:'gunner',patrol:[900,1300],spd:34,hp:2,skin:'mustardMan',h:108,shotCol:'#ffd24a'});
+  en(L,'bulldog',1500,488,{variant:'patrol',patrol:[1340,1760],spd:46,hp:3,skin:'pretzelPusher',h:110});
+  en(L,'bulldog',1750,488,{variant:'gunner',patrol:[1600,1900],spd:34,hp:2,skin:'sodaSlinger',h:108,shotCol:'#e24b4a'});
+  en(L,'bulldog',2050,488,{variant:'charge',patrol:[1900,2350],spd:58,hp:3,skin:'umbrellaThug',h:108});
+  bb(L,300,100,250,120,3);bb(L,1300,90,250,120,0);bb(L,2150,100,240,120,1);
+  L.bossTitle='THE GLIZZY KING';
+  L.boss={kind:'king',final:false,x:2340,y:488,hp:11,maxhp:11,phase:1,state:'intro',t:0,dir:-1,spd:300,dazeT:0,summons:false,dead:false,shotHint:0,skin:'glizzyKing',skin2:'glizzyCart',h:160,h2:140,koSkin:'glizzyCart'};
+  return L;}},
+ {name:'GOLDEN DESERT',icon:'🏜️',music:'deep',par:105,build(){
+  const L=mkL('GOLDEN DESERT','deep','desert',2500);
+  gseg(L,0,2500,488);
+  L.platforms.push({x:-60,y:120,w:70,h:380,bx:-60,by:120});L.platforms.push({x:2490,y:120,w:70,h:380,bx:2490,by:120});
+  plat(L,440,350,150);plat(L,780,300,150,{mv:{ax:'y',range:80,spd:1.2,ph:0}});plat(L,1200,330,150);plat(L,1600,290,150);plat(L,2000,340,150);
+  spring(L,240,488);spring(L,2200,488);spikes(L,1000,540,100);spikes(L,1900,540,100);
+  crate(L,320,488,'shield');crate(L,1350,488,'magnet');crate(L,2080,488,'bone');
+  coinRow(L,140,430,6,60);coinArc(L,460,290,5,90);coinRow(L,1240,280,5,56);coinArc(L,1640,230,5,90);bigDrip(L,820,250);bigDrip(L,2040,280);
+  chk(L,1300,488);pow(L,1640,220,'gold');
+  en(L,'bulldog',620,488,{variant:'charge',patrol:[400,940],spd:55,hp:3,skin:'scarabRaider',h:104});
+  en(L,'bulldog',1100,488,{variant:'patrol',patrol:[960,1340],spd:44,hp:2,skin:'sandBandit',h:104});
+  en(L,'bat',900,300,{variant:'sine',baseY:300,skin:'dustWraith',h:84});
+  en(L,'bulldog',1500,488,{variant:'gunner',patrol:[1380,1700],spd:32,hp:2,skin:'cobraSentinel',h:108,shotCol:'#22c55e'});
+  en(L,'bulldog',1900,488,{variant:'gunner',patrol:[1760,2100],spd:34,hp:2,skin:'goldenArcher',h:104,shotCol:'#ffd24a'});
+  en(L,'bulldog',1300,488,{variant:'patrol',patrol:[1180,1500],spd:38,hp:3,skin:'mummyMerchant',h:110});
+  bb(L,300,100,240,120,2);bb(L,1300,90,250,120,3);bb(L,2150,100,240,120,1);
+  L.bossTitle='PHARAOH OF FOMO';
+  L.boss={kind:'king',final:false,x:2340,y:488,hp:10,maxhp:10,phase:1,state:'intro',t:0,dir:-1,spd:310,dazeT:0,summons:false,dead:false,shotHint:0,skin:'pharaohFomo',koSkin:'pharaohFomo',h:150};
+  return L;}},
+ {name:'MEME RIFT',icon:'📺',music:'neon',par:105,build(){
+  const L=mkL('MEME RIFT','neon','meme',2500);
+  gseg(L,0,2500,488);
+  L.platforms.push({x:-60,y:120,w:70,h:380,bx:-60,by:120});L.platforms.push({x:2490,y:120,w:70,h:380,bx:2490,by:120});
+  plat(L,420,350,140,{mv:{ax:'x',range:130,spd:1.2,ph:0}});plat(L,760,300,140);plat(L,1150,340,140,{fall:true});plat(L,1500,300,140);plat(L,1900,340,140,{mv:{ax:'y',range:80,spd:1.3,ph:1}});
+  spring(L,240,488);spring(L,2200,488);spikes(L,1000,540,90);spikes(L,1750,540,90);
+  crate(L,320,488,'shield');crate(L,1300,488,'x2');crate(L,2080,488,'bone');
+  coinRow(L,140,430,6,60);coinArc(L,440,290,5,90);coinRow(L,1180,280,5,56);coinArc(L,1540,230,5,90);bigDrip(L,800,250);bigDrip(L,1940,280);
+  chk(L,1300,488);pow(L,1540,220,'gold');
+  en(L,'bulldog',620,488,{variant:'patrol',patrol:[400,940],spd:48,hp:2,skin:'lagGoblin',h:100});
+  en(L,'bulldog',1080,488,{variant:'charge',patrol:[960,1300],spd:64,hp:3,skin:'bufferBeast',h:96});
+  en(L,'bat',900,300,{variant:'sine',baseY:300,skin:'pixelPhantom',h:90});
+  en(L,'bat',1400,290,{variant:'dive',baseY:290,skin:'corruptedEmoji',h:84});
+  en(L,'bulldog',1600,488,{variant:'gunner',patrol:[1480,1780],spd:32,hp:2,skin:'spamBot',h:100,shotCol:'#ffffff'});
+  en(L,'bulldog',2000,488,{variant:'gunner',patrol:[1860,2200],spd:34,hp:2,skin:'errorSprite',h:92,shotCol:'#ef4444'});
+  bb(L,300,100,240,120,2);bb(L,1300,90,250,120,0);bb(L,2150,100,240,120,3);
+  L.bossTitle='THE BLUE SCREEN';
+  L.boss={kind:'king',final:false,x:2330,y:488,hp:10,maxhp:10,phase:1,state:'intro',t:0,dir:-1,spd:320,dazeT:0,summons:false,dead:false,shotHint:0,skin:'blueScreen',koSkin:'blueScreen',h:140};
+  return L;}},
+ {name:'DRIP CATHEDRAL',icon:'⛪',music:'boss',par:110,build(){
+  const L=mkL('DRIP CATHEDRAL','boss','gothic',2500);
+  gseg(L,0,2500,488);
+  L.platforms.push({x:-60,y:120,w:70,h:380,bx:-60,by:120});L.platforms.push({x:2490,y:120,w:70,h:380,bx:2490,by:120});
+  plat(L,440,350,150);plat(L,780,290,150);plat(L,1200,330,150,{mv:{ax:'x',range:120,spd:1.0,ph:0}});plat(L,1600,290,150);plat(L,2000,340,150);
+  spring(L,240,488);spring(L,2200,488);spikes(L,1050,540,90);spikes(L,1850,540,90);
+  crate(L,320,488,'shield');crate(L,1350,488,'magnet');crate(L,2080,488,'bone');
+  coinRow(L,140,430,6,60);coinArc(L,460,290,5,90);coinRow(L,1240,280,5,56);coinArc(L,1640,230,5,90);bigDrip(L,820,240);bigDrip(L,2040,280);
+  chk(L,1300,488);pow(L,1640,220,'gold');
+  en(L,'bulldog',620,488,{variant:'patrol',patrol:[400,940],spd:42,hp:2,skin:'hoodedAcolyte',h:104});
+  en(L,'bulldog',1080,488,{variant:'patrol',patrol:[960,1300],spd:44,hp:2,skin:'candleMonk',h:104});
+  en(L,'bulldog',1450,488,{variant:'charge',patrol:[1320,1740],spd:58,hp:3,skin:'bellRinger',h:104});
+  en(L,'bulldog',1700,488,{variant:'gunner',patrol:[1560,1880],spd:32,hp:2,skin:'chainPriest',h:104,shotCol:'#b14aff'});
+  en(L,'bat',1200,290,{variant:'dive',baseY:290,skin:'goldenGargoyle',h:92});
+  bb(L,300,100,240,120,5);bb(L,1300,90,250,120,1);bb(L,2150,100,240,120,5);
+  L.bossTitle='ARCHBISHOP FLEX';
+  L.boss={kind:'king',final:false,x:2330,y:488,hp:11,maxhp:11,phase:1,state:'intro',t:0,dir:-1,spd:300,dazeT:0,summons:false,dead:false,shotHint:0,skin:'archbishopFlex',koSkin:'archbishopFlex',h:175};
+  return L;}},
  {name:'THE SHADOW',icon:'👤',music:'final',par:120,build(){
   const L=mkL('THE SHADOW','final','void',2000);
   gseg(L,0,2000,488);
@@ -468,7 +557,24 @@ const LEVELS=[
   coinRow(L,560,430,5,60);coinRow(L,1180,430,5,60);coinArc(L,940,260,6,110);
   bb(L,350,100,250,120,5);bb(L,1400,100,250,120,5);
   L.bossTitle='THE SHADOW';
-  L.boss={kind:'shadow',final:true,x:1500,y:488,hp:12,maxhp:12,phase:1,state:'intro',t:0,dir:-1,spd:380,dazeT:0,summons:false,dead:false,shotHint:0};
+  L.boss={kind:'shadow',final:false,x:1500,y:488,hp:12,maxhp:12,phase:1,state:'intro',t:0,dir:-1,spd:380,dazeT:0,summons:false,dead:false,shotHint:0};
+  return L;}},
+ {name:'ETERNAL DRIP',icon:'🌌',music:'final',par:140,build(){
+  const L=mkL('ETERNAL DRIP SINGULARITY','final','void',2200);
+  gseg(L,0,2200,488);
+  L.platforms.push({x:-60,y:120,w:70,h:380,bx:-60,by:120});L.platforms.push({x:2190,y:120,w:70,h:380,bx:2190,by:120});
+  plat(L,420,320,150,{mv:{ax:'y',range:90,spd:1.1,ph:0}});plat(L,1630,320,150,{mv:{ax:'y',range:90,spd:1.1,ph:1}});
+  plat(L,1025,250,160,{mv:{ax:'x',range:150,spd:0.9,ph:0}});
+  spring(L,150,488);spring(L,2050,488);
+  crate(L,300,488,'shield');crate(L,1850,488,'bone');
+  coinRow(L,520,430,5,60);coinRow(L,1180,430,5,60);coinArc(L,1025,200,6,110);bigDrip(L,1025,140);
+  pow(L,420,300,'gold');
+  en(L,'wraith',650,300,{variant:'tele',baseY:300,hp:3,shoot:0,cd:0,skin:'wraith'});
+  en(L,'wraith',1550,300,{variant:'tele',baseY:300,hp:3,shoot:0,cd:0,skin:'wraith'});
+  en(L,'bat',1100,260,{variant:'dive',baseY:260});
+  bb(L,400,90,250,120,5);bb(L,1300,90,250,120,5);
+  L.bossTitle='THE ETERNAL DRIP';
+  L.boss={kind:'shadow',final:true,x:1600,y:488,hp:16,maxhp:16,phase:1,state:'intro',t:0,dir:-1,spd:430,dazeT:0,summons:false,dead:false,shotHint:0};
   return L;}},
 ];
 
@@ -693,6 +799,9 @@ function updateEnemies(dt){
     if(e.type==='bulldog'){
       let spd=e.spd;
       if(e.variant==='charge'&&Math.abs(p.x-e.x)<260&&Math.abs(p.y-e.y)<90){spd=e.spd*3.4;e.dir=Math.sign(p.x-e.x)||e.dir;e.charging=true;}else e.charging=false;
+      if(e.variant==='gunner'){spd=e.spd*0.5;e.cd=(e.cd||0)-dt;
+        if(e.cd<=0&&Math.abs(p.x-e.x)<480&&Math.abs(p.y-e.y)<150){e.cd=1.7;e.dir=Math.sign(p.x-e.x)||e.dir;AUDIO.sfx.shoot();
+          projectiles.push({x:e.x+e.dir*22,y:e.y-52,vx:e.dir*(e.arc?300:340),vy:e.arc?-280:0,grav:!!e.arc,enemy:true,life:3,col:e.shotCol||'#ffd24a'});}}
       e.x+=spd*e.dir*dt;
       if(e.x<e.patrol[0]){e.x=e.patrol[0];e.dir=1;}if(e.x>e.patrol[1]){e.x=e.patrol[1];e.dir=-1;}
     }
@@ -1011,13 +1120,14 @@ function render(){
   ctx.globalAlpha=1;
   // traffic
   for(const car of level.traffic)drawTraffic(car);
-  // enemies
+  // enemies (e.skin overrides the sprite so any art can ride existing AI;
+  //          e.h overrides draw height; e.yo nudges vertical anchor)
   for(const e of level.enemies){if(e.dead)continue;
     const flash=Math.max(0,e.flash||0)*4;
-    if(e.type==='bat')blit(SPR('bat'),e.x,e.y+28,82,e.diving?Math.sign(e.dvx||1)*-1:(Math.cos(e.t*1.3)>0?-1:1),flash);
-    else if(e.type==='wraith')blit(SPR('wraith'),e.x,e.y+44,112,player.x>e.x?-1:1,flash);
-    else if(e.type==='rug')blit(SPR('rug'),e.x,e.y,120,e.dir>0?-1:1,flash);
-    else{const img=e.variant==='shield'?tinted(SPR('bulldog'),'#2fd6c4'):SPR('bulldog');blit(img,e.x,e.y,118,e.dir>0?-1:1,flash);
+    if(e.type==='bat')blit(SPR(e.skin||'bat'),e.x,e.y+(e.yo!=null?e.yo:28),e.h||82,e.diving?Math.sign(e.dvx||1)*-1:(Math.cos(e.t*1.3)>0?-1:1),flash);
+    else if(e.type==='wraith')blit(SPR(e.skin||'wraith'),e.x,e.y+(e.yo!=null?e.yo:44),e.h||112,player.x>e.x?-1:1,flash);
+    else if(e.type==='rug')blit(SPR(e.skin||'rug'),e.x,e.y+(e.yo||0),e.h||120,e.dir>0?-1:1,flash);
+    else{const base=e.skin||'bulldog';const img=(!e.skin&&e.variant==='shield')?tinted(SPR('bulldog'),'#2fd6c4'):SPR(base);blit(img,e.x,e.y+(e.yo||0),e.h||118,e.dir>0?-1:1,flash);
       if(e.charging&&Math.random()<0.5)spawnP(e.x-e.dir*40,e.y,'#b0a890',1,60);}}
   // boss
   if(level.boss)drawBoss();
@@ -1092,7 +1202,8 @@ function drawBowl(b){const x=b.x-camX,y=b.y-camY;
 function drawBoss(){
   const B=level.boss;
   if(B.dead){
-    if(B.kind==='shadow'){ctx.globalAlpha=0.45;blit(tinted(SPR('heroHurt'),'#7a2fd0'),B.x,B.y,120,1);ctx.globalAlpha=1;}
+    if(B.koSkin)blit(SPR(B.koSkin),B.x,B.y,B.h||120,1);
+    else if(B.kind==='shadow'){ctx.globalAlpha=0.45;blit(tinted(SPR('heroHurt'),'#7a2fd0'),B.x,B.y,120,1);ctx.globalAlpha=1;}
     else blit(SPR('bulldogKO'),B.x,B.y,110,1);
     return;}
   const flash=Math.max(0,B.flash||0)*4;
@@ -1102,8 +1213,10 @@ function drawBoss(){
     if(B.state==='dazed'){ctx.font='20px monospace';ctx.textAlign='center';ctx.fillStyle='#b14aff';
       ctx.fillText('✶ ✶ ✶',B.x-camX,B.y-165-camY+Math.sin(gt*8)*4);ctx.textAlign='left';}
     return;}
-  const img=tinted(SPR('bulldog'),B.phase===3?'#ef4444':B.phase===2?'#ff8a3a':'#f5c542');
-  blit(img,B.x,B.y+(B.yOff||0),190,B.state==='charge'?(B.dir>0?-1:1):(player.x>B.x?-1:1),flash);
+  // king-type: e.skin overrides the bulldog; B.skin2 swaps in for phase 2+
+  const sk=(B.phase>=2&&B.skin2)?B.skin2:B.skin;
+  const img=sk?SPR(sk):tinted(SPR('bulldog'),B.phase===3?'#ef4444':B.phase===2?'#ff8a3a':'#f5c542');
+  blit(img,B.x,B.y+(B.yOff||0),(B.phase>=2&&B.skin2&&B.h2)?B.h2:(B.h||190),B.state==='charge'?(B.dir>0?-1:1):(player.x>B.x?-1:1),flash);
   if(B.state==='dazed'){ctx.font='20px monospace';ctx.textAlign='center';ctx.fillStyle='#ffd966';
     ctx.fillText('✶ ✶ ✶',B.x-camX,B.y-185-camY+Math.sin(gt*8)*4);ctx.textAlign='left';}
 }
