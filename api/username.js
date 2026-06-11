@@ -22,6 +22,9 @@ const NAME_TAKEN_PREFIX = 'drippy:nametaken:'; // lowercased username -> wallet
 const FINALE_BEAT_KEY = 'drippy:game:finale_beat'; // SET of wallets who beat Eternal Drip
 const SELECTED_SKIN_PREFIX = 'drippy:skin:'; // wallet -> selected skin key
 const BURN_LB_KEY = 'drippy:burn:leaderboard';
+const LINKED_PREFIX = 'drippy:linked:';  // <primary> -> SET of linked wallets
+const PRIMARY_PREFIX = 'drippy:primary:'; // <any_wallet> -> the primary it belongs to
+const MAX_LINKED = 8; // max wallets per account (incl. primary)
 
 const SESSION_COOKIE = 'drippy_session';
 const SESSION_MAX_AGE = 7 * 24 * 60 * 60; // 7 days
@@ -92,14 +95,41 @@ async function fetchHolderStatus(wallet, hostHeader){
     return { holds: 0, isHolder: false };
   }
 }
-async function computeUnlocks(wallet, hostHeader){
-  const burnedRaw = await redis(['ZSCORE', BURN_LB_KEY, wallet]);
-  let burned = Number(burnedRaw) || 0;
-  if (burned > 1e9) burned = burned / 1e9; // 9-decimal contamination guard
-  const beat = !!(await redis(['SISMEMBER', FINALE_BEAT_KEY, wallet]));
-  const { holds, isHolder } = await fetchHolderStatus(wallet, hostHeader);
-  // Any tiers this wallet has purchased with SOL (never revoked by threshold changes)
-  const purchasedRaw = await redis(['SMEMBERS', PURCHASED_PREFIX + wallet]);
+// Given ANY wallet, return the canonical primary it belongs to (itself if no linkage exists)
+async function getPrimary(wallet){
+  if (!wallet) return null;
+  const p = await redis(['GET', PRIMARY_PREFIX + wallet]);
+  return p || wallet;
+}
+// Return [primary, ...linked] for an account
+async function getAllAccountWallets(primary){
+  if (!primary) return [];
+  const linkedRaw = await redis(['SMEMBERS', LINKED_PREFIX + primary]);
+  const linked = Array.isArray(linkedRaw) ? linkedRaw : [];
+  // dedupe + primary first
+  return [primary, ...linked.filter(w => w !== primary)];
+}
+async function computeUnlocks(walletOrPrimary, hostHeader){
+  // Resolve to canonical primary, then aggregate burns/holdings/beat across all linked
+  const primary = await getPrimary(walletOrPrimary);
+  const all = await getAllAccountWallets(primary);
+  // Aggregate burns
+  let burned = 0;
+  await Promise.all(all.map(async (w) => {
+    const z = await redis(['ZSCORE', BURN_LB_KEY, w]);
+    let v = Number(z) || 0;
+    if (v > 1e9) v = v / 1e9; // 9-decimal contamination guard (one wallet's burns)
+    burned += v;
+  }));
+  // Aggregate finale-beat: any linked wallet beating counts
+  const beatResults = await Promise.all(all.map(w => redis(['SISMEMBER', FINALE_BEAT_KEY, w])));
+  const beat = beatResults.some(r => !!r);
+  // Aggregate holdings (parallel calls to /api/wallet)
+  const holdsResults = await Promise.all(all.map(w => fetchHolderStatus(w, hostHeader)));
+  const holds = holdsResults.reduce((s, h) => s + (h.holds || 0), 0);
+  const isHolder = holds > 0;
+  // Purchased skins live on the PRIMARY only (single canonical purchase log)
+  const purchasedRaw = await redis(['SMEMBERS', PURCHASED_PREFIX + primary]);
   const purchased = Array.isArray(purchasedRaw) ? purchasedRaw : [];
   const skins = {};
   for (const t of TIERS) {
@@ -108,7 +138,12 @@ async function computeUnlocks(wallet, hostHeader){
     if (purchased.includes(t.id)) ok = true;
     skins[t.id] = ok;
   }
-  return { wallet, burned, beat, holds, isHolder, skins, purchased };
+  return {
+    wallet: primary,           // canonical identity = primary
+    linkedWallets: all,        // [primary, ...linked]
+    walletCount: all.length,
+    burned, beat, holds, isHolder, skins, purchased
+  };
 }
 
 async function redis(command){
@@ -185,10 +220,94 @@ module.exports = async (req, res) => {
     if (!message.includes(wallet.slice(0, 8))) {
       res.status(400).json({ error: 'Message does not match wallet' }); return;
     }
-    setSessionCookie(res, wallet);
-    const username = await redis(['GET', NAME_PREFIX + wallet]);
-    const unlocks = await computeUnlocks(wallet, req.headers.host);
-    res.status(200).json({ success: true, wallet, username: username || null, ...unlocks });
+    // Resolve to canonical primary: if this wallet is linked under another account,
+    // the session represents the PRIMARY (so unlocks aggregate correctly).
+    const primary = await getPrimary(wallet);
+    setSessionCookie(res, primary);
+    const username = await redis(['GET', NAME_PREFIX + primary]);
+    const unlocks = await computeUnlocks(primary, req.headers.host);
+    res.status(200).json({
+      success: true,
+      wallet: primary,
+      signedInWith: wallet,  // the wallet that actually signed (could be a linked one)
+      username: username || null,
+      ...unlocks
+    });
+    return;
+  }
+
+  // ---- ACCOUNT: GET ?action=linked  -> list of linked wallets for the signed-in account ----
+  if (req.method === 'GET' && action === 'linked') {
+    const cookie = readCookie(req, SESSION_COOKIE);
+    const primary = verifySession(cookie);
+    if (!primary) { res.status(401).json({ error: 'sign in first' }); return; }
+    const all = await getAllAccountWallets(primary);
+    res.status(200).json({ primary, wallets: all });
+    return;
+  }
+
+  // ---- ACCOUNT: POST ?action=link_wallet {wallet, signature, message} ----
+  // Must be signed in as the primary. Signature is from the NEW wallet (proves ownership).
+  if (req.method === 'POST' && action === 'link_wallet') {
+    const cookie = readCookie(req, SESSION_COOKIE);
+    const primary = verifySession(cookie);
+    if (!primary) { res.status(401).json({ error: 'sign in first' }); return; }
+    let body = req.body; if (typeof body === 'string') { try { body = JSON.parse(body); } catch(_) { body = {}; } }
+    const { wallet: linkWallet, signature, message } = body || {};
+    if (!linkWallet || !signature || !message) {
+      res.status(400).json({ error: 'wallet, signature, message required' }); return;
+    }
+    if (linkWallet === primary) { res.status(400).json({ error: 'cannot link the primary to itself' }); return; }
+    // Verify signature of new wallet
+    let verified = false;
+    try {
+      const msgBytes = new TextEncoder().encode(message);
+      const sigBytes = bs58.decode(signature);
+      const pubBytes = bs58.decode(linkWallet);
+      if (pubBytes.length !== 32) throw new Error('bad pubkey length');
+      verified = nacl.sign.detached.verify(msgBytes, sigBytes, pubBytes);
+    } catch (e) { res.status(400).json({ error: 'Invalid signature format' }); return; }
+    if (!verified) { res.status(401).json({ error: 'Signature verification failed for new wallet' }); return; }
+    // Message must reference both wallets + recent timestamp (anti-replay)
+    const tsMatch = String(message).match(/:: (\d{13})$/);
+    if (!tsMatch || Math.abs(Date.now() - Number(tsMatch[1])) > 10 * 60 * 1000) {
+      res.status(400).json({ error: 'Signed message expired' }); return;
+    }
+    if (!message.includes(linkWallet.slice(0, 8)) || !message.includes(primary.slice(0, 8))) {
+      res.status(400).json({ error: 'Message must reference both wallets' }); return;
+    }
+    // Conflict: linkWallet already linked elsewhere?
+    const existingPrimary = await redis(['GET', PRIMARY_PREFIX + linkWallet]);
+    if (existingPrimary && existingPrimary !== primary) {
+      res.status(409).json({ error: 'This wallet is already linked to another account. Unlink it from that account first.' });
+      return;
+    }
+    // Cap on linked wallets per account
+    const current = await getAllAccountWallets(primary);
+    if (current.length >= MAX_LINKED) {
+      res.status(409).json({ error: `Max ${MAX_LINKED} wallets per account reached` });
+      return;
+    }
+    await redis(['SADD', LINKED_PREFIX + primary, linkWallet]);
+    await redis(['SET', PRIMARY_PREFIX + linkWallet, primary]);
+    const unlocks = await computeUnlocks(primary, req.headers.host);
+    res.status(200).json({ ok: true, linked: linkWallet, primary, ...unlocks });
+    return;
+  }
+
+  // ---- ACCOUNT: POST ?action=unlink_wallet {wallet} ----
+  if (req.method === 'POST' && action === 'unlink_wallet') {
+    const cookie = readCookie(req, SESSION_COOKIE);
+    const primary = verifySession(cookie);
+    if (!primary) { res.status(401).json({ error: 'sign in first' }); return; }
+    let body = req.body; if (typeof body === 'string') { try { body = JSON.parse(body); } catch(_) { body = {}; } }
+    const wallet = String(body && body.wallet || '');
+    if (!wallet) { res.status(400).json({ error: 'wallet required' }); return; }
+    if (wallet === primary) { res.status(400).json({ error: 'cannot unlink the primary itself — sign out instead' }); return; }
+    await redis(['SREM', LINKED_PREFIX + primary, wallet]);
+    await redis(['DEL', PRIMARY_PREFIX + wallet]);
+    const unlocks = await computeUnlocks(primary, req.headers.host);
+    res.status(200).json({ ok: true, unlinked: wallet, ...unlocks });
     return;
   }
 

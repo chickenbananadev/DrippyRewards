@@ -1697,16 +1697,44 @@ async function renderWalletList(){
   if(window.SESSION&&window.SESSION.wallet){
     const w=window.SESSION.wallet;
     const b=Math.round(window.SESSION.burned||0);
-    list.innerHTML=`<div style="background:rgba(245,197,66,.1);border:2px solid var(--gold);border-radius:12px;padding:14px;text-align:center">
-      <div style="font-family:'Press Start 2P';font-size:12px;color:var(--gold);margin-bottom:6px">CONNECTED ✓</div>
+    const h=Math.round(window.SESSION.holds||0);
+    const linked=Array.isArray(window.SESSION.linkedWallets)?window.SESSION.linkedWallets:[w];
+    const linkedRows=linked.map(addr=>{
+      const isPrimary=addr===w;
+      const short=addr.slice(0,4)+'…'+addr.slice(-4);
+      const unlinkBtn=isPrimary?`<span style="font-size:9px;color:var(--gold);font-family:'Press Start 2P'">PRIMARY</span>`
+        :`<button class="walletBtn unlinkBtn" data-w="${addr}" style="padding:5px 10px;font-size:10px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:#ffadad;width:auto">UNLINK</button>`;
+      return `<div style="display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:8px 11px;font-family:JetBrains Mono,monospace;font-size:11px">
+        <span style="color:var(--cream)">${isPrimary?'🔑 ':'🔗 '}${short}</span>${unlinkBtn}</div>`;
+    }).join('');
+    list.innerHTML=`<div style="background:rgba(245,197,66,.1);border:2px solid var(--gold);border-radius:12px;padding:14px;text-align:center;margin-bottom:14px">
+      <div style="font-family:'Press Start 2P';font-size:12px;color:var(--gold);margin-bottom:6px">YOUR ACCOUNT ✓</div>
       <div style="font-size:11px;color:var(--cream);font-family:JetBrains Mono,monospace">${window.SESSION.username||w.slice(0,8)+'…'+w.slice(-8)}</div>
-      <div style="font-size:10px;color:#9aa3b2;margin-top:6px">${b.toLocaleString()} $DRIPPY burned</div>
+      <div style="font-size:10px;color:#9aa3b2;margin-top:6px">${linked.length} wallet${linked.length>1?'s':''} · ${b.toLocaleString()} burned · ${h.toLocaleString()} held</div>
     </div>
-    <button class="walletBtn" id="btnDisconnect" style="justify-content:center;font-size:11px">DISCONNECT</button>`;
+    <div style="font-family:'Press Start 2P';font-size:10px;color:var(--purple);letter-spacing:1px;margin:0 0 8px 4px">LINKED WALLETS</div>
+    <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px">${linkedRows}</div>
+    <button class="walletBtn" id="btnLinkMore" style="justify-content:center;font-size:11px;background:rgba(162,89,255,.15);border:1px solid rgba(162,89,255,.4);color:#c9b8ff">+ LINK ANOTHER WALLET</button>
+    <button class="walletBtn" id="btnDisconnect" style="justify-content:center;font-size:11px;margin-top:8px">DISCONNECT</button>`;
     $('btnDisconnect').onclick=async()=>{
       await fetch('/api/username?action=signout',{method:'POST',credentials:'include'}).catch(()=>{});
       window.SESSION=null;updateWalletPill();renderWalletList();
     };
+    $('btnLinkMore').onclick=()=>startLinkFlow();
+    list.querySelectorAll('.unlinkBtn').forEach(btn=>{
+      btn.onclick=async()=>{
+        const addr=btn.dataset.w;
+        if(!confirm('Unlink wallet '+addr.slice(0,8)+'…'+addr.slice(-4)+'?\nIts burns and holdings will no longer count toward your account.'))return;
+        try{
+          const r=await fetch('/api/username?action=unlink_wallet',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'include',body:JSON.stringify({wallet:addr})});
+          const d=await r.json();
+          if(!r.ok){$('walletMsg').style.color='var(--red)';$('walletMsg').textContent=d.error||'Unlink failed';return;}
+          // Refresh session
+          Object.assign(window.SESSION,d);
+          updateWalletPill();renderWalletList();
+        }catch(e){$('walletMsg').style.color='var(--red)';$('walletMsg').textContent=e.message;}
+      };
+    });
     return;
   }
   for(const w of wallets){
@@ -1735,6 +1763,75 @@ async function renderWalletList(){
     empty.style.cssText='text-align:center;padding:14px;color:#9aa3b2;font-size:12px';
     empty.innerHTML='<div style="font-size:32px;margin-bottom:6px">👻</div>No Solana wallet detected on this browser.';
     list.insertBefore(empty,list.firstChild);
+  }
+}
+
+/* Link a NEW wallet to the already-signed-in primary account.
+   Detect available wallets, let user pick → wallet pops up → switch account if needed →
+   sign challenge → POST to backend. The new wallet's signature proves ownership; the
+   session cookie proves we're acting on the right primary. */
+async function startLinkFlow(){
+  if(!window.SESSION||!window.SESSION.wallet){
+    $('walletMsg').style.color='var(--red)';$('walletMsg').textContent='Sign in first.';return;
+  }
+  const primary=window.SESSION.wallet;
+  // Re-detect Wallet Standard wallets in case some registered late
+  try{
+    const reg=(w)=>{try{if(!w||!w.features||!w.features['solana:signMessage'])return;if(!window._drippyStdWallets.find(x=>x.name===w.name))window._drippyStdWallets.push(w);}catch(e){}};
+    window.dispatchEvent(new CustomEvent('wallet-standard:app-ready',{detail:{register:reg}}));
+  }catch(e){}
+  await new Promise(r=>setTimeout(r,200));
+  const wallets=detectWallets();
+  if(!wallets.length){
+    $('walletMsg').style.color='var(--red)';$('walletMsg').textContent='No wallet detected for linking.';return;
+  }
+  const list=$('walletList');
+  list.innerHTML=`<div style="background:rgba(162,89,255,.10);border:1px solid rgba(162,89,255,.4);border-radius:10px;padding:12px;font-size:11px;color:#c9b8ff;line-height:1.5;margin-bottom:12px">
+    <b style="font-family:'Press Start 2P';font-size:10px;color:var(--purple)">📎 LINK A WALLET</b><br><br>
+    <b>Important:</b> If you're using Phantom/Solflare/etc, switch to the wallet you want to <i>link</i> first (in the extension menu), then click below. The next wallet popup must be the one you want to add to this account.
+  </div>`;
+  for(const w of wallets){
+    const b=document.createElement('button');
+    b.className='walletBtn';
+    b.innerHTML=`<span class="ic">${w.icon}</span><span>Link via ${w.name}<span class="sub">${w.sub}</span></span>`;
+    b.onclick=()=>linkWith(w,primary);
+    list.appendChild(b);
+  }
+  // Cancel button
+  const cancel=document.createElement('button');
+  cancel.className='walletBtn';
+  cancel.style.cssText='justify-content:center;font-size:11px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);color:#aaa;margin-top:8px';
+  cancel.textContent='◂ CANCEL';
+  cancel.onclick=()=>renderWalletList();
+  list.appendChild(cancel);
+}
+
+async function linkWith(w,primary){
+  $('walletMsg').style.color='#9aa3b2';$('walletMsg').textContent='Connecting and asking the new wallet to sign…';
+  try{
+    // Force a fresh connect prompt — disconnect first if possible
+    try{ if(w.provider.disconnect)await w.provider.disconnect(); }catch(_){}
+    const r=await w.provider.connect();
+    const pk=(r&&r.publicKey?r.publicKey:w.provider.publicKey).toString();
+    if(pk===primary){
+      $('walletMsg').style.color='var(--red)';$('walletMsg').textContent='That is the same wallet as your primary — switch accounts and try again.';return;
+    }
+    const ts=Date.now();
+    const msg=`Link wallet to drippyrewards.com account\nLinking: ${pk.slice(0,8)}…${pk.slice(-4)}\nWith primary: ${primary.slice(0,8)}…${primary.slice(-4)}\n:: ${ts}`;
+    const encoded=new TextEncoder().encode(msg);
+    const sigRes=await w.provider.signMessage(encoded,'utf8');
+    const sigBytes=sigRes.signature?sigRes.signature:sigRes;
+    const sigB58=b58enc(sigBytes);
+    const resp=await fetch('/api/username?action=link_wallet',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'include',body:JSON.stringify({wallet:pk,signature:sigB58,message:msg})});
+    const d=await resp.json();
+    if(!resp.ok)throw new Error(d.error||'link failed');
+    // Update session with new aggregate stats
+    Object.assign(window.SESSION,d);
+    $('walletMsg').style.color='var(--green)';$('walletMsg').textContent=`Linked ✓  ${pk.slice(0,4)}…${pk.slice(-4)}`;
+    updateWalletPill();
+    setTimeout(renderWalletList,700);
+  }catch(e){
+    $('walletMsg').style.color='var(--red)';$('walletMsg').textContent=(e&&e.message||'Link failed').slice(0,80);
   }
 }
 
