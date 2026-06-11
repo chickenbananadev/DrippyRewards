@@ -684,7 +684,7 @@ function applySkinPerks(p){
   if(pp.startHearts){p.hpMax+=pp.startHearts;p.hp=p.hpMax;}
   if(pp.startShield)p.shield=true;
   if(pp.startCoins){p.gold=(p.gold||0)+pp.startCoins;runScore+=pp.startCoins;}
-  if(pp.extraLife)p._extraLife=true;
+  if(pp.extraLife)p._extraLives=(p._extraLives||0)+1;
   if(pp.spdMul)p.spdMul=pp.spdMul;
 }
 /* Easter eggs: hidden bonus crates at random positions on platforms a player
@@ -710,9 +710,23 @@ function seedEasterEggs(L){
     });
   }
 }
+/* Bosses scale up as you advance through the game. Hydrant King (level 5) is the
+   baseline; each later boss gains HP + speed so the curve feels real. Caps so
+   late bosses don't become unbeatable. */
+function scaleBossForLevel(L, lvIdx){
+  if (!L.boss) return;
+  const past = Math.max(0, lvIdx - 4); // levels past Hydrant King (5)
+  const hpScale  = Math.min(1.8, 1 + past * 0.07); // +7% HP per level, cap 80% over baseline
+  const spdScale = Math.min(1.35, 1 + past * 0.035); // +3.5% speed per level, cap 35%
+  L.boss.maxhp = Math.max(L.boss.maxhp, Math.round(L.boss.maxhp * hpScale));
+  L.boss.hp    = L.boss.maxhp;
+  L.boss.spd   = Math.round(L.boss.spd * spdScale);
+}
+
 function startLevel(i){
   lvIdx=i;level=LEVELS[i].build();
   if(i===0)runScore=0;
+  scaleBossForLevel(level, i);
   seedEasterEggs(level);
   level.dripsTotal=level.coins.reduce((s,c)=>s+c.v,0);
   player=newPlayer(90,420);if(GOD){player.hp=99;player.hpMax=99;}
@@ -837,11 +851,37 @@ function updatePlayer(dt){
   for(const c of level.coins){
     if(c.got)continue;
     if(p.magnet>0){const dx=p.x-c.x,dy=(p.y-p.h/2)-c.y,d=Math.hypot(dx,dy);if(d<170){c.x+=dx/d*440*dt;c.y+=dy/d*440*dt;}}
-    if(c.vx!=null){c.vx*=0.98;c.vy+=900*dt;c.x+=c.vx*dt;c.y+=c.vy*dt;if(c.y>level.h)c.got=true;c.delay-=dt;}
+    if(c.vx!=null){
+      c.vx*=0.98;c.vy+=900*dt;c.x+=c.vx*dt;c.y+=c.vy*dt;
+      // Coin/loot bounce on platforms instead of falling off (Sonic feel)
+      for(const pl of level.platforms){if(pl.gone)continue;
+        if(c.x>pl.x&&c.x<pl.x+pl.w&&c.vy>0&&c.y>pl.y-2&&c.y<pl.y+12){
+          c.y=pl.y-4;c.vy*=-0.45;c.vx*=0.7; // friction + bounce decay
+          if(Math.abs(c.vy)<60)c.vy=0;
+        }}
+      if(c.y>level.h)c.got=true;
+      c.delay-=dt;
+    }
+    // Lifetime fade: scattered coins linger ~2.5s then blink ~1s and vanish
+    if(c.life!=null){
+      c.life-=dt;
+      if(c.life<=0){c.got=true;continue;}
+    }
     if((c.delay==null||c.delay<=0)&&Math.abs(p.x-c.x)<30&&Math.abs(p.y-p.h/2-c.y)<38){
+      const beforeDrips=runStats.drips;
       c.got=true;const v=c.v*(p.x2>0?2:1);runStats.drips+=v;
       if(c.v>1){AUDIO.sfx.bigcoin();addFloat(c.x,c.y-10,'+'+v,'#ffd966',true);}else AUDIO.sfx.coin();
-      spawnP(c.x,c.y,'#f5c542',5,130);}
+      spawnP(c.x,c.y,'#f5c542',5,130);
+      // 50-coin milestone = +1 extra life (then 100, 150, 200…). Sonic/Mario rhythm.
+      const oldMilestone=Math.floor(beforeDrips/50);
+      const newMilestone=Math.floor(runStats.drips/50);
+      if(newMilestone>oldMilestone){
+        p._extraLives=(p._extraLives||0)+(newMilestone-oldMilestone);
+        addFloat(p.x,p.y-110,'🎁 1-UP!','#f5c542',true);
+        AUDIO.sfx.levelup&&AUDIO.sfx.levelup();
+        addShake(3,0.18);
+      }
+    }
   }
   // checkpoints
   for(const ck of level.checkpoints){if(ck.on)continue;if(Math.abs(p.x-ck.x)<40&&Math.abs(p.y-ck.y)<80){ck.on=true;runStats.checkpoint={x:ck.x,y:ck.y-10};AUDIO.sfx.checkpoint();ringP(ck.x,ck.y-40,'#22c55e',12,170);addFloat(ck.x,ck.y-90,'CHECKPOINT!','#22c55e',true);}}
@@ -896,26 +936,66 @@ function applyPow(kind,x,y){
 }
 function breakCrate(cr){
   cr.dead=true;AUDIO.sfx.crate();spawnP(cr.x+cr.w/2,cr.y+cr.h/2,'#8a6a3a',12,220);addShake(2,0.12);
-  if(cr.loot==='coins'){for(let i=0;i<4;i++)level.coins.push({x:cr.x+cr.w/2,y:cr.y,v:1,got:false,vx:(Math.random()-0.5)*260,vy:-200-Math.random()*160,delay:0.35});}
-  else level.powerups.push({x:cr.x+cr.w/2,y:cr.y-10,kind:cr.loot,got:false});
+  // Sonic-style burst: scatter multiple pickups outward, bounce on platforms, lifetime fade.
+  if(cr.loot==='coins'){
+    const n=cr.isEgg?9:6; // easter eggs spit out more
+    for(let i=0;i<n;i++){
+      const a=(i/n)*Math.PI*2+Math.random()*0.3;
+      level.coins.push({
+        x:cr.x+cr.w/2,y:cr.y+cr.h/2,v:cr.isEgg?2:1,got:false,
+        vx:Math.cos(a)*220+Math.random()*60,
+        vy:Math.sin(a)*180-260,
+        delay:0.35,life:2.4
+      });}
+  } else {
+    level.powerups.push({x:cr.x+cr.w/2,y:cr.y-10,kind:cr.loot,got:false});
+    // Bonus coins around the power-up (Mario feel — breaking a block always gives SOMETHING extra)
+    const bonusN=cr.isEgg?6:3;
+    for(let i=0;i<bonusN;i++){
+      const a=Math.PI*(0.2+Math.random()*0.6)*-1; // upward arc
+      level.coins.push({
+        x:cr.x+cr.w/2,y:cr.y+cr.h/2,v:1,got:false,
+        vx:Math.cos(a)*220*(Math.random()<0.5?-1:1),
+        vy:-260-Math.random()*120,
+        delay:0.4,life:2.4
+      });}
+  }
 }
 function hurt(soft){
   const p=player;
   if(p.iframe>0||p.gold>0||GOD)return;
   if(p.shield&&!soft){p.shield=false;p.iframe=1.0;AUDIO.sfx.shieldbreak();ringP(p.x,p.y-30,'#a259ff',10,200);addFloat(p.x,p.y-70,'SHIELD BROKE','#a259ff');return;}
+  // Sonic-style coin scatter: lose half your drips, scatter them around you as
+  // re-collectible coins with a 2.5s window before they vanish.
+  if(runStats.drips>0){
+    const lose=Math.min(runStats.drips,Math.max(8,Math.floor(runStats.drips*0.5)));
+    runStats.drips-=lose;
+    const n=Math.min(32,lose); // cap visual scatter, but drips lost still equals 'lose'
+    for(let i=0;i<n;i++){
+      const a=-Math.PI/2+(i/n-0.5)*Math.PI*0.95+Math.random()*0.2;
+      const speed=200+Math.random()*220;
+      level.coins.push({
+        x:p.x,y:p.y-p.h/2,v:1,got:false,
+        vx:Math.cos(a)*speed*(Math.random()<0.5?-1:1)*0.7,
+        vy:Math.sin(a)*speed,
+        delay:0.55,life:2.7
+      });}
+    AUDIO.sfx.shieldbreak&&AUDIO.sfx.shieldbreak();
+    addFloat(p.x,p.y-80,'-'+lose,'#ef4444',true);
+  }
   p.hp--;p.iframe=1.1;p.vy=-300;p.vx=-p.face*240;AUDIO.sfx.hurt();addShake(5,0.25);hitstop(0.04);
   if(p.hp<=0)lose();
 }
 function respawn(){const c=runStats.checkpoint;player.x=c.x;player.y=c.y;player.vx=0;player.vy=0;player.iframe=1.4;player.pound=0;cam.x=Math.max(0,c.x-VW*0.4);}
 function lose(){if(state!=='play')return;
-  // Shadow-tier extra life: auto-revive once at checkpoint with full HP
-  if(player&&player._extraLife){
-    player._extraLife=false;
+  // Extra lives stack: Shadow tier grants 1, every 50 drips grants another. Consume one per death.
+  if(player&&(player._extraLives||0)>0){
+    player._extraLives--;
     player.hp=player.hpMax;
     player.iframe=2.0;
     respawn();
-    AUDIO.sfx.coin&&AUDIO.sfx.coin();
-    addFloat(player.x,player.y-90,'EXTRA LIFE','#f5c542',true);
+    AUDIO.sfx.levelup&&AUDIO.sfx.levelup();
+    addFloat(player.x,player.y-90,'1-UP! ('+player._extraLives+' left)','#f5c542',true);
     return;
   }
   state='lose';AUDIO.sfx.over();AUDIO.stopMusic();
@@ -1305,10 +1385,17 @@ function render(){
   }
   for(const ck of level.checkpoints){blit(SPR(ck.on?'hydrantOn':'hydrant'),ck.x,ck.y,76,1);
     if(ck.on&&Math.random()<0.15)spawnP(ck.x,ck.y-70,'#7fe8dc',1,60);}
-  for(const c of level.coins){if(c.got)continue;const x=c.x-camX,y=c.y-camY+Math.sin(gt*3.4+c.x)*4;
+  for(const c of level.coins){
+    if(c.got)continue;
+    // Scattered coins (with life timer): bob less, blink in the final 1s before they vanish
+    const isThrown=(c.vx!=null);
+    const bob=isThrown?0:Math.sin(gt*3.4+c.x)*4;
+    const x=c.x-camX,y=c.y-camY+bob;
     if(x<-30||x>VW+30)continue;
+    if(c.life!=null && c.life<1.0 && Math.floor(gt*16)%2===0) continue; // blink during final second
     const r=c.v>1?13:8;ctx.fillStyle=c.v>1?'#ffd966':'#f5c542';ctx.beginPath();ctx.ellipse(x,y,r,r*1.3,0,0,7);ctx.fill();
-    ctx.fillStyle='#fff7d6';ctx.fillRect(x-2,y-r*0.7,3,r*1.4);}
+    ctx.fillStyle='#fff7d6';ctx.fillRect(x-2,y-r*0.7,3,r*1.4);
+  }
   for(const pu of level.powerups){if(pu.got)continue;const x=pu.x-camX,y=pu.y-camY+Math.sin(gt*2.6+pu.x)*5;
     ctx.fillStyle='rgba(10,6,16,.7)';ctx.beginPath();ctx.arc(x,y,17,0,7);ctx.fill();
     ctx.strokeStyle='#f5c542';ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y,17,0,7);ctx.stroke();
@@ -1515,9 +1602,16 @@ function drawHUD(){
   const p=player;
   for(let i=0;i<p.hpMax&&i<7;i++){ctx.fillStyle=i<p.hp?'#ef4444':'rgba(80,60,70,.6)';heart(26+i*30,28,9);}
   ctx.font='16px "Press Start 2P"';ctx.fillStyle='#f5c542';
-  ctx.fillText('💧 '+runStats.drips,24,72);
+  // Drip counter + next 1-UP milestone target (every 50 drips)
+  const nextLifeAt=Math.ceil((runStats.drips+1)/50)*50;
+  ctx.fillText('💧 '+runStats.drips+'/'+nextLifeAt,24,72);
+  // Extra lives indicator (Mario 1-UP style)
+  if((p._extraLives||0)>0){
+    ctx.font='14px "Press Start 2P"';ctx.fillStyle='#22c55e';
+    ctx.fillText('🎁 x'+p._extraLives,24,95);
+  }
   if(runScore>0){ctx.textAlign='center';ctx.font='12px "Press Start 2P"';ctx.fillStyle='#ffd966';ctx.fillText('SCORE '+runScore.toLocaleString(),VW/2,30);ctx.textAlign='left';}
-  if(p.combo>=2){ctx.fillStyle='#ffd966';ctx.font='13px "Press Start 2P"';ctx.fillText('COMBO x'+p.combo,24,98);}
+  if(p.combo>=2){ctx.fillStyle='#ffd966';ctx.font='13px "Press Start 2P"';ctx.fillText('COMBO x'+p.combo,24,120);}
   // powerup chips
   let cy=VH-22;const chip=(txt,col,frac)=>{ctx.font='10px "Press Start 2P"';ctx.fillStyle='rgba(10,6,16,.7)';roundRect(20,cy-16,148,22,6);ctx.fill();
     ctx.fillStyle=col;ctx.fillText(txt,28,cy);if(frac!=null){ctx.fillStyle=col;ctx.fillRect(20,cy+4,148*Math.max(0,Math.min(1,frac)),3);}cy-=30;};
