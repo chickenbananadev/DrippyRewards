@@ -482,8 +482,8 @@ const LEVELS=[
   L.boss={kind:'king',final:false,x:1300,y:488,hp:9,maxhp:9,phase:1,state:'intro',t:0,dir:-1,spd:300,dazeT:0,introT:0,summons:false,dead:false,shotHint:0};
   return L;}},
  /* ========== LEVEL 6: DRIPPYWOOD BOARDWALK ========== */
- {name:'DRIPPYWOOD',icon:'🎪',music:'neon',par:130,build(){
-  const L=mkL('DRIPPYWOOD BOARDWALK','neon','boardwalk',5400);
+ {name:'BOARDWALK',icon:'🎪',music:'neon',par:130,build(){
+  const L=mkL('BOARDWALK','neon','boardwalk',5400);
   gseg(L,0,1200,488);gseg(L,1300,2500,488);gseg(L,2600,3800,488);gseg(L,3900,5400,488);
   // Pier-edge platforms with carnival rides
   plat(L,560,360,160);plat(L,820,300,160);plat(L,1080,360,160);
