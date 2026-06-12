@@ -20,7 +20,7 @@
         { "key": "Referrer-Policy",        "value": "strict-origin-when-cross-origin" },
         { "key": "Permissions-Policy",     "value": "geolocation=(), microphone=(), camera=(), payment=(), usb=()" },
         { "key": "Strict-Transport-Security", "value": "max-age=63072000; includeSubDomains; preload" },
-        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://plugin.jup.ag https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.upstash.io https://api.helius.xyz https://*.helius-rpc.com https://*.solana.com wss://*.solana.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'" }
+        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://plugin.jup.ag https://*.jup.ag https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.jup.ag; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.upstash.io https://api.helius.xyz https://*.helius-rpc.com https://*.solana.com wss://*.solana.com https://*.jup.ag https://fonts.googleapis.com https://fonts.gstatic.com; frame-src https://dexscreener.com https://www.dextools.io https://*.jup.ag; frame-ancestors 'none'; base-uri 'self'; form-action 'self'" }
       ]
     },
     {
