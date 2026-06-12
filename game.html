@@ -243,6 +243,16 @@ const GOD=URLP.get('god')==='1';
 
 /* ---------- save ---------- */
 let SAVE;try{SAVE=JSON.parse(localStorage.getItem('drippySave')||'{"u":1,"best":{}}');}catch(e){SAVE={u:1,best:{}};}
+/* Save migration v2 (2026-06-12): three new themed worlds — Drippywood Boardwalk,
+   Whispering Pines, Midnight Express — inserted at indices 5, 6, 7 (right after
+   Hydrant King). Existing save data uses array indices as keys for best/u, so we
+   shift any old index >= 5 by +3. One-shot, idempotent via SAVE._v marker. */
+if(!SAVE._v||SAVE._v<2){
+  if(SAVE.best){const nb={};Object.entries(SAVE.best).forEach(([k,v])=>{const i=parseInt(k,10);if(isNaN(i))return;nb[i>=5?i+3:i]=v;});SAVE.best=nb;}
+  if(typeof SAVE.u==='number'&&SAVE.u>=5)SAVE.u+=3;
+  SAVE._v=2;
+  try{localStorage.setItem('drippySave',JSON.stringify(SAVE));}catch(e){}
+}
 function persist(){try{localStorage.setItem('drippySave',JSON.stringify(SAVE));}catch(e){}}
 
 /* ---------- sprites + placeholders ---------- */
@@ -312,6 +322,12 @@ const PALS={
   sky:{sky:['#0a1430','#14275c','#1f3a78','#0c1838'],far:'#11204a',mid:'#182c5c',ground:'#2c3a5c',gtop:'#48598a',acc:'#ffd966',win:'rgba(255,217,102,.07)',wind:true},
   vault:{sky:['#0e0a04','#241a08','#3a2a0c','#120d04'],far:'#1a1206',mid:'#261a08',ground:'#33270e',gtop:'#5c4718',acc:'#ffd24a',win:'rgba(255,210,74,.09)',dark:true},
   void:{sky:['#070310','#150826','#26104a','#0a0416'],far:'#0e0618',mid:'#180a28',ground:'#221034',gtop:'#3c1f5c',acc:'#b14aff',win:'rgba(177,74,255,.09)'},
+  // Drippywood Boardwalk — sunset over the Pacific, neon carnival glow
+  boardwalk:{sky:['#1a0830','#5a1a4a','#c44a6a','#ff8a4a'],far:'#330a3a','mid':'#4a1248',ground:'#5a3a1e',gtop:'#8a5a32',acc:'#ff4ad6',win:'rgba(255,74,214,.10)',embers:true},
+  // Whispering Pines — misty evergreen at moonrise
+  pines:{sky:['#0a1018','#0e1c22','#163228','#0c1a18'],far:'#0a1e1a',mid:'#10301e',ground:'#1a3520',gtop:'#2a5234',acc:'#9fe8c4',win:'rgba(159,232,196,.07)',fog:true},
+  // Midnight Express — stormy night through the mountains
+  midnight:{sky:['#040614','#0a1028','#1a2050','#040818'],far:'#080e22',mid:'#101838',ground:'#22293a',gtop:'#3a4664',acc:'#9fc9ff',win:'rgba(159,201,255,.08)',rain:true,wind:true},
   alley:{sky:['#0a0614','#1a0a2a','#2a0e3a','#0c0618'],far:'#140a22',mid:'#1e0e30',ground:'#24202c',gtop:'#3a3346',acc:'#ff3ea5',win:'rgba(255,62,165,.10)'},
   glizzy:{sky:['#2a1850','#5a2a72','#9a4a6a','#e08a4a'],far:'#2a1a44',mid:'#3a2255',ground:'#3a2a1c',gtop:'#6a4a2c',acc:'#ffcf3a',win:'rgba(255,200,80,.10)'},
   desert:{sky:['#3a2a6a','#7a4a6a','#d07a4a','#f5b54a'],far:'#5a4060',mid:'#8a5a4a',ground:'#7a5a2c',gtop:'#b58a3c',acc:'#ffd24a',win:'rgba(255,210,74,.10)',embers:true},
@@ -464,6 +480,110 @@ const LEVELS=[
   bb(L,400,100,250,120,5);bb(L,1250,100,250,120,5);
   L.bossTitle='HYDRANT KING';
   L.boss={kind:'king',final:false,x:1300,y:488,hp:9,maxhp:9,phase:1,state:'intro',t:0,dir:-1,spd:300,dazeT:0,introT:0,summons:false,dead:false,shotHint:0};
+  return L;}},
+ /* ========== LEVEL 6: DRIPPYWOOD BOARDWALK ========== */
+ {name:'DRIPPYWOOD',icon:'🎪',music:'neon',par:130,build(){
+  const L=mkL('DRIPPYWOOD BOARDWALK','neon','boardwalk',5400);
+  gseg(L,0,1200,488);gseg(L,1300,2500,488);gseg(L,2600,3800,488);gseg(L,3900,5400,488);
+  // Pier-edge platforms with carnival rides
+  plat(L,560,360,160);plat(L,820,300,160);plat(L,1080,360,160);
+  plat(L,1700,330,180,{mv:{ax:'y',range:80,spd:1.0,ph:0}});
+  plat(L,2050,260,180);plat(L,2350,330,180);
+  plat(L,2900,300,200,{belt:120});  // moving walkway like a Ferris wheel cabin
+  plat(L,3300,360,180);plat(L,3600,300,180);
+  plat(L,4100,320,160);plat(L,4400,260,160);plat(L,4700,320,160);
+  spring(L,250,488);spring(L,1250,488);spring(L,2550,488);spring(L,3850,488);
+  crate(L,400,488,'coins');crate(L,1500,488,'shield');crate(L,2700,488,'magnet');crate(L,3500,488,'bone');crate(L,4900,488,'coins');
+  coinRow(L,560,316,4,40);coinArc(L,2050,200,7,90);coinRow(L,2900,250,5,40);bigDrip(L,2100,210);
+  pow(L,820,260,'x2');pow(L,4400,210,'gold');
+  // Enemies (boardwalk-themed using new + existing AI)
+  en(L,'rug',900,488,{patrol:[750,1050],variant:'thrower',skin:'game_op',h:108,hp:3,cd:0});       // Rigged Game Operator throws hoops
+  en(L,'bat',1450,260,{variant:'dive',baseY:260,skin:'seagull',h:70});           // Seagull Bandit dive-bombs
+  en(L,'bulldog',1900,488,{patrol:[1720,2080],variant:'gunner',skin:'pixel_punk',h:104,hp:3,shotCol:'#ff4ad6',spd:30}); // Pixel Punk shoots tokens
+  en(L,'bulldog',2350,488,{patrol:[2170,2530],variant:'charge',skin:'track_runner',h:104,hp:3,spd:75}); // Track Runner fast charge
+  en(L,'bulldog',2950,488,{variant:'patrol',patrol:[2820,3080],skin:'sugar_fiend',h:104,hp:3,spd:35});
+  en(L,'wraith',3500,300,{variant:'tele',baseY:300,skin:'wraith',hp:3,shoot:0,cd:0});  // Mirror Mime as teleporting wraith
+  en(L,'bulldog',4200,488,{patrol:[4020,4380],variant:'shield',skin:'plushie_guard',h:120,hp:5,spd:55});  // Plushie Guard tank
+  en(L,'rug',4900,488,{patrol:[4750,5050],variant:'thrower',skin:'popcorn_launcher',h:104,hp:3,cd:0});
+  bb(L,400,90,250,120,5);bb(L,2200,100,250,120,5);bb(L,4100,90,250,120,5);
+  L.bossTitle='THE RINGMASTER';
+  L.boss={kind:'king',final:false,x:5100,y:488,hp:12,maxhp:12,phase:1,state:'intro',t:0,dir:-1,spd:320,dazeT:0,summons:false,dead:false,shotHint:0,skin:'ringmaster',koSkin:'ringmaster',h:140};
+  return L;}},
+ /* ========== LEVEL 7: WHISPERING PINES ========== */
+ {name:'WHISPERING PINES',icon:'🌲',music:'deep',par:140,build(){
+  const L=mkL('WHISPERING PINES','deep','pines',5600);
+  gseg(L,0,1400,488);gseg(L,1500,2800,488);gseg(L,2900,4200,488);gseg(L,4300,5600,488);
+  // Tree-canopy platforms, foggy gaps, log-bridge fragments
+  plat(L,500,380,160);plat(L,760,320,160);plat(L,1020,260,160);
+  plat(L,1620,360,180);plat(L,1900,300,180);plat(L,2180,360,180);
+  plat(L,2600,260,200,{mv:{ax:'y',range:120,spd:1.1,ph:0.3}});
+  plat(L,3050,340,180);plat(L,3380,280,180);plat(L,3700,340,180);
+  plat(L,4000,300,180,{mv:{ax:'x',range:130,spd:0.9,ph:0}});
+  plat(L,4400,360,180);plat(L,4700,300,180);plat(L,5000,360,180);
+  spring(L,200,488);spring(L,1450,488);spring(L,2850,488);spring(L,4250,488);
+  spikes(L,1150,488,80);spikes(L,2400,488,90);spikes(L,3850,488,80);
+  crate(L,350,488,'coins');crate(L,1600,488,'bone');crate(L,2950,488,'shield');crate(L,4350,488,'x2');crate(L,5200,488,'coins');
+  coinRow(L,500,336,4,40);coinArc(L,2600,200,7,100);coinRow(L,3380,236,5,40);bigDrip(L,1700,220);
+  pow(L,1020,210,'magnet');pow(L,4700,250,'gold');
+  // Enemies (forest-themed)
+  en(L,'rug',800,488,{patrol:[650,950],variant:'thrower',skin:'trash_bandit',h:108,hp:3,cd:0});
+  en(L,'bat',1300,280,{variant:'dive',baseY:280,skin:'lantern_owl',h:74});
+  en(L,'bulldog',1850,488,{patrol:[1670,2030],variant:'charge',skin:'hollow_deer',h:108,hp:4,spd:80});
+  en(L,'bulldog',2350,488,{variant:'patrol',patrol:[2200,2500],skin:'spore_sprite',h:96,hp:3,spd:40});
+  en(L,'wraith',2750,300,{variant:'float',baseY:300,skin:'campfire_wisp',h:80,hp:3,shoot:0});
+  en(L,'bulldog',3300,488,{patrol:[3120,3480],variant:'shield',skin:'lost_lumberjack',h:108,hp:5,spd:55});
+  en(L,'bat',3900,260,{variant:'dive',baseY:260,skin:'lantern_owl',h:74});
+  en(L,'rug',4500,488,{patrol:[4350,4650],variant:'thrower',skin:'trash_bandit',h:108,hp:3,cd:0});
+  en(L,'wraith',5000,300,{variant:'tele',baseY:300,skin:'campfire_wisp',h:80,hp:3,shoot:0,cd:0});
+  bb(L,400,90,250,120,5);bb(L,2300,100,250,120,5);bb(L,4400,90,250,120,5);
+  L.bossTitle='THE STAG KING';
+  L.boss={kind:'king',final:false,x:5300,y:488,hp:14,maxhp:14,phase:1,state:'intro',t:0,dir:-1,spd:340,dazeT:0,summons:false,dead:false,shotHint:0,skin:'stag_king',koSkin:'stag_king',h:150};
+  return L;}},
+ /* ========== LEVEL 8: MIDNIGHT EXPRESS ========== */
+ {name:'MIDNIGHT EXPRESS',icon:'🚂',music:'final',par:140,build(){
+  const L=mkL('MIDNIGHT EXPRESS','final','midnight',5800);
+  // Train-roof setup: long platforms (the cars) separated by short gaps
+  L.platforms.push({x:-60,y:120,w:70,h:380,bx:-60,by:120});
+  L.platforms.push({x:5790,y:120,w:70,h:380,bx:5790,by:120});
+  gseg(L,0,900,488);     // station
+  gseg(L,1050,1700,440); // first car
+  gseg(L,1850,2500,440); // second car
+  gseg(L,2650,3300,440); // dining car
+  gseg(L,3450,4100,440); // sleeper car
+  gseg(L,4250,4900,440); // casino car
+  gseg(L,5050,5800,440); // engine approach
+  // Mid-car obstacles
+  plat(L,1180,360,140);plat(L,1400,300,140);
+  plat(L,1980,360,140);plat(L,2280,320,140);
+  plat(L,2780,360,140);plat(L,3080,300,140);
+  plat(L,3580,360,140);plat(L,3880,320,140);
+  plat(L,4380,360,140);plat(L,4680,300,140);
+  // Hazards — lightning lasers between cars
+  laser(L,1820,200,440,2.4,0);
+  laser(L,2620,200,440,2.4,1.2);
+  laser(L,3420,200,440,2.4,0.6);
+  laser(L,4220,200,440,2.4,1.8);
+  laser(L,5020,200,440,2.4,1.0);
+  spring(L,170,488);spring(L,1500,440);spring(L,3000,440);spring(L,4500,440);
+  crate(L,400,488,'coins');crate(L,1500,440,'shield');crate(L,2800,440,'bone');crate(L,4100,440,'magnet');crate(L,5300,440,'x2');
+  coinRow(L,1100,388,6,40);coinRow(L,2050,388,6,40);coinRow(L,3500,388,6,40);
+  coinArc(L,4500,250,7,100);bigDrip(L,3700,260);
+  pow(L,1400,250,'gold');pow(L,3080,250,'x2');pow(L,4680,250,'magnet');
+  // Enemies (train-themed)
+  en(L,'rug',600,488,{patrol:[450,750],variant:'thrower',skin:'ticket_inspector',h:108,hp:3,cd:0});
+  en(L,'bulldog',1300,440,{patrol:[1120,1480],variant:'charge',skin:'luggage_lurker',h:104,hp:4,spd:80});
+  en(L,'bulldog',1700,440,{patrol:[1520,1880],variant:'gunner',skin:'high_roller',h:108,hp:3,shotCol:'#ffd24a',spd:35});
+  en(L,'bulldog',2200,440,{variant:'patrol',patrol:[2050,2400],skin:'steam_chef',h:108,hp:4,spd:50});
+  en(L,'bulldog',2900,440,{patrol:[2720,3080],variant:'shield',skin:'ticket_inspector',h:108,hp:5,spd:55});
+  en(L,'rug',3300,440,{patrol:[3150,3450],variant:'thrower',skin:'parcel_gremlin',h:104,hp:3,cd:0});
+  en(L,'bat',3600,260,{variant:'dive',baseY:260,skin:'storm_crow',h:74});
+  en(L,'bulldog',4000,440,{patrol:[3820,4180],variant:'charge',skin:'luggage_lurker',h:104,hp:4,spd:90});
+  en(L,'bulldog',4400,440,{patrol:[4220,4580],variant:'gunner',skin:'high_roller',h:108,hp:3,shotCol:'#ffd24a',spd:35});
+  en(L,'bat',4700,260,{variant:'dive',baseY:260,skin:'storm_crow',h:74});
+  en(L,'bulldog',5100,440,{patrol:[4920,5280],variant:'shield',skin:'steam_chef',h:108,hp:5,spd:55});
+  bb(L,400,90,250,120,5);bb(L,2300,100,250,120,5);bb(L,4400,90,250,120,5);
+  L.bossTitle='THE CONDUCTOR';
+  L.boss={kind:'king',final:false,x:5500,y:440,hp:16,maxhp:16,phase:1,state:'intro',t:0,dir:-1,spd:360,dazeT:0,summons:false,dead:false,shotHint:0,skin:'conductor',koSkin:'conductor',h:160};
   return L;}},
  {name:'NEON MILE',icon:'🌈',music:'neon',par:110,build(){
   const L=mkL('NEON MILE','neon','neon',5600);
