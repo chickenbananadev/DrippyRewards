@@ -1496,13 +1496,19 @@ async function drawRankCard(d){
   const solflareLink = 'https://solflare.com/ul/v1/browse/' + enc + '?ref=' + encRef;
   // Backpack universal link
   const backpackLink = 'https://backpack.app/?url=' + enc;
+  // Jupiter Mobile — deep-link straight to the SOL → $DRIPPY swap.
+  // jup.ag URLs auto-open inside the Jupiter mobile app if installed; fall back to web.
+  const DRIPPY_MINT = 'EPRZgmvU4aTQ4UaC4bywgNvxJ5YmhuKqM1bx3gw4DRPY';
+  const jupiterLink = 'https://jup.ag/swap/SOL-' + DRIPPY_MINT;
 
   const p = document.getElementById('mwPhantom');
   const s = document.getElementById('mwSolflare');
   const b = document.getElementById('mwBackpack');
+  const j = document.getElementById('mwJupiter');
   if (p) p.href = phantomLink;
   if (s) s.href = solflareLink;
   if (b) b.href = backpackLink;
+  if (j) j.href = jupiterLink;
 
   help.style.display = 'block';
 })();
