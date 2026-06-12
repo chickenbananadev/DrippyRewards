@@ -1460,12 +1460,4 @@ async function drawRankCard(d){
     }, { passive: true });
   }
 
-  /* --- 5. Drip dividers between major sections --- */
-  ['#trade', '#how', '#proof', '#checker', '#dripquests', '#burn', '#legend', '#leaderboard', '#faq'].forEach((sel, i) => {
-    const sec = document.querySelector(sel);
-    if (!sec) return;
-    const div = document.createElement('div');
-    div.className = 'drip-divider' + (i % 2 ? ' purple' : '');
-    sec.parentNode.insertBefore(div, sec);
-  });
 })();
