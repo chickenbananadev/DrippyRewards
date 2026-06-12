@@ -1461,3 +1461,48 @@ async function drawRankCard(d){
   }
 
 })();
+
+/* ---------------- Mobile wallet help — deep-link panel ----------------
+   On mobile browsers (iOS Safari, Android Chrome), wallet apps don't inject
+   into the page. The fix is to deep-link the user into the wallet's own
+   in-app browser, which DOES inject. We detect:
+     1. Mobile UA  → show the help panel
+     2. Already inside a wallet's in-app browser (window.solana etc) → hide it
+   and wire each button to that wallet's universal deep-link. */
+(function(){
+  const help = document.getElementById('mobileWalletHelp');
+  if (!help) return;
+  const ua = navigator.userAgent || '';
+  const isMobile = /Android|iPhone|iPad|iPod/i.test(ua);
+  if (!isMobile) return; // desktop never sees it
+
+  // Detection: if a Solana wallet is already injected, we're inside an in-app
+  // browser (Phantom, Solflare, Backpack, etc.) — let the Jupiter widget do its thing.
+  const inWalletBrowser = !!(window.phantom?.solana || window.solflare || window.backpack || window.solana);
+  if (inWalletBrowser) {
+    help.style.display = 'none';
+    return;
+  }
+
+  // Build deep-links to re-open the current URL inside each wallet's browser
+  const here = location.href.split('#')[0];
+  const refUrl = location.origin;
+  const enc = encodeURIComponent(here);
+  const encRef = encodeURIComponent(refUrl);
+
+  // Phantom universal link: https://docs.phantom.com/phantom-deeplinks/provider-methods/browse
+  const phantomLink = 'https://phantom.app/ul/browse/' + enc + '?ref=' + encRef;
+  // Solflare universal link: same pattern
+  const solflareLink = 'https://solflare.com/ul/v1/browse/' + enc + '?ref=' + encRef;
+  // Backpack universal link
+  const backpackLink = 'https://backpack.app/?url=' + enc;
+
+  const p = document.getElementById('mwPhantom');
+  const s = document.getElementById('mwSolflare');
+  const b = document.getElementById('mwBackpack');
+  if (p) p.href = phantomLink;
+  if (s) s.href = solflareLink;
+  if (b) b.href = backpackLink;
+
+  help.style.display = 'block';
+})();

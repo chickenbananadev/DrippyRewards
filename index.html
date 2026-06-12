@@ -142,6 +142,40 @@
         <span class="t">Swap $DRIPPY</span>
         <span class="s">Powered by Jupiter</span>
       </div>
+      <!-- MOBILE-ONLY: wallets are apps, not extensions, on phones.
+           Open this page inside a wallet's in-app browser via deep-link so it can connect. -->
+      <div class="mobile-wallet-help" id="mobileWalletHelp" style="display:none">
+        <div class="mw-tip">
+          <span class="mw-tip-icon">📱</span>
+          <div>
+            <b style="color:var(--gold-bright)">On mobile, open this page inside your wallet's browser.</b>
+            <div style="font-size:13px;color:var(--cream-dim);margin-top:4px">
+              Mobile browsers can't see wallet apps directly. Tap one below to re-open drippyrewards.com inside that wallet — then the swap connects instantly.
+            </div>
+          </div>
+        </div>
+        <div class="mw-grid">
+          <a class="mw-btn" id="mwPhantom" rel="noopener">
+            <span class="mw-ico">👻</span>
+            <span><b>Phantom</b><span class="mw-sub">Open in app browser</span></span>
+          </a>
+          <a class="mw-btn" id="mwSolflare" rel="noopener">
+            <span class="mw-ico">☀️</span>
+            <span><b>Solflare</b><span class="mw-sub">Open in app browser</span></span>
+          </a>
+          <a class="mw-btn" id="mwBackpack" rel="noopener">
+            <span class="mw-ico">🎒</span>
+            <span><b>Backpack</b><span class="mw-sub">Open in app browser</span></span>
+          </a>
+          <a class="mw-btn" href="https://www.forgeswap.fun/" target="_blank" rel="noopener" style="background:rgba(245,197,66,.12);border-color:rgba(245,197,66,.45)">
+            <span class="mw-ico">⚒️</span>
+            <span><b style="color:var(--gold-bright)">ForgeSwap</b><span class="mw-sub">Mobile-native swap</span></span>
+          </a>
+        </div>
+        <p style="font-size:12px;color:var(--cream-faint);margin-top:14px;text-align:center">
+          Already inside your wallet's browser? Scroll down — the swap should connect automatically.
+        </p>
+      </div>
       <div class="jupiter-container"><div id="jupiter-terminal"></div></div>
       <div class="swap-fallback" id="swapFallback">
         <p style="color:var(--cream-dim);margin-bottom:14px">The swap widget didn't load in this browser.</p>

@@ -894,3 +894,22 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--gold-bright);outlin
   .hero-banner,.hero-tagline,.hero-copy h1,.hero-copy .lede,.hero-ctas,.hero .dripmeter{animation:none}
 }
 @media(max-width:760px){.step-mascot{top:-34px;height:50px}}
+
+/* ============================================================
+   Mobile wallet help panel — only renders on mobile + when NOT
+   already inside a wallet's in-app browser.
+   ============================================================ */
+.mobile-wallet-help{margin-bottom:18px;border-radius:14px;
+  background:linear-gradient(160deg,rgba(162,89,255,.12),rgba(212,164,49,.06));
+  border:1px solid rgba(162,89,255,.4);padding:18px}
+.mw-tip{display:flex;gap:12px;align-items:flex-start;margin-bottom:14px}
+.mw-tip-icon{font-size:28px;flex:0 0 auto;line-height:1}
+.mw-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.mw-btn{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--cream);
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:10px;
+  padding:12px 13px;font-family:var(--mono);font-size:13px;transition:transform .15s ease,border-color .15s ease,background .15s ease}
+.mw-btn:hover,.mw-btn:active{transform:translateY(-1px);border-color:var(--gold-bright);background:rgba(245,197,66,.08)}
+.mw-btn .mw-ico{font-size:22px;flex:0 0 auto}
+.mw-btn b{display:block;font-weight:600;color:var(--cream)}
+.mw-btn .mw-sub{display:block;font-size:11px;color:var(--cream-faint);margin-top:2px}
+@media(max-width:480px){.mw-grid{grid-template-columns:1fr}}
