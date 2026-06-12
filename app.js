@@ -1321,3 +1321,151 @@ async function drawRankCard(d){
     el.style.setProperty('--ri', Math.min(i, 6));
   });
 })();
+
+/* ---------------- v4 signature layer ----------------
+   Scroll-runner Drippy, hero particle canvas, mouse parallax,
+   drip dividers, paw cursor trail. All gated on reduced-motion. */
+(function(){
+  const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduced) return;
+
+  /* --- 1. Drippy runs along the scroll progress bar --- */
+  const runner = document.createElement('img');
+  runner.id = 'scrollRunner';
+  runner.src = 'assets/sprites/gold_run.png';
+  runner.alt = '';
+  runner.className = 'idle';
+  document.body.appendChild(runner);
+  let lastPct = 0, idleTimer = null;
+  function placeRunner(){
+    const h = document.documentElement;
+    const max = h.scrollHeight - h.clientHeight;
+    const pct = max > 0 ? h.scrollTop / max : 0;
+    // Keep him on-screen at the edges
+    const x = 24 + pct * (innerWidth - 48);
+    runner.style.left = x + 'px';
+    if (Math.abs(pct - lastPct) > 0.0004) {
+      runner.src = 'assets/sprites/gold_run.png';
+      runner.classList.remove('idle');
+      runner.classList.toggle('flip', pct < lastPct); // face the direction of travel
+      clearTimeout(idleTimer);
+      idleTimer = setTimeout(() => {
+        runner.src = 'assets/sprites/gold_idle.png';
+        runner.classList.add('idle');
+      }, 280);
+    }
+    lastPct = pct;
+  }
+  addEventListener('scroll', () => requestAnimationFrame(placeRunner), { passive: true });
+  placeRunner();
+
+  /* --- 2. Hero FX canvas: falling gold drips + purple embers + twinkles --- */
+  const hero = document.querySelector('.hero');
+  if (hero) {
+    const cv = document.createElement('canvas');
+    cv.id = 'heroFX';
+    hero.prepend(cv);
+    const fx = cv.getContext('2d');
+    let W = 0, H = 0, dpr = Math.min(2, devicePixelRatio || 1);
+    function sizeFX(){
+      W = hero.clientWidth; H = hero.clientHeight;
+      cv.width = W * dpr; cv.height = H * dpr;
+      cv.style.width = W + 'px'; cv.style.height = H + 'px';
+      fx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    sizeFX(); addEventListener('resize', sizeFX);
+    const drips = Array.from({length: 22}, () => ({
+      x: Math.random(), y: Math.random(), s: 0.5 + Math.random(),
+      sway: Math.random() * 6, v: 26 + Math.random() * 44
+    }));
+    const embers = Array.from({length: 14}, () => ({
+      x: Math.random(), y: Math.random(), s: Math.random(),
+      vx: (Math.random() - .5) * 9, vy: -6 - Math.random() * 12, tw: Math.random() * 6
+    }));
+    let visible = true;
+    new IntersectionObserver((e) => { visible = e[0].isIntersecting; }).observe(hero);
+    let pt = 0;
+    function tickFX(ts){
+      requestAnimationFrame(tickFX);
+      if (!visible) return;
+      const dt = Math.min(0.05, (ts - pt) / 1000 || 0.016); pt = ts;
+      const t = ts / 1000;
+      fx.clearRect(0, 0, W, H);
+      // gold drips
+      for (const d of drips) {
+        d.y += (d.v * dt) / H;
+        if (d.y > 1.05) { d.y = -0.05; d.x = Math.random(); }
+        const x = d.x * W + Math.sin(t + d.sway) * 6, y = d.y * H;
+        const r = 2 + d.s * 2.4;
+        const grad = fx.createLinearGradient(x, y - r * 4, x, y);
+        grad.addColorStop(0, 'rgba(245,197,66,0)');
+        grad.addColorStop(1, 'rgba(245,197,66,' + (0.28 + d.s * 0.3) + ')');
+        fx.fillStyle = grad;
+        fx.fillRect(x - 1, y - r * 4, 2, r * 4);
+        fx.beginPath(); fx.ellipse(x, y, r * 0.8, r * 1.25, 0, 0, 7); fx.fill();
+      }
+      // purple embers drifting up
+      for (const e of embers) {
+        e.x += (e.vx * dt) / W; e.y += (e.vy * dt) / H;
+        if (e.y < -0.05) { e.y = 1.05; e.x = Math.random(); }
+        const a = 0.14 + 0.2 * Math.abs(Math.sin(t * 1.5 + e.tw));
+        fx.fillStyle = 'rgba(162,89,255,' + a + ')';
+        fx.beginPath(); fx.arc(e.x * W, e.y * H, 1.4 + e.s * 2, 0, 7); fx.fill();
+      }
+      // occasional twinkle crosses
+      for (let i = 0; i < 3; i++) {
+        const sx = (Math.sin(t * 0.4 + i * 2.4) * 0.4 + 0.5) * W;
+        const sy = (Math.cos(t * 0.31 + i * 1.7) * 0.36 + 0.4) * H;
+        const a = Math.max(0, Math.sin(t * 2.2 + i * 2)) * 0.5;
+        if (a < 0.08) continue;
+        fx.strokeStyle = 'rgba(255,231,154,' + a + ')'; fx.lineWidth = 1;
+        fx.beginPath(); fx.moveTo(sx - 5, sy); fx.lineTo(sx + 5, sy);
+        fx.moveTo(sx, sy - 5); fx.lineTo(sx, sy + 5); fx.stroke();
+      }
+    }
+    requestAnimationFrame(tickFX);
+  }
+
+  /* --- 3. Mouse parallax on the hero banner (desktop) --- */
+  if (matchMedia('(pointer:fine)').matches) {
+    const banner = document.getElementById('heroBanner');
+    if (banner && hero) {
+      let tx = 0, ty = 0, cx = 0, cy = 0;
+      hero.addEventListener('pointermove', (e) => {
+        const r = hero.getBoundingClientRect();
+        tx = ((e.clientX - r.left) / r.width - 0.5) * 14;
+        ty = ((e.clientY - r.top) / r.height - 0.5) * 9;
+      });
+      hero.addEventListener('pointerleave', () => { tx = 0; ty = 0; });
+      (function lerpB(){
+        requestAnimationFrame(lerpB);
+        cx += (tx - cx) * 0.07; cy += (ty - cy) * 0.07;
+        banner.style.translate = cx.toFixed(2) + 'px ' + cy.toFixed(2) + 'px';
+      })();
+    }
+
+    /* --- 4. Paw-print cursor trail (throttled, fades) --- */
+    let lastPaw = 0, pawFlip = false;
+    document.addEventListener('pointermove', (e) => {
+      const now = performance.now();
+      if (now - lastPaw < 130) return;
+      lastPaw = now; pawFlip = !pawFlip;
+      const paw = document.createElement('div');
+      paw.className = 'pawprint';
+      paw.style.left = (e.clientX + (pawFlip ? -14 : 6)) + 'px';
+      paw.style.top = (e.clientY + 10) + 'px';
+      paw.style.transform = 'rotate(' + ((pawFlip ? -1 : 1) * (12 + Math.random() * 14)).toFixed(0) + 'deg)';
+      document.body.appendChild(paw);
+      setTimeout(() => paw.remove(), 850);
+    }, { passive: true });
+  }
+
+  /* --- 5. Drip dividers between major sections --- */
+  ['#trade', '#how', '#proof', '#checker', '#dripquests', '#burn', '#legend', '#leaderboard', '#faq'].forEach((sel, i) => {
+    const sec = document.querySelector(sel);
+    if (!sec) return;
+    const div = document.createElement('div');
+    div.className = 'drip-divider' + (i % 2 ? ' purple' : '');
+    sec.parentNode.insertBefore(div, sec);
+  });
+})();

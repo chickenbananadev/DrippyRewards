@@ -841,3 +841,60 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--gold-bright);outlin
   h2{animation:none}
   .card:hover,.tcell:hover,.lb-row:hover{transform:none}
 }
+
+/* ============================================================
+   DRIPPY v4 — signature layer: sprite-driven, scroll-alive.
+   Scroll-runner Drippy, hero FX canvas, drip dividers,
+   paw cursor trail, step mascots, hero entrance.
+   ============================================================ */
+
+/* --- Drippy runs along the scroll progress bar --- */
+#scrollRunner{position:fixed;top:-2px;left:0;z-index:100;height:46px;width:auto;
+  image-rendering:pixelated;pointer-events:none;transform:translateX(-50%);
+  filter:drop-shadow(0 2px 6px rgba(245,197,66,.55));transition:opacity .3s ease}
+#scrollRunner.flip{transform:translateX(-50%) scaleX(-1)}
+#scrollRunner.idle{animation:runnerBob 1.6s ease-in-out infinite}
+@keyframes runnerBob{0%,100%{margin-top:0}50%{margin-top:3px}}
+
+/* --- hero FX particle canvas --- */
+.hero{min-height:auto}
+#heroFX{position:absolute;inset:0;z-index:0;pointer-events:none}
+.hero .container{position:relative;z-index:1}
+
+/* --- hero entrance choreography --- */
+@keyframes heroRise{from{opacity:0;transform:translateY(34px);filter:blur(6px)}to{opacity:1;transform:none;filter:none}}
+.hero-banner{animation:heroRise .9s cubic-bezier(.16,.84,.3,1) both,heroFloat 7s ease-in-out 1s infinite}
+.hero-tagline{animation:heroRise .8s .15s cubic-bezier(.16,.84,.3,1) both}
+.hero-copy h1{animation:heroRise .9s .25s cubic-bezier(.16,.84,.3,1) both}
+.hero-copy .lede{animation:heroRise .9s .38s cubic-bezier(.16,.84,.3,1) both}
+.hero-ctas{animation:heroRise .9s .5s cubic-bezier(.16,.84,.3,1) both}
+.hero .dripmeter{animation:heroRise .9s .62s cubic-bezier(.16,.84,.3,1) both}
+
+/* --- melting drip dividers between sections --- */
+.drip-divider{height:30px;margin:-2px 0 0;pointer-events:none;position:relative;z-index:2;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='30' viewBox='0 0 120 30'%3E%3Cpath d='M0 0h120v6c-6 0-8 14-13 14s-5-10-11-10-5 16-12 16-6-12-12-12-6 8-12 8-5-14-12-14-6 10-12 10-5-6-11-6-5 8-12 8C8 20 6 6 0 6Z' fill='rgba(212,164,49,.16)'/%3E%3C/svg%3E");
+  background-repeat:repeat-x;background-size:120px 30px}
+.drip-divider.purple{filter:hue-rotate(230deg) saturate(1.4)}
+
+/* --- paw-print cursor trail (desktop only) --- */
+.pawprint{position:fixed;z-index:98;width:16px;height:16px;pointer-events:none;
+  background-repeat:no-repeat;background-size:contain;opacity:.65;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cg fill='%23d4a431'%3E%3Cellipse cx='50' cy='64' rx='20' ry='17'/%3E%3Cellipse cx='24' cy='44' rx='8' ry='11'/%3E%3Cellipse cx='76' cy='44' rx='8' ry='11'/%3E%3Cellipse cx='37' cy='25' rx='7' ry='10'/%3E%3Cellipse cx='63' cy='25' rx='7' ry='10'/%3E%3C/g%3E%3C/svg%3E");
+  animation:pawFade .8s ease-out forwards}
+@keyframes pawFade{from{opacity:.55;transform:scale(.9)}to{opacity:0;transform:scale(1.25) translateY(-6px)}}
+
+/* --- step mascots: game sprites peeking over the cards --- */
+.step{position:relative;overflow:visible!important}
+.step-mascot{position:absolute;top:-44px;right:14px;height:64px;width:auto;
+  image-rendering:pixelated;filter:drop-shadow(0 4px 10px rgba(0,0,0,.5));
+  transition:transform .35s cubic-bezier(.34,1.56,.64,1);z-index:2}
+.step:hover .step-mascot{transform:translateY(-7px) rotate(-4deg) scale(1.08)}
+
+/* --- parallax targets get GPU hints --- */
+[data-plx]{will-change:transform}
+
+@media(prefers-reduced-motion:reduce){
+  #scrollRunner,.pawprint,#heroFX{display:none}
+  .hero-banner,.hero-tagline,.hero-copy h1,.hero-copy .lede,.hero-ctas,.hero .dripmeter{animation:none}
+}
+@media(max-width:760px){.step-mascot{top:-34px;height:50px}}

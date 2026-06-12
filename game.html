@@ -195,7 +195,7 @@ canvas{image-rendering:pixelated;width:100%;height:100%;display:block;object-fit
 .skinCard:not(.locked):hover{transform:translateY(-2px);border-color:var(--gold)}
 .skinCard.selected{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold)}
 .skinCard.locked{opacity:.42;cursor:not-allowed;filter:grayscale(.7)}
-.skinCard img{image-rendering:pixelated;width:80px;height:auto;display:block;margin:6px auto 10px}
+.skinCard img{image-rendering:pixelated;height:84px;width:auto;max-width:120px;object-fit:contain;display:block;margin:6px auto 10px}
 .skinCard .nm{font-family:'Press Start 2P';font-size:11px;color:var(--cream);margin-bottom:4px;letter-spacing:1px}
 .skinCard .req{font-size:10px;color:#9aa3b2;line-height:1.4}
 .skinCard.locked .req{color:var(--red)}
@@ -699,7 +699,7 @@ let runStats=null,gt=0,runScore=0,pendingBeat=false;
 function newPlayer(x,y){return{x,y,w:34,h:56,vx:0,vy:0,face:1,onGround:false,ground:null,coyote:0,buffer:0,jumps:0,
   state:'idle',anim:0,sx:1,sy:1,hp:3,hpMax:3,iframe:0,dash:0,dashcd:0,atkcd:0,attack:0,prevy:y,
   wall:0,pound:0,poundPrep:0,combo:0,
-  gold:0,magnet:0,x2:0,shield:false};}
+  gold:0,magnet:0,x2:0,shield:0};}
 
 function applySkinPerks(p){
   // Read the active skin's perks (defined in SKINS_DEF). Light, non-multiplicative
@@ -709,7 +709,7 @@ function applySkinPerks(p){
   if(!sk||!sk.perks)return;
   const pp=sk.perks;
   if(pp.startHearts){p.hpMax+=pp.startHearts;p.hp=p.hpMax;p._hpCap=Math.max(5,p.hpMax);}
-  if(pp.startShield)p.shield=true;
+  if(pp.startShield)p.shield=Infinity; // skin-granted: lasts until broken
   if(pp.startCoins){p.gold=(p.gold||0)+pp.startCoins;runScore+=pp.startCoins;}
   if(pp.extraLife)p._extraLives=(p._extraLives||0)+1;
   if(pp.spdMul)p.spdMul=pp.spdMul;
@@ -953,6 +953,7 @@ function updatePlayer(dt){
     projectiles.push({x:p.x+p.face*24,y:p.y-p.h*0.55,vx:p.face*580,life:1.0});}
   // powerup timers
   p.iframe-=dt;p.gold-=dt;p.magnet-=dt;p.x2-=dt;p.grow=Math.max(0,(p.grow||0)-dt);
+  if(p.shield>0&&isFinite(p.shield)){p.shield-=dt;if(p.shield<=0){p.shield=0;addFloat(p.x,p.y-70,'SHIELD FADED','#a259ff');}}
   // pickups
   for(const pu of level.powerups){if(pu.got)continue;if(Math.abs(p.x-pu.x)<32&&Math.abs(p.y-p.h/2-pu.y)<40){pu.got=true;applyPow(pu.kind,pu.x,pu.y);}}
   // coins
@@ -1052,7 +1053,7 @@ function applyPow(kind,x,y){
   if(kind==='gold'){p.gold=rng();AUDIO.sfx.gold();addFloat(x,y-30,'GOLD MODE '+p.gold.toFixed(1)+'s','#f5c542',true);addShake(4,0.2);}
   else if(kind==='magnet'){p.magnet=rng();addFloat(x,y-30,'DRIP MAGNET '+p.magnet.toFixed(1)+'s','#2fd6c4',true);}
   else if(kind==='x2'){p.x2=rng();addFloat(x,y-30,'2X DRIP '+p.x2.toFixed(1)+'s','#ffd966',true);}
-  else if(kind==='shield'){p.shield=true;AUDIO.sfx.shieldup();addFloat(x,y-30,'CHAIN SHIELD','#a259ff',true);}
+  else if(kind==='shield'){p.shield=6+Math.random()*2;AUDIO.sfx.shieldup();addFloat(x,y-30,'CHAIN SHIELD '+p.shield.toFixed(1)+'s','#a259ff',true);}
   else if(kind==='bone'){
     // Bone only HEALS if you're below your skin's heart cap. If at cap, convert to extra life.
     if (p.hp < HP_CAP) {
@@ -1112,7 +1113,7 @@ function breakCrate(cr){
 function hurt(soft){
   const p=player;
   if(p.iframe>0||p.gold>0||GOD)return;
-  if(p.shield&&!soft){p.shield=false;p.iframe=1.0;AUDIO.sfx.shieldbreak();ringP(p.x,p.y-30,'#a259ff',10,200);addFloat(p.x,p.y-70,'SHIELD BROKE','#a259ff');return;}
+  if(p.shield&&!soft){p.shield=0;p.iframe=1.0;AUDIO.sfx.shieldbreak();ringP(p.x,p.y-30,'#a259ff',10,200);addFloat(p.x,p.y-70,'SHIELD BROKE','#a259ff');return;}
   // Sonic-style coin scatter: lose half your drips, scatter them around you as
   // re-collectible coins with a 2.5s window before they vanish.
   if(runStats.drips>0){
@@ -1846,7 +1847,7 @@ function drawPlayer(){
     ctx.beginPath();ctx.arc(p.x-camX,p.y-camY-14,50,0,7);ctx.stroke();
   }
   blit(img,p.x,p.y,72*growScale,p.face,0,p.sx,p.sy);
-  if(p.shield){ctx.strokeStyle='rgba(162,89,255,.8)';ctx.lineWidth=2.5;ctx.beginPath();ctx.arc(p.x-camX,p.y-36-camY,40+Math.sin(gt*5)*3,0,7);ctx.stroke();}
+  if(p.shield&&!(isFinite(p.shield)&&p.shield<1.5&&Math.floor(gt*8)%2)){ctx.strokeStyle='rgba(162,89,255,.8)';ctx.lineWidth=2.5;ctx.beginPath();ctx.arc(p.x-camX,p.y-36-camY,40+Math.sin(gt*5)*3,0,7);ctx.stroke();}
   if(p.pound>0){ctx.fillStyle='rgba(245,197,66,.4)';ctx.fillRect(p.x-camX-16,p.y-camY-70,32,60);}
   if(Math.abs(p.vx)>380&&p.onGround){ctx.strokeStyle='rgba(255,255,255,.25)';ctx.lineWidth=2;
     for(let i=0;i<3;i++){const y=p.y-12-i*16-camY;ctx.beginPath();ctx.moveTo(p.x-p.face*30-camX,y);ctx.lineTo(p.x-p.face*58-camX,y);ctx.stroke();}}
@@ -1980,7 +1981,7 @@ function drawHUD(){
   if(p.gold>0)chip('GOLD '+p.gold.toFixed(0),'#ffd966',p.gold/8);
   if(p.magnet>0)chip('MAGNET '+p.magnet.toFixed(0),'#2fd6c4',p.magnet/12);
   if(p.x2>0)chip('2X DRIP '+p.x2.toFixed(0),'#f5c542',p.x2/12);
-  if(p.shield)chip('SHIELD','#a259ff',null);
+  if(p.shield)chip(isFinite(p.shield)?('SHIELD '+p.shield.toFixed(1)):'SHIELD ∞','#a259ff',isFinite(p.shield)?p.shield/8:null);
   if(p.grow>0)chip('🦴 BIG '+p.grow.toFixed(1),'#ffd966',p.grow/8);
   if(p.dashcd>0){ctx.fillStyle='rgba(47,214,196,.4)';ctx.font='9px "Press Start 2P"';ctx.fillText('DASH...',24,118);}
   // right side
