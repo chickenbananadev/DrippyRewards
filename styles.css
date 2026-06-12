@@ -727,3 +727,117 @@ footer{border-top:1px solid var(--card-border);padding:50px 0 40px;text-align:ce
 @keyframes pawpop{30%{transform:scale(1.12)}60%{transform:scale(.96)}}
 
 @media(prefers-reduced-motion:reduce){.gold-rain,.payout-toast{display:none}.dripmeter.splash .drop,.copy-btn.copied{animation:none}}
+
+/* ============================================================
+   DRIPPY v3 — "insane mode" polish layer (additive overrides)
+   Ambient aurora, glass cards w/ pointer glow, shine sweeps,
+   kinetic headings, scroll progress, staggered reveals.
+   ============================================================ */
+
+/* --- ambient aurora orbs drifting behind everything --- */
+.aurora{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden}
+.aurora i{position:absolute;border-radius:50%;filter:blur(90px);opacity:.5;will-change:transform}
+.aurora i:nth-child(1){width:60vw;height:60vw;left:-18vw;top:-22vw;background:radial-gradient(circle,rgba(107,45,201,.5),transparent 65%);animation:auroraA 26s ease-in-out infinite alternate}
+.aurora i:nth-child(2){width:46vw;height:46vw;right:-14vw;top:18vh;background:radial-gradient(circle,rgba(212,164,49,.30),transparent 65%);animation:auroraB 32s ease-in-out infinite alternate}
+.aurora i:nth-child(3){width:52vw;height:52vw;left:24vw;bottom:-26vw;background:radial-gradient(circle,rgba(162,89,255,.32),transparent 65%);animation:auroraC 38s ease-in-out infinite alternate}
+@keyframes auroraA{from{transform:translate(0,0) scale(1)}to{transform:translate(9vw,7vh) scale(1.15)}}
+@keyframes auroraB{from{transform:translate(0,0) scale(1.1)}to{transform:translate(-8vw,9vh) scale(.95)}}
+@keyframes auroraC{from{transform:translate(0,0)}to{transform:translate(-10vw,-8vh) scale(1.12)}}
+@media(prefers-reduced-motion:reduce){.aurora{display:none}}
+
+/* --- scroll progress bar --- */
+.scroll-progress{position:fixed;top:0;left:0;height:3px;width:0%;z-index:99;
+  background:linear-gradient(90deg,var(--purple-bright),var(--gold-bright),var(--gold-glow));
+  box-shadow:0 0 12px rgba(245,197,66,.7);transition:width .08s linear;border-radius:0 3px 3px 0}
+
+/* --- custom scrollbar --- */
+::-webkit-scrollbar{width:11px}
+::-webkit-scrollbar-track{background:var(--black)}
+::-webkit-scrollbar-thumb{background:linear-gradient(180deg,var(--purple-deep),var(--purple));border-radius:8px;border:2px solid var(--black)}
+::-webkit-scrollbar-thumb:hover{background:linear-gradient(180deg,var(--purple),var(--gold))}
+
+/* --- nav: shrink + deepen blur once scrolled --- */
+.nav{transition:box-shadow .3s ease,background .3s ease}
+.nav.scrolled{background:rgba(10,6,16,.94);box-shadow:0 10px 38px rgba(0,0,0,.55),0 1px 0 rgba(212,164,49,.14)}
+.nav-links a{position:relative;transition:color .2s ease}
+.nav-links a::after{content:'';position:absolute;left:11px;right:11px;bottom:4px;height:2px;border-radius:2px;
+  background:linear-gradient(90deg,var(--gold-bright),var(--purple-bright));transform:scaleX(0);transform-origin:left;transition:transform .25s ease}
+.nav-links a:hover::after{transform:scaleX(1)}
+.nav-cta{transition:transform .18s ease,box-shadow .18s ease}
+.nav-cta:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(245,197,66,.45)}
+
+/* --- cards: glass + gradient ring + pointer-tracked glow --- */
+.card{position:relative;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  transition:transform .35s cubic-bezier(.21,.8,.32,1),box-shadow .35s ease,border-color .35s ease;overflow:hidden}
+.card::before{content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:0;transition:opacity .35s ease;
+  background:radial-gradient(420px circle at var(--mx,50%) var(--my,50%),rgba(245,197,66,.10),transparent 45%)}
+.card:hover{transform:translateY(-4px);border-color:rgba(245,197,66,.34);box-shadow:0 18px 48px rgba(0,0,0,.5),0 0 0 1px rgba(245,197,66,.12),0 0 36px rgba(107,45,201,.18)}
+.card:hover::before{opacity:1}
+
+/* --- buttons: shine sweep + lift --- */
+.btn{position:relative;overflow:hidden;transition:transform .18s ease,box-shadow .18s ease}
+.btn::after{content:'';position:absolute;top:0;bottom:0;left:-80%;width:55%;pointer-events:none;
+  background:linear-gradient(105deg,transparent,rgba(255,255,255,.34),transparent);transform:skewX(-20deg)}
+.btn:hover{transform:translateY(-2px)}
+.btn:hover::after{animation:btnShine .7s ease}
+@keyframes btnShine{from{left:-80%}to{left:130%}}
+.btn-gold:hover{box-shadow:0 12px 40px rgba(245,197,66,.55)}
+.btn-purple:hover{box-shadow:0 12px 36px rgba(162,89,255,.4)}
+.btn-ghost:hover{border-color:var(--gold-bright);color:var(--gold-bright)}
+
+/* --- kinetic section headings: gradient ink + animated underline --- */
+h2{background:linear-gradient(120deg,var(--cream) 30%,var(--gold-pale) 50%,var(--cream) 70%);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  background-size:220% 100%;animation:headingInk 9s ease-in-out infinite}
+@keyframes headingInk{0%,100%{background-position:0% 0}50%{background-position:100% 0}}
+h2 .gold,h2 .purple,h2 .redtxt{-webkit-text-fill-color:currentColor}
+.eyebrow{position:relative;display:inline-block;padding-left:30px}
+.eyebrow::before{content:'';position:absolute;left:0;top:50%;width:22px;height:2px;border-radius:2px;
+  background:linear-gradient(90deg,var(--gold-bright),transparent);transform:translateY(-50%)}
+
+/* --- reveals: silkier curve + per-sibling stagger --- */
+.reveal{transform:translateY(30px) scale(.985);transition:opacity .8s cubic-bezier(.16,.84,.3,1),transform .8s cubic-bezier(.16,.84,.3,1);transition-delay:calc(var(--ri,0)*90ms)}
+.reveal.in{transform:none}
+
+/* --- hero: floating banner + CTA pulse + gradient ring --- */
+.hero-banner{transition:transform .6s cubic-bezier(.21,.8,.32,1),box-shadow .6s ease;animation:heroFloat 7s ease-in-out infinite}
+@keyframes heroFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+.hero-banner:hover{transform:scale(1.015) rotate(-.3deg);box-shadow:0 30px 80px rgba(0,0,0,.6),0 0 60px rgba(107,45,201,.3)}
+.hero-ctas .btn-gold{animation:ctaPulse 3.2s ease-in-out infinite}
+@keyframes ctaPulse{0%,100%{box-shadow:0 6px 28px rgba(212,164,49,.35)}50%{box-shadow:0 6px 44px rgba(245,197,66,.62)}}
+
+/* --- ticker cells: hover lift + scanline shimmer --- */
+.tcell{transition:background .25s ease,transform .25s ease}
+.tcell:hover{background:#180e26;transform:translateY(-2px)}
+.tcell .v{transition:color .3s ease}
+
+/* --- leaderboard rows --- */
+.lb-row{transition:background .22s ease,transform .22s ease,border-color .22s ease}
+.lb-row:hover{background:rgba(245,197,66,.05);transform:translateX(4px)}
+.lb-row .rank.top{text-shadow:0 0 14px rgba(245,197,66,.6)}
+
+/* --- story card: glowing quote + drop cap feel --- */
+.quote{position:relative;transition:box-shadow .4s ease}
+.quote:hover{box-shadow:0 0 38px rgba(162,89,255,.22)}
+.story-card img{transition:transform .7s cubic-bezier(.21,.8,.32,1)}
+.story-card:hover img{transform:scale(1.03)}
+
+/* --- footer: soft fade-up edge --- */
+footer{position:relative}
+footer::before{content:'';position:absolute;top:-90px;left:0;right:0;height:90px;pointer-events:none;
+  background:linear-gradient(180deg,transparent,rgba(107,45,201,.07))}
+
+/* --- marquee: gold edge masks --- */
+.marquee{position:relative}
+.marquee::before,.marquee::after{content:'';position:absolute;top:0;bottom:0;width:70px;z-index:2;pointer-events:none}
+.marquee::before{left:0;background:linear-gradient(90deg,var(--black),transparent)}
+.marquee::after{right:0;background:linear-gradient(-90deg,var(--black),transparent)}
+
+/* --- focus rings for keyboard users --- */
+a:focus-visible,button:focus-visible{outline:2px solid var(--gold-bright);outline-offset:3px;border-radius:6px}
+
+@media(prefers-reduced-motion:reduce){
+  .hero-banner,.hero-ctas .btn-gold{animation:none}
+  h2{animation:none}
+  .card:hover,.tcell:hover,.lb-row:hover{transform:none}
+}

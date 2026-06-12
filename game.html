@@ -21,7 +21,13 @@ canvas{image-rendering:pixelated;width:100%;height:100%;display:block;object-fit
 .ov{position:fixed;inset:0;z-index:20;display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:22px;overflow-y:auto;-webkit-overflow-scrolling:touch;
   background:radial-gradient(ellipse 90% 60% at 50% 30%,rgba(107,45,201,.42),transparent 60%),rgba(7,4,13,.93)}
 .ov.on{display:flex}
-.ov h1{font-family:'Press Start 2P',monospace;font-size:clamp(22px,7vw,44px);color:var(--gold);line-height:1.35;text-shadow:0 4px 0 #6b2dc9,0 0 26px rgba(245,197,66,.5)}
+/* Title screen lets the animated attract-mode canvas shine through */
+#ovTitle{background:radial-gradient(ellipse 90% 60% at 50% 30%,rgba(107,45,201,.25),transparent 60%),rgba(7,4,13,.42)}
+.ov h1{font-family:'Press Start 2P',monospace;font-size:clamp(22px,7vw,44px);color:var(--gold);line-height:1.35;text-shadow:0 4px 0 #6b2dc9,0 0 26px rgba(245,197,66,.5);animation:titleGlow 3.2s ease-in-out infinite}
+@keyframes titleGlow{0%,100%{text-shadow:0 4px 0 #6b2dc9,0 0 26px rgba(245,197,66,.5)}50%{text-shadow:0 4px 0 #6b2dc9,0 0 44px rgba(245,197,66,.85),0 0 80px rgba(162,89,255,.4)}}
+.btn{transition:transform .15s ease,box-shadow .15s ease}
+.btn:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(245,197,66,.35)}
+.btn:active{transform:translateY(0) scale(.97)}
 .ov h2{font-family:'Press Start 2P',monospace;font-size:clamp(15px,4.5vw,24px);color:var(--gold);line-height:1.5}
 .ov .sub{font-family:'Press Start 2P',monospace;font-size:11px;color:var(--purple);margin-top:12px;letter-spacing:1px}
 .ov p{color:rgba(246,233,196,.72);font-size:13px;max-width:460px;line-height:1.7;margin-top:14px}
@@ -338,12 +344,15 @@ function en(L,type,x,y,o){
 }
 // Called from startLevel — bumps enemy stats by lvIdx so the world feels meaner deeper in.
 function scaleEnemiesForLevel(L, lvIdx){
-  // ~+8% HP, +6% speed per level past 1, capped at +100% HP / +60% spd
-  const hpMul = Math.min(2.0, 1 + lvIdx * 0.08);
-  const spdMul = Math.min(1.6, 1 + lvIdx * 0.06);
+  // ~+10% HP, +7% speed per level past 1, capped at +130% HP / +75% spd.
+  // Combined with boss scaling + shorter boss openings, each level is a real step up.
+  const hpMul = Math.min(2.3, 1 + lvIdx * 0.10);
+  const spdMul = Math.min(1.75, 1 + lvIdx * 0.07);
   for (const e of L.enemies) {
     if (e._baseHp != null) e.hp = Math.max(1, Math.round(e._baseHp * hpMul));
     if (e._baseSpd != null) e.spd = Math.round(e._baseSpd * spdMul);
+    // Gunners fire faster + harder shots in later levels
+    if (e.variant === 'gunner') e._shotMul = 1 + Math.min(0.6, lvIdx * 0.045);
   }
 }
 function bb(L,x,y,w,h,kind){L.billboards.push({x,y,w,h,kind});}
@@ -908,12 +917,21 @@ function updatePlayer(dt){
     // Reset grab when leaving the wall or releasing direction
     p._wallGrab = 0;
   }
+  const fallSpeed=p.vy; // capture pre-collision fall speed for landing impact scale
   p.y+=p.vy*dt;const wasAir=!p.onGround;collide('y');
   if(p.onGround&&wasAir){
     if(p.pound>0){landPound();}
-    else{p.sy=0.7;p.sx=1.3;AUDIO.sfx.land();spawnP(p.x,p.y,'#b0a890',6,120);}
+    else{
+      // Landing impact scales with fall speed — harder fall, bigger dust + squash
+      const hard=fallSpeed>620;
+      p.sy=hard?0.58:0.7;p.sx=hard?1.45:1.3;AUDIO.sfx.land();
+      spawnP(p.x,p.y,'#b0a890',hard?14:6,hard?220:120);
+      if(hard){ringP(p.x,p.y,'rgba(245,197,66,.5)',8,180);addShake(2,0.1);}
+    }
     p.combo=0;
   }
+  // Run dust — puffs kick up at the heels at speed (modern game feel)
+  if(p.onGround&&Math.abs(p.vx)>320&&Math.random()<0.2)spawnP(p.x-p.face*14,p.y,'rgba(176,168,144,.7)',1,70);
   if(p.x<p.w/2)p.x=p.w/2;if(p.x>level.w-p.w/2)p.x=level.w-p.w/2;
   p.sx+=(1-p.sx)*Math.min(1,dt*12);p.sy+=(1-p.sy)*Math.min(1,dt*12);
   // springs
@@ -1117,6 +1135,7 @@ function hurt(soft){
     addFloat(p.x,p.y-80,'-'+lose,'#ef4444',true);
   }
   p.hp--;p.iframe=1.1;p.vy=-300;p.vx=-p.face*240;AUDIO.sfx.hurt();addShake(5,0.25);hitstop(0.04);
+  if(level)level._hurtFlash=0.45; // red edge vignette pulse on damage
   if(p.hp<=0)lose();
 }
 function respawn(){const c=runStats.checkpoint;player.x=c.x;player.y=c.y;player.vx=0;player.vy=0;player.iframe=1.4;player.pound=0;cam.x=Math.max(0,c.x-VW*0.4);}
@@ -1155,7 +1174,7 @@ function updateEnemies(dt){
       if(e.variant==='charge'&&Math.abs(p.x-e.x)<260&&Math.abs(p.y-e.y)<90){spd=e.spd*3.4;e.dir=Math.sign(p.x-e.x)||e.dir;e.charging=true;}else e.charging=false;
       if(e.variant==='gunner'){spd=e.spd*0.5;e.cd=(e.cd||0)-dt;
         if(e.cd<=0&&Math.abs(p.x-e.x)<480&&Math.abs(p.y-e.y)<150){e.cd=1.7;e.dir=Math.sign(p.x-e.x)||e.dir;AUDIO.sfx.shoot();
-          projectiles.push({x:e.x+e.dir*22,y:e.y-52,vx:e.dir*(e.arc?300:340),vy:e.arc?-280:0,grav:!!e.arc,enemy:true,life:3,col:e.shotCol||'#ffd24a'});}}
+          projectiles.push({x:e.x+e.dir*22,y:e.y-52,vx:e.dir*(e.arc?300:340)*(e._shotMul||1),vy:e.arc?-280:0,grav:!!e.arc,enemy:true,life:3,col:e.shotCol||'#ffd24a'});}}
       e.x+=spd*e.dir*dt;
       if(e.x<e.patrol[0]){e.x=e.patrol[0];e.dir=1;}if(e.x>e.patrol[1]){e.x=e.patrol[1];e.dir=-1;}
     }
@@ -1338,7 +1357,8 @@ function updateBoss(dt){
         B.state='dazed';B.dazeT=0.45+Math.random()*0.85;AUDIO.sfx.land&&AUDIO.sfx.land();
         addFloat(B.x,B.y-180,'OPENING!','#22c55e',true);
       }
-      B._openCd=2.2+Math.random()*2.4; // next opening attempt in 2.2-4.6s
+      // Openings come slower in later levels — the deeper you go, the fewer free windows
+      B._openCd=Math.max(1.6,(2.2+Math.random()*2.4)+lvIdx*0.08);
     }
   }
 
@@ -1911,9 +1931,30 @@ function drawWeather(pal){
   }
 }
 function drawWeatherNone(){}
+let _vigCanvas=null;
+function drawVignette(){
+  // Cached cinematic vignette — drawn once to an offscreen canvas, then blitted.
+  if(!_vigCanvas){
+    _vigCanvas=document.createElement('canvas');_vigCanvas.width=VW;_vigCanvas.height=VH;
+    const vctx=_vigCanvas.getContext('2d');
+    const vg=vctx.createRadialGradient(VW/2,VH/2,VH*0.45,VW/2,VH/2,VH*0.95);
+    vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(5,2,12,0.42)');
+    vctx.fillStyle=vg;vctx.fillRect(0,0,VW,VH);
+  }
+  ctx.drawImage(_vigCanvas,0,0);
+}
 function drawHUD(){
   if(state!=='play'&&state!=='pause')return;
   const p=player;
+  drawVignette();
+  // Red edge pulse when hurt — fades quickly
+  if(level._hurtFlash&&level._hurtFlash>0){
+    const a=Math.min(0.5,level._hurtFlash);
+    const hg=ctx.createRadialGradient(VW/2,VH/2,VH*0.35,VW/2,VH/2,VH*0.85);
+    hg.addColorStop(0,'rgba(239,68,68,0)');hg.addColorStop(1,'rgba(239,68,68,'+a+')');
+    ctx.fillStyle=hg;ctx.fillRect(0,0,VW,VH);
+    level._hurtFlash-=0.03;
+  }
   // K.O. flash on boss defeat — fades from white over ~0.7s
   if (level._koFlash && level._koFlash > 0) {
     ctx.fillStyle = 'rgba(255,255,255,' + Math.min(0.9, level._koFlash) + ')';
@@ -2613,7 +2654,58 @@ function loop(ts){
   if(freeze>0){freeze-=dt;if(level)render();return;}
   if(state==='play')update(dt);
   if(level)render();
-  else{ctx.fillStyle='#07040d';ctx.fillRect(0,0,VW,VH);}
+  else drawMenuBg(ts/1000);
+}
+/* Animated attract-mode background behind the title/menus —
+   drifting stars, parallax skyline, floating Drippy with a gold aura. */
+let _menuStars=null;
+function drawMenuBg(t){
+  const g=ctx.createLinearGradient(0,0,0,VH);
+  g.addColorStop(0,'#0c0618');g.addColorStop(0.5,'#150a28');g.addColorStop(1,'#07040d');
+  ctx.fillStyle=g;ctx.fillRect(0,0,VW,VH);
+  if(!_menuStars){_menuStars=[];for(let i=0;i<70;i++)_menuStars.push({x:Math.random()*VW,y:Math.random()*VH*0.8,s:Math.random(),tw:Math.random()*6});}
+  for(const s of _menuStars){
+    const a=0.25+0.55*Math.abs(Math.sin(t*1.4+s.tw));
+    ctx.fillStyle='rgba(246,233,196,'+(a*(0.4+s.s*0.6)).toFixed(2)+')';
+    ctx.fillRect((s.x+t*4*(0.3+s.s))%VW,s.y,s.s>0.85?2.5:1.5,s.s>0.85?2.5:1.5);
+  }
+  // big soft moon
+  ctx.fillStyle='rgba(245,230,200,0.10)';ctx.beginPath();ctx.arc(VW*0.82,VH*0.22,90,0,7);ctx.fill();
+  ctx.fillStyle='rgba(245,230,200,0.16)';ctx.beginPath();ctx.arc(VW*0.82,VH*0.22,64,0,7);ctx.fill();
+  // parallax skyline, two layers drifting at different speeds
+  for(let l=0;l<2;l++){
+    const spd=(l?22:10),hgt=(l?160:230),col=l?'rgba(26,14,42,0.9)':'rgba(16,9,28,0.85)';
+    ctx.fillStyle=col;
+    const off=(t*spd)%160;
+    for(let x=-160;x<VW+160;x+=160){
+      const seed=Math.floor((x+off*0+(l*999))/160);
+      const bh=hgt*(0.55+0.45*Math.abs(Math.sin(seed*4.7+l*2)));
+      ctx.fillRect(x-off,VH-bh,110,bh);
+      // lit windows
+      ctx.fillStyle='rgba(245,197,66,'+(0.05+0.05*Math.abs(Math.sin(t+seed)))+')';
+      for(let wy=VH-bh+18;wy<VH-22;wy+=34)ctx.fillRect(x-off+18,wy,10,8);
+      ctx.fillStyle=col;
+    }
+  }
+  // floating Drippy with gold aura
+  const hero=SPR(window.currentSkin?(window.currentSkin+'_idle'):'hero');
+  if(hero&&hero.width){
+    const hx=VW*0.15;                       // off to the left so he never overlaps the menu
+    const fy=VH*0.78+Math.sin(t*1.6)*12;
+    const grd=ctx.createRadialGradient(hx,fy-60,10,hx,fy-60,120);
+    grd.addColorStop(0,'rgba(245,197,66,0.22)');grd.addColorStop(1,'rgba(245,197,66,0)');
+    ctx.fillStyle=grd;ctx.fillRect(hx-130,fy-190,260,260);
+    const sc=130/hero.height,w=hero.width*sc;
+    ctx.drawImage(hero,hx-w/2,fy-130,w,130);
+    ctx.fillStyle='rgba(0,0,0,.3)';ctx.beginPath();ctx.ellipse(hx,fy+6,34,8,0,0,7);ctx.fill();
+  }
+  // slow gold drips falling
+  for(let i=0;i<5;i++){
+    const dx=(VW*0.18*i+VW*0.08+Math.sin(t+i*2)*8);
+    const dy=((t*46+i*173)%(VH+80))-40;
+    ctx.fillStyle='rgba(245,197,66,0.5)';
+    ctx.beginPath();ctx.ellipse(dx,dy,3,7,0,0,7);ctx.fill();
+  }
 }
 requestAnimationFrame(loop);
 

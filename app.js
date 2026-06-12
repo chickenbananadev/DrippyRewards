@@ -1245,6 +1245,14 @@ async function drawRankCard(d){
 (function(){
   const intro = $('intro');
   if(!intro) return;
+  // Splash shows on the first 3 visits per browser, then never again
+  // (a fresh browser/incognito has its own localStorage so it gets the show).
+  let visits = 0;
+  try {
+    visits = parseInt(localStorage.getItem('drippyVisits') || '0', 10) || 0;
+    localStorage.setItem('drippyVisits', String(visits + 1));
+  } catch(_) {}
+  if (visits >= 3) { intro.classList.add('done'); return; }
   if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches){
     intro.classList.add('done');
     return;
@@ -1268,4 +1276,48 @@ async function drawRankCard(d){
     if(e.animationName === 'introExit') intro.classList.add('done');
   });
   setTimeout(() => intro.classList.add('done'), 4300);
+})();
+
+/* ---------------- v3 polish: aurora, scroll progress, nav state,
+   card pointer-glow, reveal stagger ---------------- */
+(function(){
+  // Ambient aurora orbs (skipped for reduced-motion via CSS)
+  const aurora = document.createElement('div');
+  aurora.className = 'aurora';
+  aurora.innerHTML = '<i></i><i></i><i></i>';
+  document.body.prepend(aurora);
+
+  // Scroll progress bar
+  const bar = document.createElement('div');
+  bar.className = 'scroll-progress';
+  document.body.appendChild(bar);
+  const nav = document.querySelector('.nav');
+  let ticking = false;
+  addEventListener('scroll', () => {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(() => {
+      const h = document.documentElement;
+      const max = h.scrollHeight - h.clientHeight;
+      bar.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0) + '%';
+      if (nav) nav.classList.toggle('scrolled', h.scrollTop > 24);
+      ticking = false;
+    });
+  }, { passive: true });
+
+  // Pointer-tracked glow on cards (sets --mx/--my consumed by .card::before)
+  document.addEventListener('pointermove', (e) => {
+    const card = e.target && e.target.closest ? e.target.closest('.card') : null;
+    if (!card) return;
+    const r = card.getBoundingClientRect();
+    card.style.setProperty('--mx', ((e.clientX - r.left) / r.width * 100) + '%');
+    card.style.setProperty('--my', ((e.clientY - r.top) / r.height * 100) + '%');
+  }, { passive: true });
+
+  // Reveal stagger: index each .reveal within its parent so siblings cascade
+  document.querySelectorAll('.reveal').forEach((el) => {
+    let i = 0, sib = el;
+    while ((sib = sib.previousElementSibling)) if (sib.classList && sib.classList.contains('reveal')) i++;
+    el.style.setProperty('--ri', Math.min(i, 6));
+  });
 })();
