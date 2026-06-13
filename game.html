@@ -98,7 +98,7 @@ canvas{image-rendering:pixelated;width:100%;height:100%;display:block;object-fit
     <b>Space</b> at a wall = wall jump · <b>↓</b> in air = ground pound<br>
     <b>Z</b> shoot gold · <b>X</b> dash (dashes through enemies!)<br>
     stomp enemies · chain stomps in the air for <b>COMBOS</b><br>
-    break <b>crates</b> · touch <b>hydrants</b> to save checkpoints · <b>P</b> pause
+    break <b>crates</b> · touch <b>hydrants</b> to save checkpoints · <b>P</b> pause · <b>M</b> mute
   </div>
 </div>
 
@@ -281,7 +281,7 @@ addEventListener('keydown',e=>{
   if([' ','arrowup','arrowleft','arrowright','arrowdown'].includes(k)){e.preventDefault();
     if(document.activeElement&&document.activeElement.tagName==='BUTTON')document.activeElement.blur();}
   if(k==='p'||k==='escape')togglePause();
-  if(k==='s'&&!held('shift')){ // S toggles sound (Shift+S reserved for sprint)
+  if(k==='m'){ // M toggles sound (S is reserved: WASD down / ground pound)
     try{ const on=AUDIO.toggleMute&&AUDIO.toggleMute(); addFloat(player?player.x:VW/2,(player?player.y:VH/2)-50,on?'🔇 MUTED':'🔊 SOUND ON','#f5c542',true);}catch(_){}
   }});
 addEventListener('keyup',e=>{if(e.target&&e.target.tagName==='INPUT')return;K[e.key.toLowerCase()]=false;});
@@ -323,11 +323,11 @@ const PALS={
   vault:{sky:['#0e0a04','#241a08','#3a2a0c','#120d04'],far:'#1a1206',mid:'#261a08',ground:'#33270e',gtop:'#5c4718',acc:'#ffd24a',win:'rgba(255,210,74,.09)',dark:true},
   void:{sky:['#070310','#150826','#26104a','#0a0416'],far:'#0e0618',mid:'#180a28',ground:'#221034',gtop:'#3c1f5c',acc:'#b14aff',win:'rgba(177,74,255,.09)'},
   // Drippywood Boardwalk — sunset over the Pacific, neon carnival glow
-  boardwalk:{sky:['#1a0830','#5a1a4a','#c44a6a','#ff8a4a'],far:'#330a3a','mid':'#4a1248',ground:'#5a3a1e',gtop:'#8a5a32',acc:'#ff4ad6',win:'rgba(255,74,214,.10)',embers:true},
+  boardwalk:{sky:['#1a0830','#5a1a4a','#c44a6a','#ff8a4a'],far:'#330a3a','mid':'#4a1248',ground:'#5a3a1e',gtop:'#8a5a32',acc:'#ff4ad6',win:'rgba(255,74,214,.10)',embers:true,pier:true},
   // Whispering Pines — misty evergreen at moonrise
-  pines:{sky:['#0a1018','#0e1c22','#163228','#0c1a18'],far:'#0a1e1a',mid:'#10301e',ground:'#1a3520',gtop:'#2a5234',acc:'#9fe8c4',win:'rgba(159,232,196,.07)',fog:true},
+  pines:{sky:['#0a1018','#0e1c22','#163228','#0c1a18'],far:'#0a1e1a',mid:'#10301e',ground:'#1a3520',gtop:'#2a5234',acc:'#9fe8c4',win:'rgba(159,232,196,.07)',fog:true,trees:true},
   // Midnight Express — stormy night through the mountains
-  midnight:{sky:['#040614','#0a1028','#1a2050','#040818'],far:'#080e22',mid:'#101838',ground:'#22293a',gtop:'#3a4664',acc:'#9fc9ff',win:'rgba(159,201,255,.08)',rain:true,wind:true},
+  midnight:{sky:['#040614','#0a1028','#1a2050','#040818'],far:'#080e22',mid:'#101838',ground:'#22293a',gtop:'#3a4664',acc:'#9fc9ff',win:'rgba(159,201,255,.08)',rain:true,wind:true,mountains:true},
   alley:{sky:['#0a0614','#1a0a2a','#2a0e3a','#0c0618'],far:'#140a22',mid:'#1e0e30',ground:'#24202c',gtop:'#3a3346',acc:'#ff3ea5',win:'rgba(255,62,165,.10)'},
   glizzy:{sky:['#2a1850','#5a2a72','#9a4a6a','#e08a4a'],far:'#2a1a44',mid:'#3a2255',ground:'#3a2a1c',gtop:'#6a4a2c',acc:'#ffcf3a',win:'rgba(255,200,80,.10)'},
   desert:{sky:['#3a2a6a','#7a4a6a','#d07a4a','#f5b54a'],far:'#5a4060',mid:'#8a5a4a',ground:'#7a5a2c',gtop:'#b58a3c',acc:'#ffd24a',win:'rgba(255,210,74,.10)',embers:true},
@@ -497,14 +497,18 @@ const LEVELS=[
   coinRow(L,560,316,4,40);coinArc(L,2050,200,7,90);coinRow(L,2900,250,5,40);bigDrip(L,2100,210);
   pow(L,820,260,'x2');pow(L,4400,210,'gold');
   // Enemies (boardwalk-themed using new + existing AI)
-  en(L,'rug',900,488,{patrol:[750,1050],variant:'thrower',skin:'game_op',h:108,hp:3,cd:0});       // Rigged Game Operator throws hoops
+  en(L,'rug',900,488,{patrol:[750,1050],variant:'thrower',skin:'game_op',h:108,hp:3,cd:0,shotCol:'#ff4ad6'});       // Rigged Game Operator throws hoops
   en(L,'bat',1450,260,{variant:'dive',baseY:260,skin:'seagull',h:70});           // Seagull Bandit dive-bombs
   en(L,'bulldog',1900,488,{patrol:[1720,2080],variant:'gunner',skin:'pixel_punk',h:104,hp:3,shotCol:'#ff4ad6',spd:30}); // Pixel Punk shoots tokens
   en(L,'bulldog',2350,488,{patrol:[2170,2530],variant:'charge',skin:'track_runner',h:104,hp:3,spd:75}); // Track Runner fast charge
   en(L,'bulldog',2950,488,{variant:'patrol',patrol:[2820,3080],skin:'sugar_fiend',h:104,hp:3,spd:35});
   en(L,'wraith',3500,300,{variant:'tele',baseY:300,skin:'wraith',hp:3,shoot:0,cd:0});  // Mirror Mime as teleporting wraith
   en(L,'bulldog',4200,488,{patrol:[4020,4380],variant:'shield',skin:'plushie_guard',h:120,hp:5,spd:55});  // Plushie Guard tank
-  en(L,'rug',4900,488,{patrol:[4750,5050],variant:'thrower',skin:'popcorn_launcher',h:104,hp:3,cd:0});
+  en(L,'rug',4900,488,{patrol:[4750,5050],variant:'thrower',skin:'popcorn_launcher',h:104,hp:3,cd:0,shotCol:'#ffe79a'});
+  en(L,'bat',2100,250,{variant:'dive',baseY:250,skin:'seagull',h:70});
+  en(L,'bulldog',2700,488,{patrol:[2560,2880],variant:'gunner',skin:'pixel_punk',h:104,hp:3,shotCol:'#ff4ad6',spd:30});
+  en(L,'bulldog',3900,488,{patrol:[3760,4080],variant:'charge',skin:'track_runner',h:104,hp:4,spd:85});
+  en(L,'bulldog',4600,488,{patrol:[4460,4780],variant:'patrol',skin:'sugar_fiend',h:104,hp:3,spd:40});
   bb(L,400,90,250,120,5);bb(L,2200,100,250,120,5);bb(L,4100,90,250,120,5);
   L.bossTitle='THE RINGMASTER';
   L.boss={kind:'king',final:false,x:5100,y:488,hp:12,maxhp:12,phase:1,state:'intro',t:0,dir:-1,spd:320,dazeT:0,summons:false,dead:false,shotHint:0,skin:'ringmaster',koSkin:'ringmaster',h:140};
@@ -526,15 +530,19 @@ const LEVELS=[
   coinRow(L,500,336,4,40);coinArc(L,2600,200,7,100);coinRow(L,3380,236,5,40);bigDrip(L,1700,220);
   pow(L,1020,210,'magnet');pow(L,4700,250,'gold');
   // Enemies (forest-themed)
-  en(L,'rug',800,488,{patrol:[650,950],variant:'thrower',skin:'trash_bandit',h:108,hp:3,cd:0});
+  en(L,'rug',800,488,{patrol:[650,950],variant:'thrower',hp:3,cd:0,shotCol:'#9aa3b2'});
   en(L,'bat',1300,280,{variant:'dive',baseY:280,skin:'lantern_owl',h:74});
-  en(L,'bulldog',1850,488,{patrol:[1670,2030],variant:'charge',skin:'hollow_deer',h:108,hp:4,spd:80});
+  en(L,'bulldog',1850,488,{patrol:[1670,2030],variant:'charge',hp:4,spd:80});
   en(L,'bulldog',2350,488,{variant:'patrol',patrol:[2200,2500],skin:'spore_sprite',h:96,hp:3,spd:40});
-  en(L,'wraith',2750,300,{variant:'float',baseY:300,skin:'campfire_wisp',h:80,hp:3,shoot:0});
+  en(L,'wraith',2750,300,{variant:'float',baseY:300,hp:3,shoot:0});
   en(L,'bulldog',3300,488,{patrol:[3120,3480],variant:'shield',skin:'lost_lumberjack',h:108,hp:5,spd:55});
   en(L,'bat',3900,260,{variant:'dive',baseY:260,skin:'lantern_owl',h:74});
-  en(L,'rug',4500,488,{patrol:[4350,4650],variant:'thrower',skin:'trash_bandit',h:108,hp:3,cd:0});
-  en(L,'wraith',5000,300,{variant:'tele',baseY:300,skin:'campfire_wisp',h:80,hp:3,shoot:0,cd:0});
+  en(L,'rug',4500,488,{patrol:[4350,4650],variant:'thrower',hp:3,cd:0,shotCol:'#9aa3b2'});
+  en(L,'wraith',5000,300,{variant:'tele',baseY:300,hp:3,shoot:0,cd:0});
+  en(L,'bat',2200,260,{variant:'dive',baseY:260,skin:'lantern_owl',h:74});
+  en(L,'bulldog',2950,488,{patrol:[2820,3120],variant:'patrol',skin:'spore_sprite',h:96,hp:3,spd:45});
+  en(L,'bulldog',4150,488,{patrol:[4010,4290],variant:'shield',skin:'lost_lumberjack',h:108,hp:5,spd:55});
+  en(L,'bulldog',4800,488,{patrol:[4660,4980],variant:'charge',hp:4,spd:85});
   bb(L,400,90,250,120,5);bb(L,2300,100,250,120,5);bb(L,4400,90,250,120,5);
   L.bossTitle='THE STAG KING';
   L.boss={kind:'king',final:false,x:5300,y:488,hp:14,maxhp:14,phase:1,state:'intro',t:0,dir:-1,spd:340,dazeT:0,summons:false,dead:false,shotHint:0,skin:'stag_king',koSkin:'stag_king',h:150};
@@ -570,17 +578,21 @@ const LEVELS=[
   coinArc(L,4500,250,7,100);bigDrip(L,3700,260);
   pow(L,1400,250,'gold');pow(L,3080,250,'x2');pow(L,4680,250,'magnet');
   // Enemies (train-themed)
-  en(L,'rug',600,488,{patrol:[450,750],variant:'thrower',skin:'ticket_inspector',h:108,hp:3,cd:0});
-  en(L,'bulldog',1300,440,{patrol:[1120,1480],variant:'charge',skin:'luggage_lurker',h:104,hp:4,spd:80});
-  en(L,'bulldog',1700,440,{patrol:[1520,1880],variant:'gunner',skin:'high_roller',h:108,hp:3,shotCol:'#ffd24a',spd:35});
+  en(L,'rug',600,488,{patrol:[450,750],variant:'thrower',hp:3,cd:0,shotCol:'#ffd24a'});
+  en(L,'bulldog',1300,440,{patrol:[1120,1480],variant:'charge',hp:4,spd:80});
+  en(L,'bulldog',1700,440,{patrol:[1520,1880],variant:'gunner',hp:3,shotCol:'#ffd24a',spd:35});
   en(L,'bulldog',2200,440,{variant:'patrol',patrol:[2050,2400],skin:'steam_chef',h:108,hp:4,spd:50});
-  en(L,'bulldog',2900,440,{patrol:[2720,3080],variant:'shield',skin:'ticket_inspector',h:108,hp:5,spd:55});
-  en(L,'rug',3300,440,{patrol:[3150,3450],variant:'thrower',skin:'parcel_gremlin',h:104,hp:3,cd:0});
+  en(L,'bulldog',2900,440,{patrol:[2720,3080],variant:'shield',hp:5,spd:55});
+  en(L,'rug',3300,440,{patrol:[3150,3450],variant:'thrower',skin:'parcel_gremlin',h:104,hp:3,cd:0,shotCol:'#c49a6a'});
   en(L,'bat',3600,260,{variant:'dive',baseY:260,skin:'storm_crow',h:74});
-  en(L,'bulldog',4000,440,{patrol:[3820,4180],variant:'charge',skin:'luggage_lurker',h:104,hp:4,spd:90});
-  en(L,'bulldog',4400,440,{patrol:[4220,4580],variant:'gunner',skin:'high_roller',h:108,hp:3,shotCol:'#ffd24a',spd:35});
+  en(L,'bulldog',4000,440,{patrol:[3820,4180],variant:'charge',hp:4,spd:90});
+  en(L,'bulldog',4400,440,{patrol:[4220,4580],variant:'gunner',hp:3,shotCol:'#ffd24a',spd:35});
   en(L,'bat',4700,260,{variant:'dive',baseY:260,skin:'storm_crow',h:74});
   en(L,'bulldog',5100,440,{patrol:[4920,5280],variant:'shield',skin:'steam_chef',h:108,hp:5,spd:55});
+  en(L,'bat',2500,250,{variant:'dive',baseY:250,skin:'storm_crow',h:74});
+  en(L,'rug',1900,440,{patrol:[1750,2050],variant:'thrower',skin:'parcel_gremlin',h:104,hp:3,cd:0,shotCol:'#c49a6a'});
+  en(L,'bulldog',3700,440,{patrol:[3560,3880],variant:'patrol',skin:'steam_chef',h:108,hp:4,spd:50});
+  en(L,'bulldog',4850,440,{patrol:[4710,4990],variant:'gunner',hp:3,shotCol:'#ffd24a',spd:35});
   bb(L,400,90,250,120,5);bb(L,2300,100,250,120,5);bb(L,4400,90,250,120,5);
   L.bossTitle='THE CONDUCTOR';
   L.boss={kind:'king',final:false,x:5500,y:440,hp:16,maxhp:16,phase:1,state:'intro',t:0,dir:-1,spd:360,dazeT:0,summons:false,dead:false,shotHint:0,skin:'conductor',koSkin:'conductor',h:160};
@@ -1319,7 +1331,9 @@ function updateEnemies(dt){
     else if(e.type==='rug'){
       e.cd-=dt;e.dir=Math.sign(p.x-e.x)||1;
       if(e.cd<=0&&Math.abs(p.x-e.x)<520){e.cd=2.6;AUDIO.sfx.attack();
-        projectiles.push({x:e.x,y:e.y-70,vx:e.dir*230,vy:-430,enemy:true,grav:true,rug:true,life:4,col:'#c45a6a'});}
+        // Skinned throwers hurl themed objects (colored ball w/ spin), default rug enemies keep the rug
+        if(e.skin)projectiles.push({x:e.x,y:e.y-70,vx:e.dir*230,vy:-430,enemy:true,grav:true,ball:true,life:4,col:e.shotCol||'#ffd24a',spin:0});
+        else projectiles.push({x:e.x,y:e.y-70,vx:e.dir*230,vy:-430,enemy:true,grav:true,rug:true,life:4,col:'#c45a6a'});}
     }
     // contact
     const tall=e.type==='bat'?56:e.type==='wraith'?90:88;
@@ -1757,9 +1771,9 @@ function render(){
   // moon + stars
   ctx.fillStyle='rgba(255,240,200,.9)';ctx.beginPath();ctx.arc(VW-120-camX*0.04,84,38,0,7);ctx.fill();
   ctx.fillStyle='rgba(255,255,255,.5)';for(let i=0;i<24;i++){const sx=(i*173+((i*97)%50))%960,sy=(i*89)%200;ctx.fillRect((sx-camX*0.02+960)%960,sy+10,2,2);}
-  drawSkyline(0.18,pal.far,360,VH);drawSkyline(0.35,pal.mid,300,VH-8,pal.win);
+  drawBackdrop(0.18,pal.far,360,VH,pal,null);drawBackdrop(0.35,pal.mid,300,VH-8,pal,pal.win);
   for(const b of level.billboards)drawBillboard(b,pal);
-  drawSkyline(0.6,pal.mid,230,VH+40,pal.win);
+  drawBackdrop(0.6,pal.mid,230,VH+40,pal,pal.win);
   for(const car of level.cars)if(car.l<0.7)drawCar(car);
   // jets behind platforms
   for(const j of level.jets)drawJet(j,pal);
@@ -1860,6 +1874,14 @@ function render(){
   drawPlayer();
   // projectiles
   for(const pr of projectiles){const x=pr.x-camX,y=pr.y-camY;
+    if(pr.ball){
+      pr.spin=(pr.spin||0)+0.25;
+      const bx=pr.x-camX,by=pr.y-camY;
+      ctx.save();ctx.translate(bx,by);ctx.rotate(pr.spin);
+      ctx.fillStyle=pr.col||'#ffd24a';ctx.fillRect(-7,-7,14,14);
+      ctx.fillStyle='rgba(255,255,255,.5)';ctx.fillRect(-7,-7,14,4);
+      ctx.restore();continue;
+    }
     if(pr.rug!=null||pr.grav){blit(SPR('rugRoll'),pr.x,pr.y+12,30,Math.sign(pr.vx)||1);continue;}
     ctx.fillStyle=pr.col||'#f5c542';ctx.beginPath();ctx.ellipse(x,y,pr.enemy?7:9,pr.enemy?7:6,0,0,7);ctx.fill();
     if(!pr.enemy){ctx.fillStyle='rgba(245,197,66,.4)';ctx.beginPath();ctx.ellipse(x-pr.vx*0.02,y,12,4,0,0,7);ctx.fill();}}
@@ -1884,6 +1906,49 @@ function render(){
     ctx.globalAlpha=1;ctx.textAlign='left';}
   // scanlines
   ctx.fillStyle='rgba(0,0,0,.06)';for(let y=0;y<VH;y+=4)ctx.fillRect(0,y,VW,1);
+}
+/* Theme-aware parallax: forests get pine silhouettes, the train gets mountain
+   ridges, the boardwalk gets pier buildings + a giant ferris wheel. */
+function drawBackdrop(par,col,base,floor,pal,winCol){
+  if(pal&&pal.trees)return drawPineLayer(par,col,base,floor);
+  if(pal&&pal.mountains)return drawMountainLayer(par,col,base,floor);
+  if(pal&&pal.pier){drawSkyline(par,col,base*0.8,floor,winCol);return drawFerris(par,col,floor);}
+  drawSkyline(par,col,base,floor,winCol);
+}
+function drawPineLayer(par,col,base,floor){
+  const off=camX*par,span=14*170;
+  ctx.fillStyle=col;
+  for(let i=0;i<14;i++){const s=i*97%500;const tw=50+(s%50),th=base*0.6+(s%140);
+    let x=(i*170-(off%span));if(x<-span/2)x+=span;
+    // layered pine: 3 stacked triangles + trunk
+    for(let t=0;t<3;t++){const ty=floor-th+t*(th/3.4),w2=tw*(0.55+t*0.28);
+      ctx.beginPath();ctx.moveTo(x,ty+th/2.6);ctx.lineTo(x-w2/2,ty+th/2.6+th/3);ctx.lineTo(x+w2/2,ty+th/2.6+th/3);ctx.fill();}
+    ctx.fillRect(x-4,floor-16,8,16);}
+}
+function drawMountainLayer(par,col,base,floor){
+  const off=camX*par,span=6*420;
+  ctx.fillStyle=col;
+  for(let i=0;i<6;i++){const s=i*211%400;const mw=340+(s%160),mh=base*0.9+(s%120);
+    let x=(i*420-(off%span));if(x<-span/2)x+=span;
+    ctx.beginPath();ctx.moveTo(x-mw/2,floor);ctx.lineTo(x,floor-mh);ctx.lineTo(x+mw/2,floor);ctx.fill();
+    // snow cap
+    ctx.fillStyle='rgba(220,230,255,0.18)';
+    ctx.beginPath();ctx.moveTo(x-mw*0.12,floor-mh+mh*0.22);ctx.lineTo(x,floor-mh);ctx.lineTo(x+mw*0.12,floor-mh+mh*0.22);ctx.fill();
+    ctx.fillStyle=col;}
+}
+function drawFerris(par,col,floor){
+  const off=camX*par;
+  let x=(900-(off%2400));if(x<-400)x+=2400;
+  const cy=floor-300,r=150;
+  ctx.strokeStyle='rgba(255,74,214,0.32)';ctx.lineWidth=5;
+  ctx.beginPath();ctx.arc(x,cy,r,0,7);ctx.stroke();
+  ctx.lineWidth=2.5;
+  for(let a=0;a<8;a++){const ang=a*Math.PI/4+gt*0.12;
+    ctx.beginPath();ctx.moveTo(x,cy);ctx.lineTo(x+Math.cos(ang)*r,cy+Math.sin(ang)*r);ctx.stroke();
+    ctx.fillStyle='rgba(245,197,66,0.5)';
+    ctx.fillRect(x+Math.cos(ang)*r-5,cy+Math.sin(ang)*r-4,10,8);}
+  ctx.strokeStyle='rgba(255,74,214,0.32)';
+  ctx.beginPath();ctx.moveTo(x-46,floor);ctx.lineTo(x,cy);ctx.lineTo(x+46,floor);ctx.stroke();
 }
 function drawSkyline(par,col,base,floor,winCol){const off=camX*par;const span=16*150;
   ctx.fillStyle=col;
