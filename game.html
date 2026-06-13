@@ -230,7 +230,7 @@ canvas{image-rendering:pixelated;width:100%;height:100%;display:block;object-fit
   <div style="margin-top:14px"><button class="btn ghost" id="btnConnectBack">◂ BACK</button></div>
 </div>
 
-<script src="tails-end-sprites.js?v=7"></script>
+<script src="tails-end-sprites.js?v=8"></script>
 <script src="tails-end-audio.js?v=2"></script>
 <script>
 'use strict';
@@ -530,19 +530,19 @@ const LEVELS=[
   coinRow(L,500,336,4,40);coinArc(L,2600,200,7,100);coinRow(L,3380,236,5,40);bigDrip(L,1700,220);
   pow(L,1020,210,'magnet');pow(L,4700,250,'gold');
   // Enemies (forest-themed)
-  en(L,'rug',800,488,{patrol:[650,950],variant:'thrower',hp:3,cd:0,shotCol:'#9aa3b2'});
+  en(L,'rug',800,488,{patrol:[650,950],variant:'thrower',skin:'trash_bandit',h:104,hp:3,cd:0,shotCol:'#9adb6a'});
   en(L,'bat',1300,280,{variant:'dive',baseY:280,skin:'lantern_owl',h:74});
-  en(L,'bulldog',1850,488,{patrol:[1670,2030],variant:'charge',hp:4,spd:80});
+  en(L,'bulldog',1850,488,{patrol:[1670,2030],variant:'charge',skin:'hollow_deer',h:110,hp:4,spd:80});
   en(L,'bulldog',2350,488,{variant:'patrol',patrol:[2200,2500],skin:'spore_sprite',h:96,hp:3,spd:40});
-  en(L,'wraith',2750,300,{variant:'float',baseY:300,hp:3,shoot:0});
+  en(L,'wraith',2750,300,{variant:'float',baseY:300,skin:'campfire_wisp',h:84,hp:3,shoot:0});
   en(L,'bulldog',3300,488,{patrol:[3120,3480],variant:'shield',skin:'lost_lumberjack',h:108,hp:5,spd:55});
   en(L,'bat',3900,260,{variant:'dive',baseY:260,skin:'lantern_owl',h:74});
-  en(L,'rug',4500,488,{patrol:[4350,4650],variant:'thrower',hp:3,cd:0,shotCol:'#9aa3b2'});
-  en(L,'wraith',5000,300,{variant:'tele',baseY:300,hp:3,shoot:0,cd:0});
+  en(L,'rug',4500,488,{patrol:[4350,4650],variant:'thrower',skin:'trash_bandit',h:104,hp:3,cd:0,shotCol:'#9adb6a'});
+  en(L,'wraith',5000,300,{variant:'tele',baseY:300,skin:'campfire_wisp',h:84,hp:3,shoot:0,cd:0});
   en(L,'bat',2200,260,{variant:'dive',baseY:260,skin:'lantern_owl',h:74});
   en(L,'bulldog',2950,488,{patrol:[2820,3120],variant:'patrol',skin:'spore_sprite',h:96,hp:3,spd:45});
   en(L,'bulldog',4150,488,{patrol:[4010,4290],variant:'shield',skin:'lost_lumberjack',h:108,hp:5,spd:55});
-  en(L,'bulldog',4800,488,{patrol:[4660,4980],variant:'charge',hp:4,spd:85});
+  en(L,'bulldog',4800,488,{patrol:[4660,4980],variant:'charge',skin:'hollow_deer',h:110,hp:4,spd:85});
   bb(L,400,90,250,120,5);bb(L,2300,100,250,120,5);bb(L,4400,90,250,120,5);
   L.bossTitle='THE STAG KING';
   L.boss={kind:'king',final:false,x:5300,y:488,hp:14,maxhp:14,phase:1,state:'intro',t:0,dir:-1,spd:340,dazeT:0,summons:false,dead:false,shotHint:0,skin:'stag_king',koSkin:'stag_king',h:150};
@@ -578,21 +578,21 @@ const LEVELS=[
   coinArc(L,4500,250,7,100);bigDrip(L,3700,260);
   pow(L,1400,250,'gold');pow(L,3080,250,'x2');pow(L,4680,250,'magnet');
   // Enemies (train-themed)
-  en(L,'rug',600,488,{patrol:[450,750],variant:'thrower',hp:3,cd:0,shotCol:'#ffd24a'});
-  en(L,'bulldog',1300,440,{patrol:[1120,1480],variant:'charge',hp:4,spd:80});
-  en(L,'bulldog',1700,440,{patrol:[1520,1880],variant:'gunner',hp:3,shotCol:'#ffd24a',spd:35});
+  en(L,'rug',600,488,{patrol:[450,750],variant:'thrower',skin:'ticket_inspector',h:108,hp:3,cd:0,shotCol:'#ffd24a'});
+  en(L,'bulldog',1300,440,{patrol:[1120,1480],variant:'charge',skin:'luggage_lurker',h:96,hp:4,spd:80});
+  en(L,'bulldog',1700,440,{patrol:[1520,1880],variant:'gunner',skin:'high_roller',h:108,hp:3,shotCol:'#ffd24a',spd:35});
   en(L,'bulldog',2200,440,{variant:'patrol',patrol:[2050,2400],skin:'steam_chef',h:108,hp:4,spd:50});
-  en(L,'bulldog',2900,440,{patrol:[2720,3080],variant:'shield',hp:5,spd:55});
+  en(L,'bulldog',2900,440,{patrol:[2720,3080],variant:'shield',skin:'luggage_lurker',h:96,hp:5,spd:55});
   en(L,'rug',3300,440,{patrol:[3150,3450],variant:'thrower',skin:'parcel_gremlin',h:104,hp:3,cd:0,shotCol:'#c49a6a'});
   en(L,'bat',3600,260,{variant:'dive',baseY:260,skin:'storm_crow',h:74});
-  en(L,'bulldog',4000,440,{patrol:[3820,4180],variant:'charge',hp:4,spd:90});
-  en(L,'bulldog',4400,440,{patrol:[4220,4580],variant:'gunner',hp:3,shotCol:'#ffd24a',spd:35});
+  en(L,'bulldog',4000,440,{patrol:[3820,4180],variant:'charge',skin:'luggage_lurker',h:96,hp:4,spd:90});
+  en(L,'bulldog',4400,440,{patrol:[4220,4580],variant:'gunner',skin:'high_roller',h:108,hp:3,shotCol:'#ffd24a',spd:35});
   en(L,'bat',4700,260,{variant:'dive',baseY:260,skin:'storm_crow',h:74});
   en(L,'bulldog',5100,440,{patrol:[4920,5280],variant:'shield',skin:'steam_chef',h:108,hp:5,spd:55});
   en(L,'bat',2500,250,{variant:'dive',baseY:250,skin:'storm_crow',h:74});
   en(L,'rug',1900,440,{patrol:[1750,2050],variant:'thrower',skin:'parcel_gremlin',h:104,hp:3,cd:0,shotCol:'#c49a6a'});
   en(L,'bulldog',3700,440,{patrol:[3560,3880],variant:'patrol',skin:'steam_chef',h:108,hp:4,spd:50});
-  en(L,'bulldog',4850,440,{patrol:[4710,4990],variant:'gunner',hp:3,shotCol:'#ffd24a',spd:35});
+  en(L,'bulldog',4850,440,{patrol:[4710,4990],variant:'gunner',skin:'high_roller',h:108,hp:3,shotCol:'#ffd24a',spd:35});
   bb(L,400,90,250,120,5);bb(L,2300,100,250,120,5);bb(L,4400,90,250,120,5);
   L.bossTitle='THE CONDUCTOR';
   L.boss={kind:'king',final:false,x:5500,y:440,hp:16,maxhp:16,phase:1,state:'intro',t:0,dir:-1,spd:360,dazeT:0,summons:false,dead:false,shotHint:0,skin:'conductor',koSkin:'conductor',h:160};
