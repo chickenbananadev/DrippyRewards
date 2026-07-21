@@ -6,11 +6,6 @@
 <title>$DRIPPY — The Solana Dividend Dog</title>
 <meta name="description" content="Hold $DRIPPY and SOL rains into your wallet every 30 minutes. Burn for glory and get paid 2x forever. The Solana Dividend Dog.">
 <meta name="theme-color" content="#0a0610">
-<link rel="icon" type="image/x-icon" href="/favicon.ico">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon.png">
-<link rel="icon" type="image/png" sizes="16x16" href="/favicon.png">
-<link rel="apple-touch-icon" sizes="180x180" href="/favicon.png">
-<link rel="shortcut icon" href="/favicon.ico">
 <meta property="og:title" content="$DRIPPY — The Solana Dividend Dog">
 <meta property="og:description" content="5% tax. 100% to SOL. Real rewards every 30 minutes. Burn for 2x forever.">
 <meta property="og:image" content="https://drippyrewards.com/assets/banner.jpg">
@@ -23,82 +18,41 @@
 </head>
 <body>
 
-<!-- INTRO SPLASH -->
-<div id="intro" class="intro" aria-hidden="true">
-  <div class="intro-drips" id="introDrips"></div>
-  <div class="intro-logo">
-    <svg class="intro-paw" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <g fill="currentColor">
-        <ellipse cx="50" cy="62" rx="22" ry="20"/>
-        <ellipse cx="22" cy="42" rx="9" ry="12"/>
-        <ellipse cx="78" cy="42" rx="9" ry="12"/>
-        <ellipse cx="35" cy="22" rx="8" ry="11"/>
-        <ellipse cx="65" cy="22" rx="8" ry="11"/>
-      </g>
-    </svg>
-    <div class="intro-word"><span>D</span><span>R</span><span>I</span><span>P</span><span>P</span><span>Y</span></div>
-    <span class="intro-tag">The Solana Dividend Dog</span>
-  </div>
-  <div class="intro-woof">WOOF!</div>
-</div>
-
 <!-- NAV -->
 <nav class="nav">
   <div class="nav-inner">
     <a class="nav-logo" href="#top">$DRIP<span>PY</span></a>
     <div class="nav-links">
-      <a href="/game" class="nav-game">🎮 Play</a>
       <a href="#trade">Buy & Chart</a>
       <a href="#proof">Proof</a>
       <a href="#checker">My Drips</a>
       <a href="#dripquests">Quests</a>
       <a href="#burn">Burn</a>
       <a href="#legend">Legend</a>
+      <a href="#documents">Docs</a>
       <a href="#faq">FAQ</a>
+      <a class="nav-game" href="/game">🎮 Play</a>
     </div>
     <a class="nav-cta" href="#trade">Buy $DRIPPY</a>
   </div>
 </nav>
 
-<!-- MARQUEE -->
-<div class="marquee" aria-hidden="true">
-  <div class="marquee-track">
-    <span>💰 Real SOL every <b>30 minutes</b></span>
-    <span>🎮 NEW · Play <b>DRIPPY RUN</b></span>
-    <span>🔥 Burn for <b>2x rewards forever</b></span>
-    <span>🐕 The pack always eats</span>
-    <span>💧 5% tax → <b>100% to SOL</b></span>
-    <span>⚡ Live on Solana</span>
-    <span>💰 Real SOL every <b>30 minutes</b></span>
-    <span>🎮 NEW · Play <b>DRIPPY RUN</b></span>
-    <span>🔥 Burn for <b>2x rewards forever</b></span>
-    <span>🐕 The pack always eats</span>
-    <span>💧 5% tax → <b>100% to SOL</b></span>
-    <span>⚡ Live on Solana</span>
-  </div>
-</div>
-
 <!-- HERO -->
 <header class="hero" id="top">
-  <div class="drips" id="heroDrips" aria-hidden="true"></div>
   <div class="container">
-    <div class="hero-banner" id="heroBanner" title="Click him. He talks.">
-      <img src="assets/banner.jpg" alt="Drippy, the Solana Dividend Dog" fetchpriority="high">
-      <div class="stamp">WOOF! good dog. pays well.</div>
-    </div>
     <div class="hero-copy">
-      <div class="hero-tagline">the Solana Dividend Dog</div>
-      <h1>The Drip Never <span class="gold shimmer">Stops.</span></h1>
-      <p class="lede">He doesn't promise lambos. He promises that every 30 minutes, while you sleep, eat, or stare at memes, a little more SOL quietly lands in your wallet. Hold to earn. Burn to become a legend.</p>
+      <div class="hero-tagline">The Solana Dividend Dog</div>
+      <h1>Real SOL.<br>Every <span class="gold">30 Minutes.</span></h1>
+      <p class="lede">$DRIPPY converts a 5% trading tax entirely to SOL and delivers it directly to holder wallets every half hour. No staking. No claiming. No gas. A reward engine that has run continuously since launch, verifiable on-chain.</p>
       <div class="hero-ctas">
         <a class="btn btn-gold" href="#trade">Buy $DRIPPY</a>
-        <a class="btn btn-purple" href="https://t.me/DrippyRewards" target="_blank" rel="noopener">Join the Pack</a>
+        <a class="btn btn-purple" href="#documents">Read the Whitepaper</a>
       </div>
       <div class="dripmeter" title="Time until the next distribution">
         <div class="drop"><div class="fill" id="dropFill"></div></div>
         <div class="cd">
           <div class="time" id="cdTime">--:--</div>
-          <div class="label">Next drip · auto paid to all holders</div>
+          <div class="label">Next distribution · paid automatically to all holders</div>
         </div>
       </div>
     </div>
@@ -116,10 +70,10 @@
         <div class="tcell loading" data-key="vol"><div class="k">24h Volume</div><div class="v">—</div></div>
         <div class="tcell loading" data-key="liq"><div class="k">Liquidity</div><div class="v">—</div></div>
         <div class="tcell loading" data-key="supply"><div class="k">Circ. Supply</div><div class="v">—</div></div>
-        <div class="tcell loading" data-key="burned"><div class="k">🔥 Burned</div><div class="v">—</div></div>
-        <div class="tcell loading" data-key="burnpct"><div class="k">🔥 % of Supply</div><div class="v">—</div></div>
-        <div class="tcell loading" data-key="rewards"><div class="k">💰 SOL Paid</div><div class="v">—</div></div>
-        <div class="tcell loading" data-key="holders"><div class="k">🐕 Holders</div><div class="v">—</div></div>
+        <div class="tcell loading" data-key="burned"><div class="k">Burned</div><div class="v">—</div></div>
+        <div class="tcell loading" data-key="burnpct"><div class="k">% Supply Burned</div><div class="v">—</div></div>
+        <div class="tcell loading" data-key="rewards"><div class="k">SOL Distributed</div><div class="v">—</div></div>
+        <div class="tcell loading" data-key="holders"><div class="k">Holders</div><div class="v">—</div></div>
       </div>
     </div>
   </div>
@@ -142,44 +96,6 @@
         <span class="t">Swap $DRIPPY</span>
         <span class="s">Powered by Jupiter</span>
       </div>
-      <!-- MOBILE-ONLY: wallets are apps, not extensions, on phones.
-           Open this page inside a wallet's in-app browser via deep-link so it can connect. -->
-      <div class="mobile-wallet-help" id="mobileWalletHelp" style="display:none">
-        <div class="mw-tip">
-          <span class="mw-tip-icon">📱</span>
-          <div>
-            <b style="color:var(--gold-bright)">On mobile, open this page inside your wallet's browser.</b>
-            <div style="font-size:13px;color:var(--cream-dim);margin-top:4px">
-              Mobile browsers can't see wallet apps directly. Tap one below to re-open drippyrewards.com inside that wallet — then the swap connects instantly.
-            </div>
-          </div>
-        </div>
-        <div class="mw-grid">
-          <a class="mw-btn" id="mwPhantom" rel="noopener">
-            <span class="mw-ico">👻</span>
-            <span><b>Phantom</b><span class="mw-sub">Open in app browser</span></span>
-          </a>
-          <a class="mw-btn" id="mwSolflare" rel="noopener">
-            <span class="mw-ico">☀️</span>
-            <span><b>Solflare</b><span class="mw-sub">Open in app browser</span></span>
-          </a>
-          <a class="mw-btn" id="mwBackpack" rel="noopener">
-            <span class="mw-ico">🎒</span>
-            <span><b>Backpack</b><span class="mw-sub">Open in app browser</span></span>
-          </a>
-          <a class="mw-btn" id="mwJupiter" rel="noopener">
-            <span class="mw-ico">🪐</span>
-            <span><b>Jupiter Mobile</b><span class="mw-sub">Direct SOL → $DRIPPY</span></span>
-          </a>
-          <a class="mw-btn" href="https://www.forgeswap.fun/" target="_blank" rel="noopener" style="background:rgba(245,197,66,.12);border-color:rgba(245,197,66,.45);grid-column:1/-1">
-            <span class="mw-ico">⚒️</span>
-            <span><b style="color:var(--gold-bright)">ForgeSwap</b><span class="mw-sub">Mobile-native swap</span></span>
-          </a>
-        </div>
-        <p style="font-size:12px;color:var(--cream-faint);margin-top:14px;text-align:center">
-          Already inside your wallet's browser? Scroll down — the swap should connect automatically.
-        </p>
-      </div>
       <div class="jupiter-container"><div id="jupiter-terminal"></div></div>
       <div class="swap-fallback" id="swapFallback">
         <p style="color:var(--cream-dim);margin-bottom:14px">The swap widget didn't load in this browser.</p>
@@ -193,12 +109,7 @@
         <span class="s"><a href="https://dexscreener.com/solana/3ohceht4kcjkysrtn4mysd2zwgkwz1cinualvtcchqmz" target="_blank" rel="noopener">Full chart on DexScreener ↗</a></span>
       </div>
       <iframe class="chart-frame" title="DRIPPY live chart" loading="lazy"
-        allow="fullscreen"
-        data-src="https://dexscreener.com/solana/3oHcEHT4kCJkYSRTn4MysD2ZWgKWZ1cinUALVTCChQMz?embed=1&theme=dark&trades=0&info=0"></iframe>
-      <noscript><p style="padding:20px;text-align:center"><a href="https://dexscreener.com/solana/3ohceht4kcjkysrtn4mysd2zwgkwz1cinualvtcchqmz" target="_blank">Open the live $DRIPPY chart on DexScreener ↗</a></p></noscript>
-      <p class="chart-mobile-fallback" style="display:none;padding:18px;text-align:center;font-size:14px;color:var(--cream-dim)">
-        Chart not loading? <a href="https://dexscreener.com/solana/3ohceht4kcjkysrtn4mysd2zwgkwz1cinualvtcchqmz" target="_blank" rel="noopener" style="color:var(--gold);font-weight:600">Open the live $DRIPPY chart on DexScreener ↗</a>
-      </p>
+        data-src="https://www.dextools.io/widget-chart/en/solana/pe-light/3oHcEHT4kCJkYSRTn4MysD2ZWgKWZ1cinUALVTCChQMz?theme=dark&chartType=1&chartResolution=15&drawingToolbars=false&showTradeHistory=true&chartInUsd=true&headerColor=1F2937&tvPlatformColor=1F2937&tvPaneColor=1F2937&tradeHistoryColor=1F2937"></iframe>
     </div>
 
     <div class="trade-links">
@@ -217,21 +128,18 @@
     <h2>How The Drip <span class="gold">Works</span></h2>
     <div class="steps">
       <div class="step card">
-        <img class="step-mascot" src="assets/sprites/believer_idle.png" alt="" loading="lazy">
         <span class="metric">5%</span>
         <div class="big">1</div>
         <h3>Buy & Sell Tax</h3>
         <p>Every buy and every sell pays a 5% tax. No exceptions. The tax is the lifeblood of the pool, and the pool is the heart of the pack.</p>
       </div>
       <div class="step card">
-        <img class="step-mascot" src="assets/sprites/gold_idle.png" alt="" loading="lazy">
         <span class="metric">100%</span>
         <div class="big purpleN">2</div>
         <h3>Converted to SOL</h3>
         <p>All of that tax is converted to SOL automatically by the contract. No team wallets. No multisig delays. Just liquid SOL piling up for the pack.</p>
       </div>
       <div class="step card">
-        <img class="step-mascot" src="assets/sprites/gold_win.png" alt="" loading="lazy">
         <span class="metric">30:00</span>
         <div class="big">3</div>
         <h3>Rains Every 30 Min</h3>
@@ -346,7 +254,7 @@
 <!-- DRIPQUESTS -->
 <section id="dripquests">
   <div class="container">
-    <div class="eyebrow">⚔️ DripQuests</div>
+    <div class="eyebrow">Achievements</div>
     <h2><span class="gold">Drip</span><span class="purple">Quests</span></h2>
     <p class="lede">Twelve quests. Four ranks. Check your wallet above, unlock the art, climb to Diamond Dripper.</p>
 
@@ -386,29 +294,6 @@
   </div>
 </div>
 
-<!-- GAME -->
-<section id="game">
-  <div class="container">
-    <div class="eyebrow">🎮 The Arcade</div>
-    <h2>Play <span class="gold">Drippy</span> <span class="purple">Run</span></h2>
-    <p class="lede">The Bowl ran dry and the rival packs took the city. Run it back. 10 levels, 2 boss fights, power-ups, combos and a high-score board with your name on it — right in your browser.</p>
-    <div class="game-card">
-      <a class="game-shot" href="/game" aria-label="Play Drippy Run">
-        <img src="assets/drippy-run-promo.jpg" alt="Drippy Run gameplay — Drippy on the streets of Downtown" loading="lazy">
-        <span class="game-play">▶ PLAY NOW</span>
-      </a>
-      <div class="game-meta">
-        <div class="game-feat">🕹️ 10 levels across Downtown, the Rooftops, the Deep, the Scrapyard & more</div>
-        <div class="game-feat">👑 Drop the Hydrant King — then face your Shadow for the Eternal Bowl</div>
-        <div class="game-feat">⭐ Gold Mode, Drip Magnet, 2x Drip & Chain Shield power-ups</div>
-        <div class="game-feat">🏆 Global high scores — log your legend. 📱 Desktop & mobile</div>
-        <div class="game-feat" id="gameTop" style="display:none"></div>
-        <a class="btn btn-gold" href="/game">Play Drippy Run →</a>
-      </div>
-    </div>
-  </div>
-</section>
-
 <!-- BURN -->
 <section id="burn">
   <div class="container burn-wrap">
@@ -438,10 +323,9 @@
 <section id="leaderboard">
   <div class="container">
     <div class="eyebrow">The Pack Rankings</div>
-    <h2><span class="redtxt">Hall of Flame</span></h2>
-    <p style="text-align:center;margin:-10px auto 18px;max-width:560px;font-size:14px;opacity:.7">Status, not skill. Burning unlocks tiers, cosmetics, and recognition — never score advantages. <a href="/game" style="color:var(--gold)">Top Dogs</a> stays pure skill.</p>
+    <h2>Burn <span class="redtxt">Leaderboard</span></h2>
     <div class="lb-tabs">
-      <button class="lb-tab active" data-type="burn">🔥 Hall of Flame</button>
+      <button class="lb-tab active" data-type="burn">🔥 Top Burners</button>
       <button class="lb-tab" data-type="earn">💰 Top Earners</button>
     </div>
     <div class="lb-list" id="lbList">
@@ -509,14 +393,24 @@
   </div>
 </section>
 
-<!-- EVENTS -->
-<section id="whatsdripping">
+<!-- GAME -->
+<section id="game">
   <div class="container">
-    <div class="eyebrow">Live & Upcoming</div>
-    <h2>What's <span class="gold">Drip</span><span class="purple">ping</span></h2>
-    <p class="lede">X Spaces, AMAs, and announcements from the pack.</p>
-    <div class="ev-list" id="eventsList">
-      <div class="ev-empty">Loading...</div>
+    <div class="eyebrow">🎮 The Arcade</div>
+    <h2>Play <span class="gold">Drippy</span> <span class="purple">Run</span></h2>
+    <p class="lede">The Bowl ran dry and the rival packs took the city. Run it back. 10 levels, 2 boss fights, power-ups, combos and a high-score board with your name on it — right in your browser.</p>
+    <div class="game-card">
+      <a class="game-shot" href="/game" aria-label="Play Drippy Run">
+        <img src="assets/drippy-run-promo.jpg" alt="Drippy Run gameplay — Drippy on the streets of Downtown" loading="lazy">
+        <span class="game-play">▶ PLAY NOW</span>
+      </a>
+      <div class="game-meta">
+        <div class="game-feat">🕹️ 10 levels across Downtown, the Rooftops, the Deep, the Scrapyard & more</div>
+        <div class="game-feat">👑 Drop the Hydrant King — then face your Shadow for the Eternal Bowl</div>
+        <div class="game-feat">⭐ Gold Mode, Drip Magnet, 2x Drip & Chain Shield power-ups</div>
+        <div class="game-feat">🏆 Global high scores — log your legend. 📱 Desktop & mobile</div>
+        <a class="btn btn-gold" href="/game">Play Drippy Run →</a>
+      </div>
     </div>
   </div>
 </section>
@@ -539,6 +433,33 @@
       <div class="tok-cell"><div class="k">Burn multiplier</div><div class="v">2x forever</div></div>
       <div class="tok-cell"><div class="k">Network</div><div class="v">Solana</div></div>
       <div class="tok-cell"><div class="k">Launched on</div><div class="v">Forgepad</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- DOCUMENTS -->
+<section id="documents">
+  <div class="container">
+    <div class="eyebrow">For Investors</div>
+    <h2>Project <span class="gold">Documents</span></h2>
+    <p class="lede">The full picture: how the engine works, what has shipped, and where the project is headed. Read before you trade.</p>
+    <div class="docs-grid">
+      <a class="doc-card" href="docs/DRIPPY_Whitepaper.pdf" target="_blank" rel="noopener">
+        <div class="doc-ic">📄</div>
+        <div class="doc-body">
+          <div class="doc-t">Whitepaper</div>
+          <div class="doc-d">The dividend thesis, distribution mechanics, Burn-to-Earn model, ecosystem, and risk disclosure. Version 1.0.</div>
+        </div>
+        <span class="doc-open">View PDF →</span>
+      </a>
+      <a class="doc-card" href="docs/DRIPPY_Roadmap.pdf" target="_blank" rel="noopener">
+        <div class="doc-ic">🗺️</div>
+        <div class="doc-body">
+          <div class="doc-t">Roadmap</div>
+          <div class="doc-d">Four phases of the pack: what is complete and verifiable, what is in progress, and the long term vision. Version 1.0.</div>
+        </div>
+        <span class="doc-open">View PDF →</span>
+      </a>
     </div>
   </div>
 </section>
@@ -599,7 +520,6 @@
     <div class="foot-woof">WOOF.</div>
     <p class="lede" style="margin:0 auto">Hold $DRIPPY. Burn for glory. Stay loyal. Get paid forever.</p>
     <div class="foot-links">
-      <a href="/game">🎮 Drippy Run</a>
       <a href="https://x.com/drippyrewards" target="_blank" rel="noopener">𝕏 @drippyrewards</a>
       <a href="https://t.me/DrippyRewards" target="_blank" rel="noopener">✈️ Telegram</a>
       <a href="https://www.forgeswap.fun/" target="_blank" rel="noopener">⚒️ ForgeSwap</a>
@@ -607,58 +527,9 @@
       <a href="https://solscan.io/token/EPRZgmvU4aTQ4UaC4bywgNvxJ5YmhuKqM1bx3gw4DRPY" target="_blank" rel="noopener">🔍 Solscan</a>
     </div>
     <p class="disclaimer">$DRIPPY is a memecoin. This is not financial advice. Crypto is highly volatile and you can lose everything. Only spend what you can afford to lose. Drippy is a good dog but he is still a dog.</p>
-    <p style="text-align:center;margin-top:14px;font-size:13px"><a href="/security" style="color:#22c55e;text-decoration:none;font-weight:600">🛡️ Security model — how we keep your wallet safe</a></p>
-    <a class="admin-link" href="#" id="adminOpen">· admin ·</a>
-  </div>
+      </div>
 </footer>
 
-<!-- ADMIN MODAL -->
-<div class="modal" id="adminModal">
-  <div class="modal-box">
-    <button class="close" id="adminClose" aria-label="Close">✕</button>
-    <input id="adminKey" type="password" placeholder="Admin key" autocomplete="off" style="margin-bottom:14px">
-    <!-- Section tabs -->
-    <div id="adminSectionTabs" style="display:flex;gap:6px;margin-bottom:18px">
-      <button class="admin-section-tab active" data-section="events" style="flex:1;padding:11px;background:rgba(162,89,255,.18);border:1px solid rgba(162,89,255,.5);border-radius:8px;color:#c9b8ff;cursor:pointer;font-weight:700;font-family:'Press Start 2P',monospace;font-size:11px;letter-spacing:1px">📡 EVENTS</button>
-      <button class="admin-section-tab" data-section="leaderboard" style="flex:1;padding:11px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#aaa;cursor:pointer;font-weight:700;font-family:'Press Start 2P',monospace;font-size:11px;letter-spacing:1px">🎮 LEADERBOARD</button>
-    </div>
-
-    <!-- EVENTS SECTION -->
-    <div id="adminSectionEvents">
-      <h3>📡 Manage Events</h3>
-      <input id="adminTitle" type="text" placeholder="Event title">
-      <input id="adminStart" type="datetime-local">
-      <select id="adminType">
-        <option value="space">🎙️ X Space</option>
-        <option value="ama">💬 AMA</option>
-        <option value="launch">🚀 Launch</option>
-        <option value="event">📡 Event</option>
-      </select>
-      <input id="adminLink" type="text" placeholder="Link (optional)">
-      <label class="admin-file">
-        <input id="adminImage" type="file" accept="image/*">
-        <span id="adminImageLabel">📷 Add event image (optional)</span>
-      </label>
-      <button id="adminPost">Post event</button>
-      <div class="modal-msg" id="adminMsg"></div>
-      <h3 style="margin-top:18px">Currently scheduled</h3>
-      <div class="ev-admin-list" id="adminEvList"></div>
-    </div>
-
-    <!-- LEADERBOARD SECTION -->
-    <div id="adminSectionLeaderboard" style="display:none">
-    <h3 id="adminLbHeader" style="margin-top:0;color:#f5c542;text-shadow:0 0 12px rgba(245,197,66,0.4)">🎮 Game Leaderboard</h3>
-    <p style="font-size:12px;color:#9aa3b2;margin:-8px 0 12px;line-height:1.5">Edit or remove any score from the all-time Top Dogs board or this week's tournament board.</p>
-    <div class="lb-admin-tabs" id="lbAdminTabs" style="display:flex;gap:6px;margin-bottom:8px">
-      <button class="lb-admin-tab active" data-board="game" style="flex:1;padding:8px;background:rgba(245,197,66,.12);border:1px solid rgba(245,197,66,.35);border-radius:6px;color:#f5c542;cursor:pointer;font-weight:700">🎮 Free Play · All-Time</button>
-      <button class="lb-admin-tab" data-board="weekly" style="flex:1;padding:8px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:6px;color:#aaa;cursor:pointer;font-weight:700">🏆 Prize Entry · Weekly</button>
-    </div>
-    <div class="ev-admin-list" id="adminLbList" style="max-height:340px;overflow-y:auto"></div>
-    <div class="modal-msg" id="adminLbMsg" style="margin-top:6px"></div>
-    </div><!-- end #adminSectionLeaderboard -->
-  </div>
-</div>
-
-<script src="app.js?v=20260611d" defer></script>
+<script src="app.js" defer></script>
 </body>
 </html>

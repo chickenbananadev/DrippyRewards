@@ -57,8 +57,8 @@ button{font-family:inherit;cursor:pointer}
 ::selection{background:var(--purple);color:#fff}
 
 .container{max-width:var(--maxw);margin:0 auto;padding:0 22px}
-section{padding:76px 0}
-@media(max-width:640px){section{padding:54px 0}}
+section{padding:60px 0}
+@media(max-width:640px){section{padding:42px 0}}
 
 /* ---------- type ---------- */
 h1,h2{font-family:var(--display);font-weight:400;line-height:1.08;letter-spacing:.5px}
@@ -93,91 +93,32 @@ h2{font-size:clamp(28px,4.6vw,46px);margin-bottom:14px}
   color:#1a1005;border:0;border-radius:10px;padding:9px 16px;text-decoration:none;white-space:nowrap;
 }
 
-/* ---------- marquee ---------- */
-.marquee{overflow:hidden;border-bottom:1px solid var(--card-border);background:rgba(18,10,28,.6)}
-.marquee-track{display:flex;gap:42px;white-space:nowrap;padding:8px 0;animation:scroll 36s linear infinite;width:max-content}
-.marquee span{font-family:var(--tag);text-transform:uppercase;letter-spacing:2px;font-size:12.5px;color:var(--cream-dim)}
-.marquee b{color:var(--gold-bright);font-weight:400}
-@keyframes scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
-@media(prefers-reduced-motion:reduce){.marquee-track{animation:none}}
 
 /* ---------- hero ---------- */
-.hero{padding:46px 0 40px;position:relative;overflow:hidden}
-.hero-banner{
-  position:relative;border-radius:22px;overflow:visible;margin-bottom:34px;cursor:pointer;
-  transition:transform .25s ease;
-}
-.hero-banner:hover{transform:scale(1.01) rotate(-.3deg)}
-.hero-banner img{
-  width:100%;max-height:440px;object-fit:cover;border-radius:22px;
-  border:1px solid var(--card-border-gold);box-shadow:0 24px 70px rgba(107,45,201,.4);
-}
-.hero-copy{text-align:center;max-width:760px;margin:0 auto}
+.hero{padding:64px 0 40px}
+.hero-copy{text-align:center;max-width:720px;margin:0 auto}
 .hero-copy .lede{margin:18px auto 26px}
 .hero-ctas{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
 .hero .dripmeter{margin:30px auto 0}
-.hero-tagline{font-family:var(--hand);color:var(--purple-glow);font-size:20px;margin-bottom:8px}
-
-/* gold shimmer on the headline word */
-.shimmer{
-  background:linear-gradient(110deg,var(--gold) 20%,var(--gold-glow) 45%,#fff3c4 50%,var(--gold-glow) 55%,var(--gold) 80%);
-  background-size:220% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;
-  animation:shimmer 4s ease-in-out infinite;
-}
-@keyframes shimmer{0%,100%{background-position:0% 0}50%{background-position:100% 0}}
-
-/* falling drip particles behind the hero */
-.drips{position:absolute;inset:0;pointer-events:none;z-index:0}
-.hero .container{position:relative;z-index:1}
-.drip-p{
-  position:absolute;top:-30px;width:10px;height:14px;opacity:.5;
-  clip-path:path('M5 0 C5 0 10 6 10 9 C10 11.8 7.8 14 5 14 C2.2 14 0 11.8 0 9 C0 6 5 0 5 0 Z');
-  background:linear-gradient(180deg,var(--gold-glow),var(--gold));
-  animation:dripfall linear infinite;
-}
-.drip-p.purple-p{background:linear-gradient(180deg,var(--purple-glow),var(--purple))}
-@keyframes dripfall{
-  0%{transform:translateY(-30px) scale(var(--s,1));opacity:0}
-  8%{opacity:.55}
-  92%{opacity:.45}
-  100%{transform:translateY(110vh) scale(var(--s,1));opacity:0}
-}
-
-/* WOOF easter egg pop */
-.woof-pop{
-  position:fixed;z-index:80;font-family:var(--display);color:var(--gold-bright);
-  text-shadow:0 2px 14px rgba(212,164,49,.6);pointer-events:none;white-space:nowrap;
-  animation:woofup 1.1s ease-out forwards;
-}
-@keyframes woofup{
-  0%{transform:translate(-50%,0) scale(.5) rotate(-6deg);opacity:0}
-  18%{opacity:1;transform:translate(-50%,-22px) scale(1.15) rotate(3deg)}
-  100%{transform:translate(-50%,-90px) scale(1) rotate(-2deg);opacity:0}
-}
+.hero-tagline{font-family:var(--tag);text-transform:uppercase;letter-spacing:4px;font-size:13px;color:var(--purple-glow);margin-bottom:12px}
 
 /* ticker value flash on update */
 .tcell .v.flash{animation:vflash .8s ease}
-@keyframes vflash{0%{color:var(--gold-glow);text-shadow:0 0 14px rgba(255,217,102,.7)}100%{}}
+@keyframes vflash{0%{color:var(--gold-glow)}100%{}}
 
 /* scroll reveal */
 .reveal{opacity:0;transform:translateY(22px);transition:opacity .6s ease,transform .6s ease}
 .reveal.in{opacity:1;transform:none}
-@media(prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}.drip-p{display:none}.shimmer{animation:none}}
+@media(prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}}
 .btn{
   display:inline-block;font-family:var(--tag);text-transform:uppercase;letter-spacing:2px;font-size:15px;
   padding:14px 26px;border-radius:12px;text-decoration:none;border:0;transition:transform .15s ease;
 }
 .btn:active{transform:scale(.97)}
-.btn-gold{background:linear-gradient(135deg,var(--gold) 0%,var(--gold-bright) 100%);color:#1a1005;box-shadow:0 6px 28px rgba(212,164,49,.35)}
+.btn-gold{background:linear-gradient(135deg,var(--gold) 0%,var(--gold-bright) 100%);color:#1a1005;box-shadow:0 4px 18px rgba(212,164,49,.25)}
 .btn-purple{background:linear-gradient(135deg,var(--purple-deep) 0%,var(--purple) 100%);color:var(--purple-pale);border:1px solid rgba(162,89,255,.4)}
 .btn-ghost{background:transparent;color:var(--cream-dim);border:1px solid var(--card-border)}
-.stamp{
-  position:absolute;top:-14px;right:-8px;transform:rotate(8deg);
-  font-family:var(--hand);background:var(--crimson);color:#fff;font-size:14px;
-  padding:6px 14px;border-radius:8px;box-shadow:0 6px 18px rgba(179,21,31,.5);
-  animation:wiggle 6s ease-in-out infinite;
-}
-@keyframes wiggle{0%,92%,100%{transform:rotate(8deg)}94%{transform:rotate(12deg) scale(1.06)}96%{transform:rotate(5deg)}98%{transform:rotate(10deg)}}
+94%{transform:rotate(12deg) scale(1.06)}96%{transform:rotate(5deg)}98%{transform:rotate(10deg)}}
 
 /* ---------- drip meter (signature) ---------- */
 .dripmeter{
@@ -242,8 +183,7 @@ h2{font-size:clamp(28px,4.6vw,46px);margin-bottom:14px}
 #jupiter-terminal{width:100%;max-width:420px;margin:0 auto;min-height:560px}
 .swap-fallback{display:none;text-align:center;padding:30px}
 .swap-fallback.show{display:block}
-.chart-frame{width:100%;height:480px;min-height:380px;border:0;border-radius:var(--radius-sm);background:#0d0716;display:block}
-@media(max-width:760px){.chart-frame{height:62vh;min-height:340px;max-height:560px}.chart-mobile-fallback{display:block!important}}
+.chart-frame{width:100%;height:480px;border:0;border-radius:var(--radius-sm);background:#0d0716}
 .trade-links{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
 .pill-link{
   font-family:var(--tag);text-transform:uppercase;letter-spacing:1.5px;font-size:12px;
@@ -464,26 +404,6 @@ h2{font-size:clamp(28px,4.6vw,46px);margin-bottom:14px}
 .g-item img,.g-item video{width:100%;aspect-ratio:1;object-fit:cover}
 .g-cap{font-family:var(--hand);font-size:14px;color:var(--cream-dim);padding:8px 12px}
 
-/* ---------- events ---------- */
-.ev-list{display:grid;gap:10px;margin-top:22px}
-.ev-row{
-  display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center;
-  background:var(--card-bg);border:1px solid var(--card-border);border-radius:var(--radius-sm);padding:14px 16px;
-}
-.ev-row.has-img{grid-template-columns:auto auto 1fr auto}
-.ev-img{
-  width:110px;height:110px;flex:0 0 auto;border-radius:12px;object-fit:cover;
-  border:1px solid var(--card-border-gold);
-}
-@media(max-width:560px){
-  .ev-row.has-img{grid-template-columns:auto 1fr auto}
-  .ev-img{grid-column:1 / -1;width:100%;height:150px}
-}
-.ev-row .icon{font-size:22px}
-.ev-row .t{font-family:var(--tag);letter-spacing:1px;font-size:15px}
-.ev-row .when{font-family:var(--mono);font-size:12px;color:var(--cream-dim)}
-.ev-row .cd{font-family:var(--mono);font-size:13px;color:var(--gold-bright);white-space:nowrap}
-.ev-empty{font-family:var(--mono);font-size:13px;color:var(--cream-faint);text-align:center;padding:26px;border:1px dashed var(--card-border);border-radius:var(--radius)}
 
 /* ---------- tokenomics ---------- */
 .tok-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-top:18px}
@@ -549,158 +469,25 @@ footer{border-top:1px solid var(--card-border);padding:50px 0 40px;text-align:ce
 .card-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
 .card-actions button{margin:0}
 
-/* admin file input */
-.admin-file{
-  display:block;border:1px dashed var(--card-border-gold);border-radius:10px;
-  padding:11px 13px;margin-bottom:10px;cursor:pointer;
-  font-family:var(--mono);font-size:12.5px;color:var(--cream-dim);
-}
-.admin-file input{display:none}
-.admin-file:hover{color:var(--gold-bright)}
 
-/* ============================================================
-   INTRO SPLASH — paw drop, letter slam, lingering spotlight,
-   gold flash, WOOF pop, then the drip carries into the hero
-   ============================================================ */
-.intro{
-  position:fixed;inset:0;z-index:9999;
-  background:radial-gradient(ellipse at center, #1a0a2e 0%, #000 72%);
-  display:grid;place-items:center;overflow:hidden;
-  animation:introExit .7s ease-in 3.2s forwards;
-}
-.intro.done{display:none}
-@keyframes introExit{
-  0%{opacity:1;transform:scale(1)}
-  100%{opacity:0;transform:scale(1.06);visibility:hidden}
-}
 
-/* Pulsing spotlight behind the word — slower expand, longer linger */
-.intro::before{
-  content:'';position:absolute;left:50%;top:50%;
-  width:640px;height:640px;
-  transform:translate(-50%,-50%) scale(0);
-  background:radial-gradient(circle, rgba(245,197,66,.38) 0%, rgba(162,89,255,.22) 35%, transparent 70%);
-  filter:blur(22px);pointer-events:none;
-  animation:spotlightPulse 3s ease-out .4s forwards;
-}
-@keyframes spotlightPulse{
-  0%{transform:translate(-50%,-50%) scale(0);opacity:0}
-  25%{transform:translate(-50%,-50%) scale(1);opacity:1}
-  70%{transform:translate(-50%,-50%) scale(1.25);opacity:.85}
-  100%{transform:translate(-50%,-50%) scale(1.7);opacity:0}
-}
 
-/* Gold flash at letter impact */
-.intro::after{
-  content:'';position:absolute;inset:0;
-  background:radial-gradient(circle at center, rgba(255,217,102,.7), transparent 50%);
-  opacity:0;pointer-events:none;mix-blend-mode:screen;
-  animation:goldFlash .35s ease-out 1.15s forwards;
+/* ---------- documents ---------- */
+.docs-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:24px}
+@media(max-width:680px){.docs-grid{grid-template-columns:1fr}}
+.doc-card{
+  display:flex;align-items:center;gap:16px;text-decoration:none;color:var(--cream);
+  background:var(--card-bg);border:1px solid var(--card-border-gold);border-radius:var(--radius);
+  padding:20px;transition:transform .15s ease,border-color .15s ease;
 }
-@keyframes goldFlash{0%{opacity:0}40%{opacity:1}100%{opacity:0}}
+.doc-card:hover{transform:translateY(-2px);border-color:var(--gold-bright)}
+.doc-ic{font-size:34px;flex:0 0 auto}
+.doc-t{font-family:var(--tag);text-transform:uppercase;letter-spacing:2px;font-size:15px;color:var(--gold-bright)}
+.doc-d{font-size:13.5px;color:var(--cream-dim);margin-top:4px;line-height:1.5}
+.doc-open{margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--purple-glow);white-space:nowrap;align-self:center}
+@media(max-width:480px){.doc-card{flex-wrap:wrap}.doc-open{margin-left:50px}}
 
-/* Falling drips inside the intro, same look as the hero particles */
-.intro-drips{position:absolute;inset:0;pointer-events:none;overflow:hidden}
-.intro-drips i{
-  position:absolute;top:-60px;width:6px;height:50px;
-  background:linear-gradient(to bottom, transparent, var(--gold-bright), var(--gold));
-  border-radius:50% 50% 50% 50% / 70% 70% 30% 30%;
-  filter:drop-shadow(0 0 10px rgba(245,197,66,.55));
-  animation:introDropFall linear infinite;opacity:.85;
-}
-.intro-drips i.purple-drip{
-  background:linear-gradient(to bottom, transparent, #c98aff, var(--purple));
-  filter:drop-shadow(0 0 12px rgba(162,89,255,.55));
-}
-@keyframes introDropFall{
-  0%{transform:translateY(-100px) scaleY(.6);opacity:0}
-  15%{opacity:1}
-  100%{transform:translateY(110vh) scaleY(1.2);opacity:0}
-}
-
-.intro-logo{
-  position:relative;z-index:2;text-align:center;
-  animation:logoIn 1.1s cubic-bezier(.2,.7,.2,1) .3s both, logoShake .12s ease-out 1.15s 2;
-}
-@keyframes logoIn{
-  0%{opacity:0;transform:translateY(20px) scale(.92);filter:blur(6px)}
-  60%{filter:blur(0)}
-  100%{opacity:1;transform:translateY(0) scale(1);filter:blur(0)}
-}
-@keyframes logoShake{
-  0%,100%{transform:translateY(0)}
-  25%{transform:translateY(-3px) translateX(2px)}
-  75%{transform:translateY(2px) translateX(-2px)}
-}
-
-.intro-paw{
-  width:78px;height:78px;color:var(--gold-bright);
-  filter:drop-shadow(0 0 24px rgba(245,197,66,.6));
-  margin:0 auto 18px;display:block;
-  animation:pawDrop 1s cubic-bezier(.34,1.56,.64,1) .2s both, pawWiggle 1.4s ease-in-out 1.4s infinite;
-}
-@keyframes pawDrop{
-  0%{opacity:0;transform:translateY(-80px) scale(.4) rotate(-20deg)}
-  60%{transform:translateY(8px) scale(1.15) rotate(5deg)}
-  100%{opacity:1;transform:translateY(0) scale(1) rotate(0)}
-}
-@keyframes pawWiggle{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
-
-.intro-word{
-  font-family:var(--display);
-  font-size:clamp(56px, 13vw, 140px);
-  line-height:1;letter-spacing:.02em;display:inline-flex;gap:2px;
-}
-.intro-word span{
-  display:inline-block;
-  background:linear-gradient(180deg, var(--gold-pale), var(--gold-bright) 50%, var(--gold) 100%);
-  -webkit-background-clip:text;background-clip:text;color:transparent;
-  filter:drop-shadow(3px 3px 0 rgba(0,0,0,.7)) drop-shadow(0 0 40px rgba(245,197,66,.5));
-  opacity:0;transform:translateY(40px) scale(.4) rotate(-12deg);
-  animation:letterDrop .7s cubic-bezier(.34,1.56,.64,1) forwards;
-}
-.intro-word span:nth-child(1){animation-delay:.5s}
-.intro-word span:nth-child(2){animation-delay:.62s}
-.intro-word span:nth-child(3){animation-delay:.74s}
-.intro-word span:nth-child(4){animation-delay:.86s}
-.intro-word span:nth-child(5){animation-delay:.98s}
-.intro-word span:nth-child(6){animation-delay:1.1s}
-@keyframes letterDrop{
-  0%{opacity:0;transform:translateY(-80px) scale(.4) rotate(-15deg)}
-  60%{opacity:1;transform:translateY(8px) scale(1.15) rotate(4deg)}
-  100%{opacity:1;transform:translateY(0) scale(1) rotate(0)}
-}
-
-.intro-tag{
-  display:block;margin-top:14px;
-  font-family:var(--tag);font-size:14px;
-  letter-spacing:.4em;text-transform:uppercase;
-  color:var(--gold-bright);opacity:0;
-  animation:tagIn .8s ease-out 1.6s forwards;
-  text-shadow:0 0 12px rgba(245,197,66,.45);
-}
-@keyframes tagIn{to{opacity:.95}}
-
-.intro-woof{
-  position:absolute;top:50%;left:50%;
-  transform:translate(-50%,-50%) scale(0) rotate(-12deg);
-  font-family:var(--display);
-  font-size:clamp(36px, 8vw, 80px);
-  color:var(--gold-bright);
-  text-shadow:4px 4px 0 #1a0a2e, 0 0 30px rgba(255,217,102,.7);
-  letter-spacing:.06em;z-index:3;pointer-events:none;
-  animation:woofPopIntro 1s ease-out 2s forwards;
-}
-@keyframes woofPopIntro{
-  0%{opacity:0;transform:translate(-50%,-50%) scale(0) rotate(-15deg)}
-  30%{opacity:1;transform:translate(-50%,-50%) scale(1.3) rotate(5deg)}
-  60%{transform:translate(-50%,-50%) scale(1.1) rotate(0)}
-  100%{opacity:0;transform:translate(-50%,-150%) scale(.9) rotate(0)}
-}
-
-@media(prefers-reduced-motion:reduce){.intro{display:none}}
-
-/* ============ Drippy Run promo ============ */
+/* ===== Arcade / Drippy Run access (preserved in v3) ===== */
 .nav-game{color:var(--gold-bright,#f5c542)!important;font-weight:700}
 .game-card{display:grid;grid-template-columns:1.25fr 1fr;gap:24px;margin-top:26px;align-items:center}
 @media(max-width:760px){.game-card{grid-template-columns:1fr}}
@@ -712,204 +499,3 @@ footer{border-top:1px solid var(--card-border);padding:50px 0 40px;text-align:ce
 .game-meta{display:flex;flex-direction:column;gap:12px}
 .game-feat{font-size:13.5px;color:var(--cream-dim,rgba(246,233,196,.72));line-height:1.55;background:rgba(27,18,40,.5);border:1px solid rgba(162,89,255,.22);border-radius:12px;padding:10px 14px}
 .game-meta .btn{align-self:flex-start;margin-top:6px}
-
-/* ============ payout celebration ============ */
-.gold-rain{position:fixed;top:-24px;width:7px;height:15px;border-radius:0 0 50% 50%;background:linear-gradient(180deg,#ffd966,#d4a431);z-index:80;pointer-events:none;box-shadow:0 0 8px rgba(245,197,66,.55);animation:goldfall linear forwards}
-@keyframes goldfall{to{transform:translateY(112vh)}}
-.payout-toast{position:fixed;top:70px;left:50%;transform:translateX(-50%);z-index:90;background:#1b1228;border:1px solid var(--gold-bright,#f5c542);color:#ffd966;padding:12px 22px;border-radius:14px;font-weight:700;font-size:14px;box-shadow:0 8px 30px rgba(0,0,0,.55);animation:toastin .4s ease,toastout .5s ease 3.4s forwards;pointer-events:none;max-width:88vw;text-align:center}
-@keyframes toastin{from{opacity:0;transform:translate(-50%,-12px)}}
-@keyframes toastout{to{opacity:0;transform:translate(-50%,-12px)}}
-.dripmeter.splash .drop{animation:bowlsplash .85s ease}
-@keyframes bowlsplash{0%{transform:scale(1)}30%{transform:scale(1.28) rotate(-4deg)}60%{transform:scale(.9)}100%{transform:scale(1)}}
-
-/* ============ copy paw pop ============ */
-.copy-btn.copied{animation:pawpop .4s ease}
-@keyframes pawpop{30%{transform:scale(1.12)}60%{transform:scale(.96)}}
-
-@media(prefers-reduced-motion:reduce){.gold-rain,.payout-toast{display:none}.dripmeter.splash .drop,.copy-btn.copied{animation:none}}
-
-/* ============================================================
-   DRIPPY v3 — "insane mode" polish layer (additive overrides)
-   Ambient aurora, glass cards w/ pointer glow, shine sweeps,
-   kinetic headings, scroll progress, staggered reveals.
-   ============================================================ */
-
-/* --- ambient aurora orbs drifting behind everything --- */
-.aurora{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden}
-.aurora i{position:absolute;border-radius:50%;filter:blur(90px);opacity:.5;will-change:transform}
-.aurora i:nth-child(1){width:60vw;height:60vw;left:-18vw;top:-22vw;background:radial-gradient(circle,rgba(107,45,201,.5),transparent 65%);animation:auroraA 26s ease-in-out infinite alternate}
-.aurora i:nth-child(2){width:46vw;height:46vw;right:-14vw;top:18vh;background:radial-gradient(circle,rgba(212,164,49,.30),transparent 65%);animation:auroraB 32s ease-in-out infinite alternate}
-.aurora i:nth-child(3){width:52vw;height:52vw;left:24vw;bottom:-26vw;background:radial-gradient(circle,rgba(162,89,255,.32),transparent 65%);animation:auroraC 38s ease-in-out infinite alternate}
-@keyframes auroraA{from{transform:translate(0,0) scale(1)}to{transform:translate(9vw,7vh) scale(1.15)}}
-@keyframes auroraB{from{transform:translate(0,0) scale(1.1)}to{transform:translate(-8vw,9vh) scale(.95)}}
-@keyframes auroraC{from{transform:translate(0,0)}to{transform:translate(-10vw,-8vh) scale(1.12)}}
-@media(prefers-reduced-motion:reduce){.aurora{display:none}}
-
-/* --- scroll progress bar --- */
-.scroll-progress{position:fixed;top:0;left:0;height:3px;width:0%;z-index:99;
-  background:linear-gradient(90deg,var(--purple-bright),var(--gold-bright),var(--gold-glow));
-  box-shadow:0 0 12px rgba(245,197,66,.7);transition:width .08s linear;border-radius:0 3px 3px 0}
-
-/* --- custom scrollbar --- */
-::-webkit-scrollbar{width:11px}
-::-webkit-scrollbar-track{background:var(--black)}
-::-webkit-scrollbar-thumb{background:linear-gradient(180deg,var(--purple-deep),var(--purple));border-radius:8px;border:2px solid var(--black)}
-::-webkit-scrollbar-thumb:hover{background:linear-gradient(180deg,var(--purple),var(--gold))}
-
-/* --- nav: shrink + deepen blur once scrolled --- */
-.nav{transition:box-shadow .3s ease,background .3s ease}
-.nav.scrolled{background:rgba(10,6,16,.94);box-shadow:0 10px 38px rgba(0,0,0,.55),0 1px 0 rgba(212,164,49,.14)}
-.nav-links a{position:relative;transition:color .2s ease}
-.nav-links a::after{content:'';position:absolute;left:11px;right:11px;bottom:4px;height:2px;border-radius:2px;
-  background:linear-gradient(90deg,var(--gold-bright),var(--purple-bright));transform:scaleX(0);transform-origin:left;transition:transform .25s ease}
-.nav-links a:hover::after{transform:scaleX(1)}
-.nav-cta{transition:transform .18s ease,box-shadow .18s ease}
-.nav-cta:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(245,197,66,.45)}
-
-/* --- cards: glass + gradient ring + pointer-tracked glow --- */
-.card{position:relative;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
-  transition:transform .35s cubic-bezier(.21,.8,.32,1),box-shadow .35s ease,border-color .35s ease;overflow:hidden}
-.card::before{content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:0;transition:opacity .35s ease;
-  background:radial-gradient(420px circle at var(--mx,50%) var(--my,50%),rgba(245,197,66,.10),transparent 45%)}
-.card:hover{transform:translateY(-4px);border-color:rgba(245,197,66,.34);box-shadow:0 18px 48px rgba(0,0,0,.5),0 0 0 1px rgba(245,197,66,.12),0 0 36px rgba(107,45,201,.18)}
-.card:hover::before{opacity:1}
-
-/* --- buttons: shine sweep + lift --- */
-.btn{position:relative;overflow:hidden;transition:transform .18s ease,box-shadow .18s ease}
-.btn::after{content:'';position:absolute;top:0;bottom:0;left:-80%;width:55%;pointer-events:none;
-  background:linear-gradient(105deg,transparent,rgba(255,255,255,.34),transparent);transform:skewX(-20deg)}
-.btn:hover{transform:translateY(-2px)}
-.btn:hover::after{animation:btnShine .7s ease}
-@keyframes btnShine{from{left:-80%}to{left:130%}}
-.btn-gold:hover{box-shadow:0 12px 40px rgba(245,197,66,.55)}
-.btn-purple:hover{box-shadow:0 12px 36px rgba(162,89,255,.4)}
-.btn-ghost:hover{border-color:var(--gold-bright);color:var(--gold-bright)}
-
-/* --- kinetic section headings: gradient ink + animated underline --- */
-h2{background:linear-gradient(120deg,var(--cream) 30%,var(--gold-pale) 50%,var(--cream) 70%);
-  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
-  background-size:220% 100%;animation:headingInk 9s ease-in-out infinite}
-@keyframes headingInk{0%,100%{background-position:0% 0}50%{background-position:100% 0}}
-h2 .gold,h2 .purple,h2 .redtxt{-webkit-text-fill-color:currentColor}
-.eyebrow{position:relative;display:inline-block;padding-left:30px}
-.eyebrow::before{content:'';position:absolute;left:0;top:50%;width:22px;height:2px;border-radius:2px;
-  background:linear-gradient(90deg,var(--gold-bright),transparent);transform:translateY(-50%)}
-
-/* --- reveals: silkier curve + per-sibling stagger --- */
-.reveal{transform:translateY(30px) scale(.985);transition:opacity .8s cubic-bezier(.16,.84,.3,1),transform .8s cubic-bezier(.16,.84,.3,1);transition-delay:calc(var(--ri,0)*90ms)}
-.reveal.in{transform:none}
-
-/* --- hero: floating banner + CTA pulse + gradient ring --- */
-.hero-banner{transition:transform .6s cubic-bezier(.21,.8,.32,1),box-shadow .6s ease;animation:heroFloat 7s ease-in-out infinite}
-@keyframes heroFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
-.hero-banner:hover{transform:scale(1.015) rotate(-.3deg);box-shadow:0 30px 80px rgba(0,0,0,.6),0 0 60px rgba(107,45,201,.3)}
-.hero-ctas .btn-gold{animation:ctaPulse 3.2s ease-in-out infinite}
-@keyframes ctaPulse{0%,100%{box-shadow:0 6px 28px rgba(212,164,49,.35)}50%{box-shadow:0 6px 44px rgba(245,197,66,.62)}}
-
-/* --- ticker cells: hover lift + scanline shimmer --- */
-.tcell{transition:background .25s ease,transform .25s ease}
-.tcell:hover{background:#180e26;transform:translateY(-2px)}
-.tcell .v{transition:color .3s ease}
-
-/* --- leaderboard rows --- */
-.lb-row{transition:background .22s ease,transform .22s ease,border-color .22s ease}
-.lb-row:hover{background:rgba(245,197,66,.05);transform:translateX(4px)}
-.lb-row .rank.top{text-shadow:0 0 14px rgba(245,197,66,.6)}
-
-/* --- story card: glowing quote + drop cap feel --- */
-.quote{position:relative;transition:box-shadow .4s ease}
-.quote:hover{box-shadow:0 0 38px rgba(162,89,255,.22)}
-.story-card img{transition:transform .7s cubic-bezier(.21,.8,.32,1)}
-.story-card:hover img{transform:scale(1.03)}
-
-/* --- footer: soft fade-up edge --- */
-footer{position:relative}
-footer::before{content:'';position:absolute;top:-90px;left:0;right:0;height:90px;pointer-events:none;
-  background:linear-gradient(180deg,transparent,rgba(107,45,201,.07))}
-
-/* --- marquee: gold edge masks --- */
-.marquee{position:relative}
-.marquee::before,.marquee::after{content:'';position:absolute;top:0;bottom:0;width:70px;z-index:2;pointer-events:none}
-.marquee::before{left:0;background:linear-gradient(90deg,var(--black),transparent)}
-.marquee::after{right:0;background:linear-gradient(-90deg,var(--black),transparent)}
-
-/* --- focus rings for keyboard users --- */
-a:focus-visible,button:focus-visible{outline:2px solid var(--gold-bright);outline-offset:3px;border-radius:6px}
-
-@media(prefers-reduced-motion:reduce){
-  .hero-banner,.hero-ctas .btn-gold{animation:none}
-  h2{animation:none}
-  .card:hover,.tcell:hover,.lb-row:hover{transform:none}
-}
-
-/* ============================================================
-   DRIPPY v4 — signature layer: sprite-driven, scroll-alive.
-   Scroll-runner Drippy, hero FX canvas, drip dividers,
-   paw cursor trail, step mascots, hero entrance.
-   ============================================================ */
-
-/* --- Drippy runs along the scroll progress bar --- */
-#scrollRunner{position:fixed;top:-2px;left:0;z-index:100;height:46px;width:auto;
-  image-rendering:pixelated;pointer-events:none;transform:translateX(-50%);
-  filter:drop-shadow(0 2px 6px rgba(245,197,66,.55));transition:opacity .3s ease}
-#scrollRunner.flip{transform:translateX(-50%) scaleX(-1)}
-#scrollRunner.idle{animation:runnerBob 1.6s ease-in-out infinite}
-@keyframes runnerBob{0%,100%{margin-top:0}50%{margin-top:3px}}
-
-/* --- hero FX particle canvas --- */
-.hero{min-height:auto}
-#heroFX{position:absolute;inset:0;z-index:0;pointer-events:none}
-.hero .container{position:relative;z-index:1}
-
-/* --- hero entrance choreography --- */
-@keyframes heroRise{from{opacity:0;transform:translateY(34px);filter:blur(6px)}to{opacity:1;transform:none;filter:none}}
-.hero-banner{animation:heroRise .9s cubic-bezier(.16,.84,.3,1) both,heroFloat 7s ease-in-out 1s infinite}
-.hero-tagline{animation:heroRise .8s .15s cubic-bezier(.16,.84,.3,1) both}
-.hero-copy h1{animation:heroRise .9s .25s cubic-bezier(.16,.84,.3,1) both}
-.hero-copy .lede{animation:heroRise .9s .38s cubic-bezier(.16,.84,.3,1) both}
-.hero-ctas{animation:heroRise .9s .5s cubic-bezier(.16,.84,.3,1) both}
-.hero .dripmeter{animation:heroRise .9s .62s cubic-bezier(.16,.84,.3,1) both}
-
-
-
-/* --- paw-print cursor trail (desktop only) --- */
-.pawprint{position:fixed;z-index:98;width:16px;height:16px;pointer-events:none;
-  background-repeat:no-repeat;background-size:contain;opacity:.65;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cg fill='%23d4a431'%3E%3Cellipse cx='50' cy='64' rx='20' ry='17'/%3E%3Cellipse cx='24' cy='44' rx='8' ry='11'/%3E%3Cellipse cx='76' cy='44' rx='8' ry='11'/%3E%3Cellipse cx='37' cy='25' rx='7' ry='10'/%3E%3Cellipse cx='63' cy='25' rx='7' ry='10'/%3E%3C/g%3E%3C/svg%3E");
-  animation:pawFade .8s ease-out forwards}
-@keyframes pawFade{from{opacity:.55;transform:scale(.9)}to{opacity:0;transform:scale(1.25) translateY(-6px)}}
-
-/* --- step mascots: game sprites peeking over the cards --- */
-.step{position:relative;overflow:visible!important}
-.step-mascot{position:absolute;top:-44px;right:14px;height:64px;width:auto;
-  image-rendering:pixelated;filter:drop-shadow(0 4px 10px rgba(0,0,0,.5));
-  transition:transform .35s cubic-bezier(.34,1.56,.64,1);z-index:2}
-.step:hover .step-mascot{transform:translateY(-7px) rotate(-4deg) scale(1.08)}
-
-/* --- parallax targets get GPU hints --- */
-[data-plx]{will-change:transform}
-
-@media(prefers-reduced-motion:reduce){
-  #scrollRunner,.pawprint,#heroFX{display:none}
-  .hero-banner,.hero-tagline,.hero-copy h1,.hero-copy .lede,.hero-ctas,.hero .dripmeter{animation:none}
-}
-@media(max-width:760px){.step-mascot{top:-34px;height:50px}}
-
-/* ============================================================
-   Mobile wallet help panel — only renders on mobile + when NOT
-   already inside a wallet's in-app browser.
-   ============================================================ */
-.mobile-wallet-help{margin-bottom:18px;border-radius:14px;
-  background:linear-gradient(160deg,rgba(162,89,255,.12),rgba(212,164,49,.06));
-  border:1px solid rgba(162,89,255,.4);padding:18px}
-.mw-tip{display:flex;gap:12px;align-items:flex-start;margin-bottom:14px}
-.mw-tip-icon{font-size:28px;flex:0 0 auto;line-height:1}
-.mw-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
-.mw-btn{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--cream);
-  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:10px;
-  padding:12px 13px;font-family:var(--mono);font-size:13px;transition:transform .15s ease,border-color .15s ease,background .15s ease}
-.mw-btn:hover,.mw-btn:active{transform:translateY(-1px);border-color:var(--gold-bright);background:rgba(245,197,66,.08)}
-.mw-btn .mw-ico{font-size:22px;flex:0 0 auto}
-.mw-btn b{display:block;font-weight:600;color:var(--cream)}
-.mw-btn .mw-sub{display:block;font-size:11px;color:var(--cream-faint);margin-top:2px}
-@media(max-width:480px){.mw-grid{grid-template-columns:1fr}}
