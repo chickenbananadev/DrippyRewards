@@ -41,7 +41,7 @@
 }
 
 *{box-sizing:border-box;margin:0;padding:0}
-html{scroll-behavior:smooth}
+html{scroll-behavior:smooth;scroll-padding-top:80px}
 html,body{background:var(--black);color:var(--cream);font-family:var(--serif);overflow-x:hidden}
 body{
   font-size:17px;line-height:1.65;
@@ -400,7 +400,7 @@ h2{font-size:clamp(28px,4.6vw,46px);margin-bottom:14px}
 
 /* ---------- story ---------- */
 .story-card{max-width:780px;margin:0 auto}
-.story-card img{border-radius:14px;border:1px solid var(--card-border);margin-bottom:18px}
+.story-card img{width:100%;height:auto;border-radius:14px;border:1px solid var(--card-border);margin-bottom:18px}
 .story-body{color:var(--cream-dim);font-size:16.5px}
 .story-body p{margin-bottom:16px}
 .story-body strong{color:var(--cream)}
@@ -509,7 +509,7 @@ footer{border-top:1px solid var(--card-border);padding:50px 0 40px;text-align:ce
 .game-card{display:grid;grid-template-columns:1.25fr 1fr;gap:24px;margin-top:26px;align-items:center}
 @media(max-width:760px){.game-card{grid-template-columns:1fr}}
 .game-shot{position:relative;display:block;border-radius:18px;overflow:hidden;border:1px solid var(--card-border-gold,rgba(212,164,49,.5));text-decoration:none}
-.game-shot img{width:100%;display:block;transition:transform .35s ease}
+.game-shot img{width:100%;height:auto;display:block;transition:transform .35s ease}
 .game-shot:hover img{transform:scale(1.04)}
 .game-play{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:rgba(10,6,16,.78);border:2px solid var(--gold-bright,#f5c542);color:var(--gold-bright,#f5c542);font-weight:800;letter-spacing:2px;padding:13px 26px;border-radius:14px;font-size:15px;transition:transform .2s ease,background .2s ease}
 .game-shot:hover .game-play{transform:translate(-50%,-50%) scale(1.08);background:rgba(58,26,94,.85)}
