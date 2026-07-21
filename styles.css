@@ -101,6 +101,9 @@ h2{font-size:clamp(28px,4.6vw,46px);margin-bottom:14px}
 .hero-ctas{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
 .hero .dripmeter{margin:30px auto 0}
 .hero-tagline{font-family:var(--tag);text-transform:uppercase;letter-spacing:4px;font-size:13px;color:var(--purple-glow);margin-bottom:12px}
+.hero-banner{max-width:var(--maxw);margin:0 auto 32px;border-radius:20px;overflow:hidden;border:1px solid var(--card-border-gold);box-shadow:0 12px 44px rgba(0,0,0,.5)}
+.hero-banner img{width:100%;height:auto;display:block}
+@media(max-width:640px){.hero-banner{margin-bottom:22px;border-radius:14px}}
 
 /* ticker value flash on update */
 .tcell .v.flash{animation:vflash .8s ease}
