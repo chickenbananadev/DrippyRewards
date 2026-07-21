@@ -46,9 +46,7 @@ html,body{background:var(--black);color:var(--cream);font-family:var(--serif);ov
 body{
   font-size:17px;line-height:1.65;
   background:
-    radial-gradient(ellipse 80% 50% at 50% 0%, rgba(107,45,201,.22) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 40% at 90% 30%, rgba(212,164,49,.12) 0%, transparent 50%),
-    radial-gradient(ellipse at top, #1a0a2e 0%, var(--black) 70%, #000 100%) fixed,
+    radial-gradient(ellipse 60% 45% at 85% 18%, rgba(212,164,49,.09) 0%, transparent 55%),
     var(--black);
 }
 img,video{max-width:100%;display:block}
@@ -74,8 +72,7 @@ h2{font-size:clamp(28px,4.6vw,46px);margin-bottom:14px}
 /* ---------- nav ---------- */
 .nav{
   position:sticky;top:0;z-index:60;
-  background:rgba(10,6,16,.86);backdrop-filter:blur(12px);
-  border-bottom:1px solid var(--card-border);
+  background:rgba(10,6,16,.72);backdrop-filter:blur(12px);
 }
 .nav-inner{max-width:var(--maxw);margin:0 auto;padding:12px 22px;display:flex;align-items:center;gap:18px}
 .nav-logo{font-family:var(--display);font-size:20px;color:var(--gold-bright);text-decoration:none;white-space:nowrap}
