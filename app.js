@@ -426,6 +426,33 @@ let currentWallet = null;
   }
 })();
 
+/* --------- DripQuests wallet unlock (community page) --------- */
+(function(){
+  const input = $('dqWalletInput');
+  const button = $('dqWalletBtn');
+  if(!input || !button) return;
+  const errEl = $('dqWalletError');
+  async function unlock(){
+    const addr = input.value.trim();
+    if(errEl) errEl.textContent = '';
+    if(!SOL_RE.test(addr)){ if(errEl) errEl.textContent = 'That does not look like a valid Solana address.'; return; }
+    button.disabled = true; button.textContent = 'Checking...';
+    try{
+      const r = await fetch('/api/wallet?address=' + encodeURIComponent(addr), { cache:'no-store' });
+      const d = await r.json();
+      if(d && d.error){ if(errEl) errEl.textContent = d.error; return; }
+      if(d && d.found === false){ if(errEl) errEl.textContent = 'No drips found for this wallet yet. Hold $DRIPPY to start earning.'; return; }
+      window._dripWalletData = d;
+      updateDripQuests(d);
+    }catch(e){ if(errEl) errEl.textContent = 'Something went wrong. Try again in a moment.'; }
+    finally{ button.disabled = false; button.textContent = 'Unlock'; }
+  }
+  button.addEventListener('click', unlock);
+  input.addEventListener('keydown', e => { if(e.key === 'Enter') unlock(); });
+  const pre = new URLSearchParams(location.search).get('wallet');
+  if(pre && SOL_RE.test(pre)){ input.value = pre; unlock(); }
+})();
+
 /* ---------------- wallet provider (connect + sign) ---------------- */
 // Wallet Standard collector: catches wallets that register via the standard
 // instead of injecting a known global.
