@@ -118,7 +118,6 @@ h2{font-size:clamp(28px,4.6vw,46px);margin-bottom:14px}
 .btn-gold{background:linear-gradient(135deg,var(--gold) 0%,var(--gold-bright) 100%);color:#1a1005;box-shadow:0 4px 18px rgba(212,164,49,.25)}
 .btn-purple{background:linear-gradient(135deg,var(--purple-deep) 0%,var(--purple) 100%);color:var(--purple-pale);border:1px solid rgba(162,89,255,.4)}
 .btn-ghost{background:transparent;color:var(--cream-dim);border:1px solid var(--card-border)}
-94%{transform:rotate(12deg) scale(1.06)}96%{transform:rotate(5deg)}98%{transform:rotate(10deg)}}
 
 /* ---------- drip meter (signature) ---------- */
 .dripmeter{
