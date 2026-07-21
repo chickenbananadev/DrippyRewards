@@ -74,7 +74,7 @@ h2{font-size:clamp(28px,4.6vw,46px);margin-bottom:14px}
   position:sticky;top:0;z-index:60;
   background:rgba(10,6,16,.72);backdrop-filter:blur(12px);
 }
-.nav-inner{max-width:var(--maxw);margin:0 auto;padding:12px 22px;display:flex;align-items:center;gap:18px}
+.nav-inner{max-width:var(--maxw);margin:0 auto;padding:12px 22px;display:flex;align-items:center;gap:18px;position:relative}
 .nav-logo{font-family:var(--display);font-size:20px;color:var(--gold-bright);text-decoration:none;white-space:nowrap}
 .nav-logo span{color:var(--purple-bright)}
 .nav-links{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;flex:1}
@@ -521,7 +521,22 @@ footer{border-top:1px solid var(--card-border);padding:50px 0 40px;text-align:ce
 .hero-mission{max-width:820px;margin:28px auto 0;text-align:center;font-family:var(--serif);font-size:clamp(16px,2.1vw,21px);line-height:1.65;color:var(--cream-dim)}
 .hero-mission strong{color:var(--cream);font-weight:600}
 
-/* ===== merch (coming soon) ===== */
-.merch-soon{max-width:640px;margin:26px auto 0;text-align:center;background:var(--card-bg);border:1px solid var(--card-border-gold);border-radius:var(--radius);padding:44px 28px}
-.merch-emoji{font-size:44px;letter-spacing:8px;margin-bottom:18px}
-.merch-badge{display:inline-block;font-family:var(--tag);text-transform:uppercase;letter-spacing:3px;font-size:15px;color:var(--gold-bright);border:1px solid var(--card-border-gold);border-radius:99px;padding:11px 26px;background:rgba(20,13,30,.5)}
+/* ===== mobile hamburger nav ===== */
+.nav-toggle{display:none;margin-left:auto;width:44px;height:44px;align-items:center;justify-content:center;
+  background:transparent;border:1px solid var(--card-border-gold);border-radius:10px;color:var(--gold-bright);
+  font-size:20px;line-height:1;cursor:pointer;padding:0}
+@media(max-width:900px){
+  .nav-cta{display:none}
+  .nav-toggle{display:flex}
+  .nav-links{
+    position:absolute;top:100%;left:0;right:0;
+    flex-direction:column;gap:0;flex:none;overflow:hidden;
+    background:rgba(10,6,16,.97);backdrop-filter:blur(14px);
+    border-bottom:1px solid var(--card-border);border-radius:0 0 14px 14px;
+    padding:6px 22px 14px;
+    display:none;
+  }
+  .nav-links.open{display:flex}
+  .nav-links a{padding:14px 6px;font-size:16px;border-bottom:1px solid rgba(246,233,196,.06)}
+  .nav-links a:last-child{border-bottom:0}
+}

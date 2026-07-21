@@ -871,3 +871,15 @@ async function drawRankCard(d){
   });
 })();
 
+
+/* ---------------- mobile hamburger nav ---------------- */
+(function(){
+  const toggle = document.getElementById('navToggle');
+  const links = document.querySelector('.nav-links');
+  if(!toggle || !links) return;
+  function close(){ links.classList.remove('open'); toggle.setAttribute('aria-expanded','false'); toggle.setAttribute('aria-label','Open menu'); toggle.innerHTML='☰'; }
+  function open(){ links.classList.add('open'); toggle.setAttribute('aria-expanded','true'); toggle.setAttribute('aria-label','Close menu'); toggle.innerHTML='✕'; }
+  toggle.addEventListener('click', () => links.classList.contains('open') ? close() : open());
+  links.querySelectorAll('a').forEach(a => a.addEventListener('click', close));
+  document.addEventListener('keydown', e => { if(e.key === 'Escape') close(); });
+})();
