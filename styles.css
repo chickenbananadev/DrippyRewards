@@ -358,6 +358,18 @@ h2{font-size:clamp(28px,4.6vw,46px);margin-bottom:14px}
 }
 .copy-btn.copied{color:var(--green);border-color:rgba(34,197,94,.5)}
 .burn-note{font-size:13.5px;color:var(--cream-dim);margin-top:14px}
+.burn-example{max-width:680px;margin:0 auto 22px;background:var(--card-bg);border:1px solid var(--card-border-gold);border-radius:var(--radius);padding:22px}
+.burn-example .label{font-family:var(--tag);text-transform:uppercase;letter-spacing:2px;font-size:12px;color:var(--gold-bright);margin-bottom:16px}
+.burn-ex-row{display:flex;gap:14px;align-items:stretch;justify-content:center;flex-wrap:wrap}
+.burn-ex-step{flex:1 1 210px;background:rgba(10,6,16,.5);border:1px solid var(--card-border);border-radius:14px;padding:16px}
+.burn-ex-step .n{display:block;font-family:var(--tag);text-transform:uppercase;letter-spacing:1px;font-size:17px}
+.burn-ex-step:first-child .n{color:var(--red)}
+.burn-ex-step:last-child .n{color:var(--gold-bright)}
+.burn-ex-step .d{display:block;font-size:12.5px;color:var(--cream-dim);margin-top:6px;line-height:1.5}
+.burn-ex-arrow{align-self:center;font-family:var(--mono);color:var(--cream-faint);font-size:22px}
+.burn-ex-note{font-size:13.5px;color:var(--cream-dim);margin-top:16px;line-height:1.6}
+.burn-ex-note strong{color:var(--gold-bright)}
+@media(max-width:520px){.burn-ex-arrow{transform:rotate(90deg)}}
 
 /* ---------- leaderboard ---------- */
 .lb-tabs{display:flex;gap:8px;margin:22px 0 16px}
