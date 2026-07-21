@@ -101,9 +101,13 @@ h2{font-size:clamp(28px,4.6vw,46px);margin-bottom:14px}
 .hero-ctas{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
 .hero .dripmeter{margin:30px auto 0}
 .hero-tagline{font-family:var(--tag);text-transform:uppercase;letter-spacing:4px;font-size:13px;color:var(--purple-glow);margin-bottom:12px}
-.hero-banner{max-width:var(--maxw);margin:0 auto 32px;border-radius:20px;overflow:hidden;border:1px solid var(--card-border-gold);box-shadow:0 12px 44px rgba(0,0,0,.5)}
-.hero-banner img{width:100%;height:auto;display:block}
-@media(max-width:640px){.hero-banner{margin-bottom:22px;border-radius:14px}}
+/* hero — full graphic + functional controls */
+.hero-shot{display:block;max-width:var(--maxw);margin:0 auto;border-radius:20px;overflow:hidden;border:1px solid var(--card-border-gold);box-shadow:0 18px 55px rgba(0,0,0,.55)}
+.hero-shot img{width:100%;height:auto;display:block;transition:transform .4s ease}
+.hero-shot:hover img{transform:scale(1.015)}
+@media(max-width:640px){.hero-shot{border-radius:14px}}
+.hero .hero-ctas{justify-content:center;margin-top:26px}
+.hero .dripmeter{margin:22px auto 0}
 
 /* ticker value flash on update */
 .tcell .v.flash{animation:vflash .8s ease}
