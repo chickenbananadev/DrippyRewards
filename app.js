@@ -97,45 +97,6 @@ function tickCountdown(){
 setInterval(tickCountdown, 1000);
 tickCountdown();
 
-/* ---------------- payout celebration: gold rain when the pack gets paid ---------------- */
-let _lastDistAt = null;
-function celebratePayout(amountSol){
-  if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  const meter = document.querySelector('.dripmeter');
-  if(meter){ meter.classList.add('splash'); setTimeout(() => meter.classList.remove('splash'), 950); }
-  for(let i = 0; i < 44; i++){
-    const dr = document.createElement('span');
-    dr.className = 'gold-rain';
-    dr.style.left = (Math.random() * 100).toFixed(1) + 'vw';
-    dr.style.animationDuration = (1.4 + Math.random() * 1.7).toFixed(2) + 's';
-    dr.style.animationDelay = (Math.random() * 0.9).toFixed(2) + 's';
-    document.body.appendChild(dr);
-    setTimeout(() => dr.remove(), 4300);
-  }
-  const t = document.createElement('div');
-  t.className = 'payout-toast';
-  t.textContent = '💸 The pack just got paid' + (amountSol ? ': +' + fmtSol(amountSol) : '') + '!';
-  document.body.appendChild(t);
-  setTimeout(() => t.remove(), 4200);
-}
-
-/* ---------------- count-up: make the big numbers land ---------------- */
-function cuCell(key, num, fmt){
-  const cell = document.querySelector('[data-key="' + key + '"]');
-  if(!cell || isNaN(num)) return;
-  const v = cell.querySelector('.v');
-  if(!v || v.dataset.counted) return;
-  v.dataset.counted = '1';
-  if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  const t0 = performance.now(), dur = 1100;
-  (function step(t){
-    const k = Math.min(1, (t - t0) / dur);
-    const ease = 1 - Math.pow(1 - k, 3);
-    try{ v.textContent = fmt(num * ease); }catch(_){ return; }
-    if(k < 1) requestAnimationFrame(step);
-  })(t0);
-}
-
 /* ---------------- consolidated stats ---------------- */
 async function loadStats(){
   try{
@@ -149,19 +110,17 @@ async function loadStats(){
       if(d.market.change24h != null){
         const ch = Number(d.market.change24h);
         setCell('change', (ch >= 0 ? '+' : '') + ch.toFixed(2) + '%', ch >= 0 ? 'up' : 'down');
-        window._mood = ch >= 0 ? 'bull' : 'bear';
       }
       setCell('mcap', fmtUsd(d.market.marketCap));
       setCell('vol', fmtUsd(d.market.volume24h));
       setCell('liq', fmtUsd(d.market.liquidityUsd));
     }
     if(d.supply) setCell('supply', fmtTokens(d.supply.circulating));
-    if(d.holders && d.holders.count != null){ setCell('holders', d.holders.count.toLocaleString()); cuCell('holders', Number(d.holders.count), v => Math.round(v).toLocaleString()); }
-    if(d.burns && d.burns.tokensBurned){ setCell('burned', fmtTokens(d.burns.tokensBurned), 'purple'); cuCell('burned', Number(d.burns.tokensBurned), fmtTokens); }
+    if(d.holders && d.holders.count != null) setCell('holders', d.holders.count.toLocaleString());
+    if(d.burns && d.burns.tokensBurned) setCell('burned', fmtTokens(d.burns.tokensBurned), 'purple');
     if(d.burns && d.burns.supplyBurnedPct != null) setCell('burnpct', Number(d.burns.supplyBurnedPct).toFixed(2) + '%', 'purple');
     if(d.distribution && d.distribution.totalDistributedSol != null){
       setCell('rewards', fmtSol(d.distribution.totalDistributedSol).replace(' SOL','') + ' SOL', 'gold');
-      cuCell('rewards', Number(d.distribution.totalDistributedSol), v => fmtSol(v).replace(' SOL','') + ' SOL');
     }
 
     // Distribution card
@@ -170,8 +129,6 @@ async function loadStats(){
       if(dist.lastDistributionAt){
         _anchor = new Date(dist.lastDistributionAt).getTime(); // sync the countdown
         const lt = $('distLastTime'); if(lt) lt.textContent = timeAgo(dist.lastDistributionAt);
-        if(_lastDistAt && dist.lastDistributionAt !== _lastDistAt) celebratePayout(dist.lastAmountSol);
-        _lastDistAt = dist.lastDistributionAt;
       }
       const la = $('distLastAmount'); if(la) la.textContent = fmtSol(dist.lastAmountSol);
       const tt = $('distTotal'); if(tt) tt.textContent = fmtSol(dist.totalDistributedSol);
@@ -215,22 +172,6 @@ async function loadStats(){
 }
 loadStats();
 setInterval(loadStats, 45000);
-
-/* ---------------- Drippy Run: top global scores on the promo card ---------------- */
-(async function loadGameTop(){
-  try{
-    const r = await fetch('/api/leaderboard?board=game', { cache: 'no-store' });
-    if(!r.ok) return;
-    const d = await r.json();
-    if(!d || !Array.isArray(d.scores) || !d.scores.length) return;
-    const el = $('gameTop');
-    if(!el) return;
-    el.innerHTML = '🏁 Top runs: ' + d.scores.slice(0,3).map((e,i) =>
-      '<b>' + (i+1) + '.</b> ' + String(e.n).replace(/[<>&]/g,'') + (e.beat ? ' 👑' : '') + ' <span style="color:var(--gold-bright,#f5c542)">' + Number(e.s).toLocaleString() + '</span>'
-    ).join(' &nbsp;·&nbsp; ');
-    el.style.display = '';
-  }catch(_){}
-})();
 
 /* ---------------- Jupiter swap widget ---------------- */
 let _jupTries = 0;
@@ -287,7 +228,7 @@ function copyAddr(srcId, btnId){
   const btn = $(btnId);
   if(!btn.dataset.orig) btn.dataset.orig = btn.textContent;
   const done = () => {
-    btn.textContent = 'copied 🐾';
+    btn.textContent = 'Copied!';
     btn.classList.add('copied');
     setTimeout(() => { btn.textContent = btn.dataset.orig; btn.classList.remove('copied'); }, 1800);
   };
@@ -671,27 +612,16 @@ async function loadLeaderboard(type, me, burnRank, earnRank){
       return;
     }
     list.innerHTML = '';
-    // Tier badge for burn (Hall of Flame): shows what skin tier each wallet has unlocked
-    const burnTierBadge = (burned) => {
-      const b = Number(burned) || 0;
-      if (b >= 10_000_000) return '<span title="Void tier (10M+ burned)">🌌</span>';
-      if (b >= 5_000_000)  return '<span title="Diamond tier (5M+ burned)">💎</span>';
-      if (b >= 1_000_000)  return '<span title="Gold tier (1M+ burned)">🥇</span>';
-      if (b >= 500_000)    return '<span title="Silver tier (500K+ burned)">🥈</span>';
-      if (b >= 100_000)    return '<span title="Bronze tier (100K+ burned)">🥉</span>';
-      return '';
-    };
     d.entries.forEach(e => {
       const row = document.createElement('div');
       row.className = 'lb-row' + (e.wallet === _lbMe ? ' me' : '');
-      const badge = (_lbType === 'burn') ? burnTierBadge(e.tokensBurned) : '';
       const who = e.username
         ? '<span class="uname-tag">' + e.username + '</span> <span style="opacity:.5">' + shortAddr(e.wallet) + '</span>'
         : shortAddr(e.wallet);
       const val = _lbType === 'earn' ? fmtSol(e.totalReceivedSol) : fmtTokens(e.tokensBurned) + ' 🔥';
       row.innerHTML =
         '<span class="rank' + (e.rank <= 3 ? ' top' : '') + '">#' + e.rank + '</span>' +
-        '<span class="who">' + (badge ? badge + ' ' : '') + who + '</span>' +
+        '<span class="who">' + who + '</span>' +
         '<span class="val">' + val + '</span>';
       list.appendChild(row);
     });
@@ -724,336 +654,9 @@ loadLeaderboard();
   });
 })();
 
-/* ---------------- events feed ---------------- */
-async function loadEvents(){
-  const list = $('eventsList');
-  if(!list) return;
-  try{
-    const r = await fetch('/api/events', { cache:'no-store' });
-    const d = await r.json();
-    const events = (d.events || []).filter(e => new Date(e.start).getTime() > Date.now() - 2 * 3600 * 1000);
-    if(events.length === 0){
-      list.innerHTML = '<div class="ev-empty">Nothing scheduled right now. Follow the pack on X and Telegram for the next one.</div>';
-      return;
-    }
-    list.innerHTML = '';
-    events.forEach(e => {
-      const ms = new Date(e.start).getTime() - Date.now();
-      const live = ms <= 0;
-      let cd;
-      if(live) cd = 'LIVE NOW';
-      else{
-        const m = Math.floor(ms / 60000);
-        if(m < 60) cd = 'in ' + m + 'm';
-        else if(m < 1440) cd = 'in ' + Math.floor(m/60) + 'h ' + (m%60) + 'm';
-        else cd = 'in ' + Math.floor(m/1440) + 'd';
-      }
-      const icon = e.type === 'space' ? '🎙️' : e.type === 'ama' ? '💬' : e.type === 'launch' ? '🚀' : '📡';
-      const row = document.createElement(e.link ? 'a' : 'div');
-      row.className = 'ev-row' + (e.image ? ' has-img' : '');
-      if(e.link){ row.href = e.link; row.target = '_blank'; row.rel = 'noopener'; row.style.textDecoration = 'none'; row.style.color = 'inherit'; }
-      row.innerHTML =
-        '<span class="icon">' + icon + '</span>' +
-        (e.image ? '<img class="ev-img" src="' + e.image + '" alt="" loading="lazy">' : '') +
-        '<span><div class="t">' + (e.title || 'Event') + '</div>' +
-        '<div class="when">' + new Date(e.start).toLocaleString() + '</div></span>' +
-        '<span class="cd">' + cd + '</span>';
-      list.appendChild(row);
-    });
-  }catch(_){}
-}
-loadEvents();
-setInterval(loadEvents, 60000);
 
-/* ---------------- admin modal ---------------- */
-(function(){
-  const modal = $('adminModal');
-  if(!modal) return;
-  $('adminOpen').addEventListener('click', (e) => { e.preventDefault(); modal.classList.add('open'); });
-  $('adminClose').addEventListener('click', () => modal.classList.remove('open'));
-  modal.addEventListener('click', (e) => { if(e.target === modal) modal.classList.remove('open'); });
 
-  function msg(text, kind){
-    const el = $('adminMsg');
-    el.textContent = text || '';
-    el.className = 'modal-msg' + (kind ? ' ' + kind : '');
-  }
-
-  async function refreshAdminList(){
-    const key = $('adminKey').value.trim();
-    const list = $('adminEvList');
-    try{
-      const r = await fetch('/api/events', { cache:'no-store' });
-      const d = await r.json();
-      list.innerHTML = '';
-      (d.events || []).forEach(ev => {
-        const row = document.createElement('div');
-        row.className = 'ev-admin-row';
-        row.innerHTML = '<span>' + (ev.title || 'Event') + ' · ' + new Date(ev.start).toLocaleString() + '</span>';
-        const del = document.createElement('button');
-        del.textContent = 'Delete';
-        del.addEventListener('click', async () => {
-          const r2 = await fetch('/api/events?action=del&key=' + encodeURIComponent(key) + '&id=' + encodeURIComponent(ev.id));
-          const j2 = await r2.json();
-          if(j2.ok){ refreshAdminList(); loadEvents(); }
-          else msg(j2.error || 'Delete failed', 'err');
-        });
-        row.appendChild(del);
-        list.appendChild(row);
-      });
-      if(!list.children.length) list.innerHTML = '<div class="ev-admin-row">No events scheduled</div>';
-    }catch(_){}
-  }
-  refreshAdminList();
-
-  /* ---- Game leaderboard CRUD ---- */
-  let _lbAdminBoard = 'game';  // 'game' (all-time) | 'weekly'
-  function lbMsg(text, kind){
-    const el = $('adminLbMsg');
-    if(!el) return;
-    el.textContent = text || '';
-    el.className = 'modal-msg' + (kind ? ' ' + kind : '');
-  }
-  async function refreshLbAdmin(){
-    const key = ($('adminKey').value || '').trim();
-    const list = $('adminLbList');
-    if(!list) return;
-    list.innerHTML = '<div class="ev-admin-row">Loading…</div>';
-    try{
-      const url = _lbAdminBoard === 'weekly'
-        ? '/api/leaderboard?board=weekly&limit=50'
-        : '/api/leaderboard?board=game&limit=50';
-      // Pass admin secret so server returns FULL wallet addresses (instead of masked
-      // XXXX...YYYY that public sees). Required for moderation + audit.
-      const headers = { 'Cache-Control': 'no-store' };
-      if (key) headers['x-admin-secret'] = key;
-      const r = await fetch(url, { cache: 'no-store', headers });
-      const d = await r.json();
-      list.innerHTML = '';
-      const items = Array.isArray(d.scores) ? d.scores : [];
-      if(!items.length){
-        list.innerHTML = '<div class="ev-admin-row">No scores on this board yet</div>';
-        if (!key) list.innerHTML += '<div class="ev-admin-row" style="color:#9aa3b2;font-size:11px">Enter admin key above to see full wallets</div>';
-        return;
-      }
-      items.forEach((e, i) => {
-        // member key:
-        //   game (all-time) → server keyed by name (e.n)
-        //   weekly         → server returns the raw member key (full wallet for admin, masked for public)
-        const isWeekly = _lbAdminBoard === 'weekly';
-        const member = isWeekly ? (e.member || e.wallet || ('anon:' + (e.n || 'DRIPPY') + ':unknown')) : (e.n || '');
-        // walletFull is only set if admin secret was sent — that's the moderation handle
-        const fullWallet = e.walletFull || (typeof e.wallet === 'string' && e.wallet.length >= 32 ? e.wallet : '');
-        const tag = isWeekly
-          ? (e.verified ? ' ✓' : e.status === 'holder' ? ' 🐾' : ' (anon)')
-          : (e.beat ? ' 👑' : '');
-        const skinBadge = e.skin ? ({default:'🐶',believer:'🐾',bronze:'🥉',silver:'🥈',gold:'🥇',diamond:'💎',void:'🌌',shadow:'☠️'}[e.skin] || '') : '';
-        const displayName = e.n || (typeof e.wallet === 'string' ? e.wallet : 'DRIPPY');
-        const label = '#' + (i+1) + ' · ' + displayName + tag + (skinBadge ? ' ' + skinBadge : '');
-        const row = document.createElement('div');
-        row.className = 'ev-admin-row';
-        row.style.cssText = 'display:flex;align-items:center;gap:8px;flex-wrap:wrap';
-        // Admin-only wallet readout under the row (full address + copy button)
-        const walletRow = fullWallet
-          ? '<div style="flex-basis:100%;display:flex;align-items:center;gap:8px;font-family:JetBrains Mono,monospace;font-size:10.5px;color:#7aa3d4;padding-top:3px;margin-top:3px;border-top:1px dashed rgba(122,163,212,0.18)">'
-            + '<span style="opacity:.7">📋 Wallet:</span>'
-            + '<span style="user-select:all;flex:1;overflow:hidden;text-overflow:ellipsis" title="' + fullWallet + '">' + fullWallet + '</span>'
-            + '<button data-wallet="' + fullWallet + '" class="lbCopyWallet" style="padding:2px 7px;font-size:10px;background:rgba(122,163,212,.15);border:1px solid rgba(122,163,212,.4);border-radius:4px;color:#7aa3d4;cursor:pointer">COPY</button>'
-            + '</div>'
-          : (isWeekly && !key
-              ? '<div style="flex-basis:100%;font-size:10px;color:#9aa3b2;padding-top:3px;margin-top:3px;border-top:1px dashed rgba(255,255,255,0.08)">🔒 Enter admin key to reveal wallet</div>'
-              : '');
-        row.innerHTML =
-          '<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis">' + label + '</span>' +
-          '<span style="font-family:JetBrains Mono,monospace;color:#f5c542;font-weight:700">' + Number(e.s).toLocaleString() + '</span>' +
-          walletRow;
-        const editBtn = document.createElement('button');
-        editBtn.textContent = '✏️';
-        editBtn.title = 'Edit score';
-        editBtn.style.cssText = 'padding:4px 8px;background:rgba(162,89,255,.15);border:1px solid rgba(162,89,255,.4);border-radius:6px;color:#c9b8ff;cursor:pointer';
-        editBtn.addEventListener('click', async () => {
-          if(!key){ lbMsg('Enter the admin key first.', 'err'); return; }
-          const next = prompt('New score for "' + (e.n || member) + '" (current: ' + e.s + '):', String(e.s));
-          if(next === null) return;
-          const sc = Math.round(Number(next));
-          if(!isFinite(sc) || sc < 0){ lbMsg('Score must be a non-negative number.', 'err'); return; }
-          try{
-            const body = isWeekly ? { member, score: sc } : { name: e.n, score: sc, beat: e.beat };
-            const r2 = await fetch('/api/leaderboard?board=' + _lbAdminBoard, {
-              method: 'PUT',
-              headers: { 'Content-Type':'application/json', 'x-admin-secret': key },
-              body: JSON.stringify(body)
-            });
-            const j2 = await r2.json();
-            if(j2.ok){ lbMsg('Updated.', 'ok'); refreshLbAdmin(); }
-            else lbMsg(j2.error || 'Edit failed', 'err');
-          }catch(err){ lbMsg('Edit failed: ' + err.message, 'err'); }
-        });
-        const delBtn = document.createElement('button');
-        delBtn.textContent = '🗑️';
-        delBtn.title = 'Delete';
-        delBtn.style.cssText = 'padding:4px 8px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);border-radius:6px;color:#ffadad;cursor:pointer';
-        delBtn.addEventListener('click', async () => {
-          if(!key){ lbMsg('Enter the admin key first.', 'err'); return; }
-          if(!confirm('Delete "' + (e.n || member) + '" (score ' + e.s + ')? This can\'t be undone.')) return;
-          try{
-            const url = isWeekly
-              ? '/api/leaderboard?board=weekly&member=' + encodeURIComponent(member)
-              : '/api/leaderboard?board=game&name=' + encodeURIComponent(e.n);
-            const r2 = await fetch(url, {
-              method: 'DELETE',
-              headers: { 'x-admin-secret': key }
-            });
-            const j2 = await r2.json();
-            if(j2.removed !== undefined){ lbMsg('Removed.', 'ok'); refreshLbAdmin(); }
-            else lbMsg(j2.error || 'Delete failed', 'err');
-          }catch(err){ lbMsg('Delete failed: ' + err.message, 'err'); }
-        });
-        row.appendChild(editBtn);
-        row.appendChild(delBtn);
-        list.appendChild(row);
-        // Wire up COPY button if the wallet was rendered
-        const copyBtn = row.querySelector('.lbCopyWallet');
-        if (copyBtn) copyBtn.addEventListener('click', (ev) => {
-          ev.stopPropagation();
-          const w = copyBtn.getAttribute('data-wallet');
-          try { navigator.clipboard.writeText(w); copyBtn.textContent = 'COPIED ✓'; setTimeout(() => copyBtn.textContent = 'COPY', 1200); }
-          catch (e) { lbMsg('Copy failed; select the address manually.', 'err'); }
-        });
-      });
-    }catch(err){ list.innerHTML = '<div class="ev-admin-row">Could not load: ' + err.message + '</div>'; }
-  }
-  // Tab switching
-  document.querySelectorAll('.lb-admin-tab').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.lb-admin-tab').forEach(b => {
-        b.classList.remove('active');
-        b.style.background = 'rgba(255,255,255,.05)';
-        b.style.border = '1px solid rgba(255,255,255,.12)';
-        b.style.color = '#aaa';
-      });
-      btn.classList.add('active');
-      btn.style.background = 'rgba(245,197,66,.12)';
-      btn.style.border = '1px solid rgba(245,197,66,.35)';
-      btn.style.color = '#f5c542';
-      _lbAdminBoard = btn.dataset.board;
-      refreshLbAdmin();
-    });
-  });
-  // Section tabs at top of modal: Events | Leaderboard
-  function setSection(name){
-    document.querySelectorAll('.admin-section-tab').forEach(b => {
-      const active = b.dataset.section === name;
-      b.classList.toggle('active', active);
-      b.style.background = active ? 'rgba(162,89,255,.18)' : 'rgba(255,255,255,.05)';
-      b.style.border     = active ? '1px solid rgba(162,89,255,.5)' : '1px solid rgba(255,255,255,.12)';
-      b.style.color      = active ? '#c9b8ff' : '#aaa';
-    });
-    const ev = $('adminSectionEvents');
-    const lb = $('adminSectionLeaderboard');
-    if (ev) ev.style.display = name === 'events' ? 'block' : 'none';
-    if (lb) lb.style.display = name === 'leaderboard' ? 'block' : 'none';
-    if (name === 'leaderboard') setTimeout(refreshLbAdmin, 30);
-  }
-  document.querySelectorAll('.admin-section-tab').forEach(btn => {
-    btn.addEventListener('click', () => setSection(btn.dataset.section));
-  });
-  // When admin opens, refresh both
-  $('adminOpen').addEventListener('click', () => setTimeout(refreshLbAdmin, 80));
-  // Auto-refresh the leaderboard view when the admin key changes
-  // (so the full wallets reveal as soon as the key is entered, no extra clicks)
-  let _adminKeyDebounce = null;
-  $('adminKey').addEventListener('input', () => {
-    clearTimeout(_adminKeyDebounce);
-    _adminKeyDebounce = setTimeout(() => {
-      // Only refresh leaderboard if it's currently the visible section
-      const lb = document.getElementById('adminSectionLeaderboard');
-      if (lb && lb.style.display !== 'none') refreshLbAdmin();
-    }, 400);
-  });
-  refreshLbAdmin();
-
-  const fileInput = $('adminImage');
-  if(fileInput){
-    fileInput.addEventListener('change', () => {
-      const f = fileInput.files && fileInput.files[0];
-      $('adminImageLabel').textContent = f ? ('📷 ' + f.name) : '📷 Add event image (optional)';
-    });
-  }
-
-  $('adminPost').addEventListener('click', async () => {
-    const key = $('adminKey').value.trim();
-    const title = $('adminTitle').value.trim();
-    const start = $('adminStart').value;
-    const type = $('adminType').value;
-    const link = $('adminLink').value.trim();
-    if(!key){ msg('Enter the admin key.', 'err'); return; }
-    if(!title || !start){ msg('Title and start time are required.', 'err'); return; }
-    try{
-      let image = '';
-      const f = fileInput && fileInput.files && fileInput.files[0];
-      if(f){
-        if(f.size > 4 * 1024 * 1024){ msg('Image is over 4 MB. Pick a smaller one.', 'err'); return; }
-        msg('Uploading image...');
-        const up = await fetch('/api/upload-image', {
-          method: 'POST',
-          headers: { 'Content-Type': f.type || 'image/jpeg', 'X-Filename': f.name, 'X-Admin-Secret': key },
-          body: f
-        });
-        const uj = await up.json();
-        if(!uj.success){ msg(uj.error || 'Image upload failed.', 'err'); return; }
-        image = uj.url;
-      }
-      msg('Posting...');
-      const qs = new URLSearchParams({ action:'add', key, title, start: new Date(start).toISOString(), type, link, image });
-      const r = await fetch('/api/events?' + qs.toString());
-      const j = await r.json();
-      if(j.ok){
-        msg('Event posted.', 'ok');
-        if(fileInput){ fileInput.value = ''; $('adminImageLabel').textContent = '📷 Add event image (optional)'; }
-        refreshAdminList(); loadEvents();
-      }
-      else msg(j.error || 'Could not post the event.', 'err');
-    }catch(e){ msg('Error: ' + e.message, 'err'); }
-  });
-})();
-
-/* ---------------- hero fun: drip particles + WOOF easter egg + reveals ---------------- */
-(function(){
-  if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  const host = $('heroDrips');
-  if(host){
-    for(let i = 0; i < 12; i++){
-      const p = document.createElement('span');
-      p.className = 'drip-p' + (Math.random() < 0.35 ? ' purple-p' : '');
-      p.style.left = (Math.random() * 100).toFixed(1) + '%';
-      p.style.setProperty('--s', (0.6 + Math.random() * 0.9).toFixed(2));
-      p.style.animationDuration = (6 + Math.random() * 9).toFixed(1) + 's';
-      p.style.animationDelay = (-Math.random() * 12).toFixed(1) + 's';
-      host.appendChild(p);
-    }
-  }
-})();
-
-(function(){
-  const banner = $('heroBanner');
-  if(!banner) return;
-  const WOOFS = ['WOOF!', 'WOOF WOOF!', 'drip drip.', 'good dog.', 'pays well.', 'AWOOOO!', '*tail wags*', 'the pack eats.'];
-  const BULL_WOOFS = ['we pumping. WOOF.', 'green candles taste like bacon.', 'UP ONLY.', 'the drip is dripping.'];
-  const BEAR_WOOFS = ['diamond paws.', 'we hold. we fetch later.', 'red is just discount gold.', 'still getting paid every 30 min.'];
-  banner.addEventListener('click', (e) => {
-    const pool = WOOFS.concat(window._mood === 'bull' ? BULL_WOOFS : window._mood === 'bear' ? BEAR_WOOFS : []);
-    const pop = document.createElement('div');
-    pop.className = 'woof-pop';
-    pop.textContent = pool[Math.floor(Math.random() * pool.length)];
-    pop.style.left = e.clientX + 'px';
-    pop.style.top = (e.clientY - 10) + 'px';
-    pop.style.fontSize = (20 + Math.random() * 16).toFixed(0) + 'px';
-    document.body.appendChild(pop);
-    setTimeout(() => pop.remove(), 1200);
-  });
-})();
-
+/* ---------------- scroll reveals ---------------- */
 (function(){
   const sections = document.querySelectorAll('section, .ticker, .hero-copy');
   if(!('IntersectionObserver' in window)){ return; }
@@ -1241,274 +844,3 @@ async function drawRankCard(d){
   });
 })();
 
-/* ---------------- intro splash ---------------- */
-(function(){
-  const intro = $('intro');
-  if(!intro) return;
-  // Splash shows on the first 3 visits per browser, then never again
-  // (a fresh browser/incognito has its own localStorage so it gets the show).
-  let visits = 0;
-  try {
-    visits = parseInt(localStorage.getItem('drippyVisits') || '0', 10) || 0;
-    localStorage.setItem('drippyVisits', String(visits + 1));
-  } catch(_) {}
-  if (visits >= 3) { intro.classList.add('done'); return; }
-  if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches){
-    intro.classList.add('done');
-    return;
-  }
-  // Falling drips inside the splash, gold with a few purple
-  const dripHost = $('introDrips');
-  if(dripHost){
-    for(let i = 0; i < 16; i++){
-      const drop = document.createElement('i');
-      if(Math.random() < 0.3) drop.className = 'purple-drip';
-      drop.style.left = (Math.random() * 100).toFixed(1) + '%';
-      drop.style.animationDuration = (1.4 + Math.random() * 2.2).toFixed(2) + 's';
-      drop.style.animationDelay = (Math.random() * 2.4).toFixed(2) + 's';
-      drop.style.height = (32 + Math.random() * 36).toFixed(0) + 'px';
-      dripHost.appendChild(drop);
-    }
-  }
-  // Remove from the page once the exit animation finishes, with a hard
-  // fallback timer in case the animation event never fires
-  intro.addEventListener('animationend', (e) => {
-    if(e.animationName === 'introExit') intro.classList.add('done');
-  });
-  setTimeout(() => intro.classList.add('done'), 4300);
-})();
-
-/* ---------------- v3 polish: aurora, scroll progress, nav state,
-   card pointer-glow, reveal stagger ---------------- */
-(function(){
-  // Ambient aurora orbs (skipped for reduced-motion via CSS)
-  const aurora = document.createElement('div');
-  aurora.className = 'aurora';
-  aurora.innerHTML = '<i></i><i></i><i></i>';
-  document.body.prepend(aurora);
-
-  // Scroll progress bar
-  const bar = document.createElement('div');
-  bar.className = 'scroll-progress';
-  document.body.appendChild(bar);
-  const nav = document.querySelector('.nav');
-  let ticking = false;
-  addEventListener('scroll', () => {
-    if (ticking) return;
-    ticking = true;
-    requestAnimationFrame(() => {
-      const h = document.documentElement;
-      const max = h.scrollHeight - h.clientHeight;
-      bar.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0) + '%';
-      if (nav) nav.classList.toggle('scrolled', h.scrollTop > 24);
-      ticking = false;
-    });
-  }, { passive: true });
-
-  // Pointer-tracked glow on cards (sets --mx/--my consumed by .card::before)
-  document.addEventListener('pointermove', (e) => {
-    const card = e.target && e.target.closest ? e.target.closest('.card') : null;
-    if (!card) return;
-    const r = card.getBoundingClientRect();
-    card.style.setProperty('--mx', ((e.clientX - r.left) / r.width * 100) + '%');
-    card.style.setProperty('--my', ((e.clientY - r.top) / r.height * 100) + '%');
-  }, { passive: true });
-
-  // Reveal stagger: index each .reveal within its parent so siblings cascade
-  document.querySelectorAll('.reveal').forEach((el) => {
-    let i = 0, sib = el;
-    while ((sib = sib.previousElementSibling)) if (sib.classList && sib.classList.contains('reveal')) i++;
-    el.style.setProperty('--ri', Math.min(i, 6));
-  });
-})();
-
-/* ---------------- v4 signature layer ----------------
-   Scroll-runner Drippy, hero particle canvas, mouse parallax,
-   drip dividers, paw cursor trail. All gated on reduced-motion. */
-(function(){
-  const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (reduced) return;
-
-  /* --- 1. Drippy runs along the scroll progress bar --- */
-  const runner = document.createElement('img');
-  runner.id = 'scrollRunner';
-  runner.src = 'assets/sprites/gold_run.png';
-  runner.alt = '';
-  runner.className = 'idle';
-  document.body.appendChild(runner);
-  let lastPct = 0, idleTimer = null;
-  function placeRunner(){
-    const h = document.documentElement;
-    const max = h.scrollHeight - h.clientHeight;
-    const pct = max > 0 ? h.scrollTop / max : 0;
-    // Keep him on-screen at the edges
-    const x = 24 + pct * (innerWidth - 48);
-    runner.style.left = x + 'px';
-    if (Math.abs(pct - lastPct) > 0.0004) {
-      runner.src = 'assets/sprites/gold_run.png';
-      runner.classList.remove('idle');
-      runner.classList.toggle('flip', pct < lastPct); // face the direction of travel
-      clearTimeout(idleTimer);
-      idleTimer = setTimeout(() => {
-        runner.src = 'assets/sprites/gold_idle.png';
-        runner.classList.add('idle');
-      }, 280);
-    }
-    lastPct = pct;
-  }
-  addEventListener('scroll', () => requestAnimationFrame(placeRunner), { passive: true });
-  placeRunner();
-
-  /* --- 2. Hero FX canvas: falling gold drips + purple embers + twinkles --- */
-  const hero = document.querySelector('.hero');
-  if (hero) {
-    const cv = document.createElement('canvas');
-    cv.id = 'heroFX';
-    hero.prepend(cv);
-    const fx = cv.getContext('2d');
-    let W = 0, H = 0, dpr = Math.min(2, devicePixelRatio || 1);
-    function sizeFX(){
-      W = hero.clientWidth; H = hero.clientHeight;
-      cv.width = W * dpr; cv.height = H * dpr;
-      cv.style.width = W + 'px'; cv.style.height = H + 'px';
-      fx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    }
-    sizeFX(); addEventListener('resize', sizeFX);
-    const drips = Array.from({length: 22}, () => ({
-      x: Math.random(), y: Math.random(), s: 0.5 + Math.random(),
-      sway: Math.random() * 6, v: 26 + Math.random() * 44
-    }));
-    const embers = Array.from({length: 14}, () => ({
-      x: Math.random(), y: Math.random(), s: Math.random(),
-      vx: (Math.random() - .5) * 9, vy: -6 - Math.random() * 12, tw: Math.random() * 6
-    }));
-    let visible = true;
-    new IntersectionObserver((e) => { visible = e[0].isIntersecting; }).observe(hero);
-    let pt = 0;
-    function tickFX(ts){
-      requestAnimationFrame(tickFX);
-      if (!visible) return;
-      const dt = Math.min(0.05, (ts - pt) / 1000 || 0.016); pt = ts;
-      const t = ts / 1000;
-      fx.clearRect(0, 0, W, H);
-      // gold drips
-      for (const d of drips) {
-        d.y += (d.v * dt) / H;
-        if (d.y > 1.05) { d.y = -0.05; d.x = Math.random(); }
-        const x = d.x * W + Math.sin(t + d.sway) * 6, y = d.y * H;
-        const r = 2 + d.s * 2.4;
-        const grad = fx.createLinearGradient(x, y - r * 4, x, y);
-        grad.addColorStop(0, 'rgba(245,197,66,0)');
-        grad.addColorStop(1, 'rgba(245,197,66,' + (0.28 + d.s * 0.3) + ')');
-        fx.fillStyle = grad;
-        fx.fillRect(x - 1, y - r * 4, 2, r * 4);
-        fx.beginPath(); fx.ellipse(x, y, r * 0.8, r * 1.25, 0, 0, 7); fx.fill();
-      }
-      // purple embers drifting up
-      for (const e of embers) {
-        e.x += (e.vx * dt) / W; e.y += (e.vy * dt) / H;
-        if (e.y < -0.05) { e.y = 1.05; e.x = Math.random(); }
-        const a = 0.14 + 0.2 * Math.abs(Math.sin(t * 1.5 + e.tw));
-        fx.fillStyle = 'rgba(162,89,255,' + a + ')';
-        fx.beginPath(); fx.arc(e.x * W, e.y * H, 1.4 + e.s * 2, 0, 7); fx.fill();
-      }
-      // occasional twinkle crosses
-      for (let i = 0; i < 3; i++) {
-        const sx = (Math.sin(t * 0.4 + i * 2.4) * 0.4 + 0.5) * W;
-        const sy = (Math.cos(t * 0.31 + i * 1.7) * 0.36 + 0.4) * H;
-        const a = Math.max(0, Math.sin(t * 2.2 + i * 2)) * 0.5;
-        if (a < 0.08) continue;
-        fx.strokeStyle = 'rgba(255,231,154,' + a + ')'; fx.lineWidth = 1;
-        fx.beginPath(); fx.moveTo(sx - 5, sy); fx.lineTo(sx + 5, sy);
-        fx.moveTo(sx, sy - 5); fx.lineTo(sx, sy + 5); fx.stroke();
-      }
-    }
-    requestAnimationFrame(tickFX);
-  }
-
-  /* --- 3. Mouse parallax on the hero banner (desktop) --- */
-  if (matchMedia('(pointer:fine)').matches) {
-    const banner = document.getElementById('heroBanner');
-    if (banner && hero) {
-      let tx = 0, ty = 0, cx = 0, cy = 0;
-      hero.addEventListener('pointermove', (e) => {
-        const r = hero.getBoundingClientRect();
-        tx = ((e.clientX - r.left) / r.width - 0.5) * 14;
-        ty = ((e.clientY - r.top) / r.height - 0.5) * 9;
-      });
-      hero.addEventListener('pointerleave', () => { tx = 0; ty = 0; });
-      (function lerpB(){
-        requestAnimationFrame(lerpB);
-        cx += (tx - cx) * 0.07; cy += (ty - cy) * 0.07;
-        banner.style.translate = cx.toFixed(2) + 'px ' + cy.toFixed(2) + 'px';
-      })();
-    }
-
-    /* --- 4. Paw-print cursor trail (throttled, fades) --- */
-    let lastPaw = 0, pawFlip = false;
-    document.addEventListener('pointermove', (e) => {
-      const now = performance.now();
-      if (now - lastPaw < 130) return;
-      lastPaw = now; pawFlip = !pawFlip;
-      const paw = document.createElement('div');
-      paw.className = 'pawprint';
-      paw.style.left = (e.clientX + (pawFlip ? -14 : 6)) + 'px';
-      paw.style.top = (e.clientY + 10) + 'px';
-      paw.style.transform = 'rotate(' + ((pawFlip ? -1 : 1) * (12 + Math.random() * 14)).toFixed(0) + 'deg)';
-      document.body.appendChild(paw);
-      setTimeout(() => paw.remove(), 850);
-    }, { passive: true });
-  }
-
-})();
-
-/* ---------------- Mobile wallet help — deep-link panel ----------------
-   On mobile browsers (iOS Safari, Android Chrome), wallet apps don't inject
-   into the page. The fix is to deep-link the user into the wallet's own
-   in-app browser, which DOES inject. We detect:
-     1. Mobile UA  → show the help panel
-     2. Already inside a wallet's in-app browser (window.solana etc) → hide it
-   and wire each button to that wallet's universal deep-link. */
-(function(){
-  const help = document.getElementById('mobileWalletHelp');
-  if (!help) return;
-  const ua = navigator.userAgent || '';
-  const isMobile = /Android|iPhone|iPad|iPod/i.test(ua);
-  if (!isMobile) return; // desktop never sees it
-
-  // Detection: if a Solana wallet is already injected, we're inside an in-app
-  // browser (Phantom, Solflare, Backpack, etc.) — let the Jupiter widget do its thing.
-  const inWalletBrowser = !!(window.phantom?.solana || window.solflare || window.backpack || window.solana);
-  if (inWalletBrowser) {
-    help.style.display = 'none';
-    return;
-  }
-
-  // Build deep-links to re-open the current URL inside each wallet's browser
-  const here = location.href.split('#')[0];
-  const refUrl = location.origin;
-  const enc = encodeURIComponent(here);
-  const encRef = encodeURIComponent(refUrl);
-
-  // Phantom universal link: https://docs.phantom.com/phantom-deeplinks/provider-methods/browse
-  const phantomLink = 'https://phantom.app/ul/browse/' + enc + '?ref=' + encRef;
-  // Solflare universal link: same pattern
-  const solflareLink = 'https://solflare.com/ul/v1/browse/' + enc + '?ref=' + encRef;
-  // Backpack universal link
-  const backpackLink = 'https://backpack.app/?url=' + enc;
-  // Jupiter Mobile — deep-link straight to the SOL → $DRIPPY swap.
-  // jup.ag URLs auto-open inside the Jupiter mobile app if installed; fall back to web.
-  const DRIPPY_MINT = 'EPRZgmvU4aTQ4UaC4bywgNvxJ5YmhuKqM1bx3gw4DRPY';
-  const jupiterLink = 'https://jup.ag/swap/SOL-' + DRIPPY_MINT;
-
-  const p = document.getElementById('mwPhantom');
-  const s = document.getElementById('mwSolflare');
-  const b = document.getElementById('mwBackpack');
-  const j = document.getElementById('mwJupiter');
-  if (p) p.href = phantomLink;
-  if (s) s.href = solflareLink;
-  if (b) b.href = backpackLink;
-  if (j) j.href = jupiterLink;
-
-  help.style.display = 'block';
-})();
