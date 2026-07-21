@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>$DRIPPY — The Pack · Memes & DripQuests</title>
+<meta name="description" content="The Drippy pack zone — memes, the meme gallery, and DripQuests. Check your wallet, unlock the art, and climb to Diamond Dripper.">
+<meta name="theme-color" content="#0a0610">
+<meta property="og:title" content="$DRIPPY — The Pack">
+<meta property="og:description" content="Memes & DripQuests. Unlock the art, climb to Diamond Dripper.">
+<meta property="og:image" content="https://drippyrewards.com/assets/banner.jpg">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bowlby+One&family=Anton&family=Permanent+Marker&family=Fraunces:opsz,wght@9..144,400;9..144,600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a class="nav-logo" href="/">$DRIP<span>PY</span></a>
+    <div class="nav-links">
+      <a href="/">← Home</a>
+      <a href="#dripquests">Quests</a>
+      <a href="#gallery">Memes</a>
+      <a href="/#merch">Merch</a>
+      <a class="nav-game" href="/game">🎮 Play</a>
+    </div>
+    <a class="nav-cta" href="/#trade">Buy $DRIPPY</a>
+  </div>
+</nav>
+
+<!-- PAGE HEADER -->
+<header class="hero" id="top">
+  <div class="container">
+    <div class="eyebrow" style="text-align:center">🐾 The Pack Zone</div>
+    <h1 style="text-align:center;max-width:820px;margin:6px auto 0">Memes &amp; <span class="gold">Drip</span><span class="purple">Quests</span></h1>
+    <p class="lede" style="text-align:center;max-width:680px;margin:16px auto 0">Twelve quests, four ranks, and the pack's finest memes. Check your wallet to unlock your rank art and climb to Diamond Dripper.</p>
+  </div>
+</header>
+
+<!-- DRIPQUESTS -->
+<section id="dripquests">
+  <div class="container">
+    <div class="eyebrow">Achievements</div>
+    <h2><span class="gold">Drip</span><span class="purple">Quests</span></h2>
+    <p class="lede">Twelve quests. Four ranks. Paste your wallet, unlock the art, climb to Diamond Dripper.</p>
+
+    <div class="wc-input-row" style="max-width:540px;margin:22px auto 26px">
+      <input id="dqWalletInput" type="text" placeholder="Paste your Solana wallet to unlock your quests" autocomplete="off" spellcheck="false">
+      <button id="dqWalletBtn">Unlock</button>
+    </div>
+    <div class="wc-error" id="dqWalletError"></div>
+
+    <div class="dq-rank" id="dqRankCard">
+      <div class="dq-rank-art" id="dqRankArt">
+        <img src="assets/drippy-king.png" alt="Drippy rank character">
+      </div>
+      <div class="dq-rank-info">
+        <div class="dq-rank-label">Current Rank</div>
+        <div class="dq-rank-name" id="dqRankName">Check your wallet to rank up</div>
+        <div class="dq-bar"><div class="dq-bar-fill" id="dqProgressFill"></div></div>
+        <div class="dq-bar-text" id="dqProgressText">0 / 12 quests complete</div>
+      </div>
+    </div>
+
+    <div class="dq-grid" id="dqGrid"></div>
+
+    <div class="dq-share" id="dqShare">
+      <button id="dqCardBtn">🃏 Create my rank card</button>
+      <a id="dqShareX" href="#" target="_blank" rel="noopener">𝕏 Share link</a>
+      <a id="dqShareTg" href="#" target="_blank" rel="noopener">✈ Telegram</a>
+    </div>
+  </div>
+</section>
+
+<!-- SHARE CARD MODAL -->
+<div class="modal" id="cardModal">
+  <div class="modal-box card-modal-box">
+    <button class="close" id="cardClose" aria-label="Close">✕</button>
+    <h3>🃏 Your Rank Card</h3>
+    <canvas id="cardCanvas" width="1080" height="1350"></canvas>
+    <div class="card-actions">
+      <button id="cardShareBtn">📤 Share image</button>
+      <button id="cardDownloadBtn">⬇ Download</button>
+    </div>
+    <div class="modal-msg" id="cardMsg"></div>
+  </div>
+</div>
+
+<!-- GALLERY -->
+<section id="gallery">
+  <div class="container">
+    <div class="eyebrow">Meet The Legend</div>
+    <h2>Many Faces. <span class="purple">One Dog.</span></h2>
+    <div class="gallery-grid">
+      <div class="g-item">
+        <video src="assets/drippy-video.mp4" poster="assets/video-poster.jpg" controls preload="none" playsinline></video>
+        <div class="g-cap">Drippy in motion</div>
+      </div>
+      <div class="g-item"><img src="assets/drippy-king.png" alt="King Drippy on the throne" loading="lazy"><div class="g-cap">King Drippy</div></div>
+      <div class="g-item"><img src="assets/carousel/eat-the-dip.jpg" alt="Drippy eating the dip" loading="lazy"><div class="g-cap">Eat the dip</div></div>
+      <div class="g-item"><img src="assets/carousel/good-morning.jpg" alt="Good morning fam" loading="lazy"><div class="g-cap">Good morning fam</div></div>
+      <div class="g-item"><img src="assets/carousel/uncle-sam.jpg" alt="Drippy wants you" loading="lazy"><div class="g-cap">Drippy wants you</div></div>
+      <div class="g-item"><img src="assets/carousel/waterpark.jpg" alt="Drippy at the waterpark" loading="lazy"><div class="g-cap">Sliding to the moon</div></div>
+      <div class="g-item">
+        <video src="assets/carousel/drippy-guitar.mp4" controls preload="none" playsinline></video>
+        <div class="g-cap">Drippy on guitar</div>
+      </div>
+      <div class="g-item">
+        <video src="assets/carousel/drippy-car.mp4" controls preload="none" playsinline></video>
+        <div class="g-cap">Built different</div>
+      </div>
+      <div class="g-item">
+        <video src="assets/carousel/drippy-boxing.mp4" controls preload="none" playsinline></video>
+        <div class="g-cap">Heavyweight drip</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="container">
+    <div class="foot-woof">WOOF.</div>
+    <p class="lede" style="margin:0 auto">Hold $DRIPPY. Burn for glory. Stay loyal. Get paid forever.</p>
+    <div class="foot-links">
+      <a href="/">🏠 Home</a>
+      <a href="https://x.com/drippyrewards" target="_blank" rel="noopener">𝕏 @drippyrewards</a>
+      <a href="https://t.me/DrippyRewards" target="_blank" rel="noopener">✈️ Telegram</a>
+      <a href="https://www.forgeswap.fun/" target="_blank" rel="noopener">⚒️ ForgeSwap</a>
+      <a href="https://dexscreener.com/solana/3ohceht4kcjkysrtn4mysd2zwgkwz1cinualvtcchqmz" target="_blank" rel="noopener">📈 DexScreener</a>
+    </div>
+    <p class="disclaimer">$DRIPPY is a memecoin. This is not financial advice. Crypto is highly volatile and you can lose everything. Only spend what you can afford to lose. Drippy is a good dog but he is still a dog.</p>
+  </div>
+</footer>
+
+<script src="app.js" defer></script>
+</body>
+</html>
