@@ -17,7 +17,6 @@ const REDIS_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_R
 
 const HELIUS_RPC = () => 'https://mainnet.helius-rpc.com/?api-key=' + HELIUS_KEY;
 const PARSE_URL = () => 'https://api.helius.xyz/v0/transactions?api-key=' + HELIUS_KEY;
-const FORGE_URL = 'https://forgepad.fun/api/token-distribution/' + TOKEN_MINT;
 
 const TOTAL_BURN_KEY = 'drippy:burn:total';
 const TOTAL_BURN_EVENTS_KEY = 'drippy:burn:events';
@@ -93,11 +92,37 @@ function fetchSupply(){
 }
 
 // --- Forge distribution data (60s cache) -----------------------------------
+// Forge migrated to /solana/token/... URLs and now bot-filters plain fetches
+// (custom User-Agents get a 403). Send real browser headers and try the known
+// endpoint paths, using whichever returns valid JSON. FORGE_URL_OVERRIDE lets
+// us repoint instantly via env var if Forge moves the API again.
+function forgeCandidates(){
+  if(process.env.FORGE_URL_OVERRIDE) return [process.env.FORGE_URL_OVERRIDE];
+  return [
+    'https://forgepad.fun/api/token-distribution/' + TOKEN_MINT,
+    'https://forgepad.fun/api/solana/token-distribution/' + TOKEN_MINT,
+    'https://forgepad.fun/solana/api/token-distribution/' + TOKEN_MINT
+  ];
+}
 function fetchDistribution(){
   return cached('drippy:stats:forge', 60_000, async () => {
-    const r = await fetch(FORGE_URL, { headers: { 'Accept': 'application/json', 'User-Agent': 'DrippyRewards-Site/2.0' } });
-    if(!r.ok) throw new Error('forge ' + r.status);
-    const d = await r.json();
+    const headers = {
+      'Accept': 'application/json, text/plain, */*',
+      'Accept-Language': 'en-US,en;q=0.9',
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+      'Referer': 'https://forgepad.fun/solana/token/' + TOKEN_MINT
+    };
+    let d = null, lastErr = 'forge unreachable';
+    for(const url of forgeCandidates()){
+      try{
+        const r = await fetch(url, { headers });
+        if(!r.ok){ lastErr = 'forge ' + r.status + ' @ ' + url; continue; }
+        const j = await r.json();
+        if(j && (j.totalDividendsDistributed != null || j.successfulDistributions != null || j.burnToEarnTokensBurned != null)){ d = j; break; }
+        lastErr = 'forge unexpected schema @ ' + url;
+      }catch(e){ lastErr = (e.message || 'fetch failed') + ' @ ' + url; }
+    }
+    if(!d) throw new Error(lastErr);
     const lamportsToSol = (n) => Number(n || 0) / 1e9;
     return {
       lastDistributionAt: d.lastDistributionAt || null,
