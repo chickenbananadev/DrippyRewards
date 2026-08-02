@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>$DRIPPY — Newsroom</title>
+<meta name="description" content="Official news and announcements from the $DRIPPY pack — updates, milestones, and what's shipping next.">
+<meta name="theme-color" content="#0a0610">
+<meta property="og:title" content="$DRIPPY — Newsroom">
+<meta property="og:description" content="Official news and announcements from the $DRIPPY pack.">
+<meta property="og:image" content="https://drippyrewards.com/assets/banner.jpg">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bowlby+One&family=Anton&family=Permanent+Marker&family=Fraunces:opsz,wght@9..144,400;9..144,600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a class="nav-logo" href="/">$DRIP<span>PY</span></a>
+    <div class="nav-links">
+      <a href="/">← Home</a>
+      <a href="/community">Pack</a>
+      <a class="nav-game" href="/game">🎮 Play</a>
+    </div>
+    <a class="nav-cta" href="/#trade">Buy $DRIPPY</a>
+    <button class="nav-toggle" id="navToggle" aria-label="Open menu" aria-expanded="false">☰</button>
+  </div>
+</nav>
+
+<!-- PAGE HEADER -->
+<header class="hero" id="top">
+  <div class="container">
+    <div class="eyebrow" style="text-align:center">📰 The Newsroom</div>
+    <h1 style="text-align:center;max-width:820px;margin:6px auto 0">Drippy <span class="gold">News</span></h1>
+    <p class="lede" style="text-align:center;max-width:680px;margin:16px auto 0">Official announcements from the pack — updates, milestones, and what's shipping next.</p>
+  </div>
+</header>
+
+<!-- NEWS FEED -->
+<section id="newsfeed">
+  <div class="container">
+    <div class="news-list" id="newsList">
+      <div class="news-empty">Loading the news...</div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="container">
+    <div class="foot-woof">WOOF.</div>
+    <p class="lede" style="margin:0 auto">Hold $DRIPPY. Burn for glory. Stay loyal. Get paid forever.</p>
+    <div class="foot-links">
+      <a href="/">🏠 Home</a>
+      <a href="https://x.com/drippyrewards" target="_blank" rel="noopener">𝕏 @drippyrewards</a>
+      <a href="https://t.me/DrippyRewards" target="_blank" rel="noopener">✈️ Telegram</a>
+    </div>
+    <p class="disclaimer">$DRIPPY is a memecoin. This is not financial advice. Crypto is highly volatile and you can lose everything. Only spend what you can afford to lose. Drippy is a good dog but he is still a dog.</p>
+    <a class="admin-link" href="#" id="newsAdminOpen">· post news ·</a>
+  </div>
+</footer>
+
+<!-- NEWS ADMIN MODAL -->
+<div class="modal" id="newsAdminModal">
+  <div class="modal-box">
+    <button class="close" id="newsAdminClose" aria-label="Close">✕</button>
+    <h3>📰 Post News</h3>
+    <input id="naKey" type="password" placeholder="Access key" autocomplete="off">
+    <input id="naTitle" type="text" maxlength="160" placeholder="Headline">
+    <textarea id="naBody" maxlength="8000" rows="7" placeholder="Write the article... (blank line = new paragraph)"></textarea>
+    <input id="naAuthor" type="text" maxlength="40" placeholder="Author (optional)">
+    <input id="naLink" type="text" placeholder="Link (optional, https://...)">
+    <label class="admin-file">
+      <input id="naImage" type="file" accept="image/*">
+      <span id="naImageLabel">📷 Add an image (optional)</span>
+    </label>
+    <button id="naPost">Publish</button>
+    <div class="modal-msg" id="naMsg"></div>
+    <h3 style="margin-top:18px">Published articles</h3>
+    <div class="ev-admin-list" id="naList"></div>
+  </div>
+</div>
+
+<script src="app.js" defer></script>
+<script defer>
+document.addEventListener('DOMContentLoaded', () => {
+  const $id = (x) => document.getElementById(x);
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const fmtDate = (ms) => new Date(ms).toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
+
+  function paragraphs(text){
+    return String(text || '').split(/\n{2,}/).map(p => '<p>' + esc(p).replace(/\n/g, '<br>') + '</p>').join('');
+  }
+
+  // ---------- public feed ----------
+  async function loadNews(){
+    const list = $id('newsList');
+    try{
+      const r = await fetch('/api/news', { cache: 'no-store' });
+      const d = await r.json();
+      const arts = d.articles || [];
+      if(!arts.length){
+        list.innerHTML = '<div class="news-empty">No news yet — the first drop is coming soon. 🐾</div>';
+        return arts;
+      }
+      list.innerHTML = arts.map(a =>
+        '<article class="news-card">' +
+          (a.image ? '<img class="news-img" src="' + esc(a.image) + '" alt="" loading="lazy">' : '') +
+          '<div class="news-body">' +
+            '<div class="news-meta">' + fmtDate(a.publishedAt) + (a.author ? ' · ' + esc(a.author) : '') + '</div>' +
+            '<h2 class="news-title">' + esc(a.title) + '</h2>' +
+            '<div class="news-text">' + paragraphs(a.body) + '</div>' +
+            (a.link ? '<a class="news-link" href="' + esc(a.link) + '" target="_blank" rel="noopener">Read more ↗</a>' : '') +
+          '</div>' +
+        '</article>'
+      ).join('');
+      return arts;
+    }catch(e){
+      list.innerHTML = '<div class="news-empty">Could not load the news. Try again in a moment.</div>';
+      return [];
+    }
+  }
+  loadNews();
+
+  // ---------- admin panel ----------
+  const modal = $id('newsAdminModal');
+  const msgEl = $id('naMsg');
+  function msg(text, kind){ msgEl.textContent = text || ''; msgEl.className = 'modal-msg' + (kind ? ' ' + kind : ''); }
+
+  try{ const saved = localStorage.getItem('drippyNewsKey'); if(saved) $id('naKey').value = saved; }catch(_){}
+
+  $id('newsAdminOpen').addEventListener('click', (e) => { e.preventDefault(); modal.classList.add('open'); renderAdminList(); });
+  $id('newsAdminClose').addEventListener('click', () => modal.classList.remove('open'));
+  modal.addEventListener('click', (e) => { if(e.target === modal) modal.classList.remove('open'); });
+
+  $id('naImage').addEventListener('change', () => {
+    const f = $id('naImage').files[0];
+    $id('naImageLabel').textContent = f ? ('📷 ' + f.name) : '📷 Add an image (optional)';
+  });
+
+  async function renderAdminList(){
+    const arts = await loadNews();
+    const box = $id('naList');
+    if(!arts.length){ box.innerHTML = '<div class="ev-admin-row"><span>Nothing published yet</span></div>'; return; }
+    box.innerHTML = arts.map(a =>
+      '<div class="ev-admin-row"><span>' + esc(a.title.slice(0, 34)) + (a.title.length > 34 ? '…' : '') + '</span>' +
+      '<button data-del="' + esc(a.id) + '">Delete</button></div>'
+    ).join('');
+    box.querySelectorAll('button[data-del]').forEach(btn => btn.addEventListener('click', async () => {
+      const key = $id('naKey').value.trim();
+      if(!key){ msg('Enter your access key first.', 'err'); return; }
+      btn.disabled = true;
+      const r = await fetch('/api/news', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'del', key, id: btn.getAttribute('data-del') })
+      });
+      const d = await r.json();
+      if(d.error){ msg(d.error, 'err'); btn.disabled = false; return; }
+      msg('Deleted.', 'ok');
+      renderAdminList();
+    }));
+  }
+
+  $id('naPost').addEventListener('click', async () => {
+    const key = $id('naKey').value.trim();
+    const title = $id('naTitle').value.trim();
+    const body = $id('naBody').value.trim();
+    const author = $id('naAuthor').value.trim();
+    const link = $id('naLink').value.trim();
+    if(!key){ msg('Enter your access key.', 'err'); return; }
+    if(!title){ msg('A headline is required.', 'err'); return; }
+    if(!body){ msg('The article body is required.', 'err'); return; }
+
+    const btn = $id('naPost');
+    btn.disabled = true; btn.textContent = 'Publishing...';
+    try{
+      let image = '';
+      const file = $id('naImage').files[0];
+      if(file){
+        msg('Uploading image...');
+        const up = await fetch('/api/upload-image', {
+          method: 'POST',
+          headers: { 'Content-Type': file.type || 'image/jpeg', 'X-Filename': file.name, 'X-Admin-Secret': key },
+          body: file
+        });
+        const uj = await up.json();
+        if(!up.ok || uj.error){ msg('Image upload failed: ' + (uj.error || up.status), 'err'); return; }
+        image = uj.url;
+      }
+      const r = await fetch('/api/news', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'add', key, title, body, author, link, image })
+      });
+      const d = await r.json();
+      if(d.error){ msg(d.error, 'err'); return; }
+      try{ localStorage.setItem('drippyNewsKey', key); }catch(_){}
+      msg('Published! 🎉', 'ok');
+      $id('naTitle').value = ''; $id('naBody').value = ''; $id('naLink').value = '';
+      $id('naImage').value = ''; $id('naImageLabel').textContent = '📷 Add an image (optional)';
+      renderAdminList();
+    }catch(e){
+      msg('Something went wrong: ' + e.message, 'err');
+    }finally{
+      btn.disabled = false; btn.textContent = 'Publish';
+    }
+  });
+});
+</script>
+</body>
+</html>
