@@ -30,6 +30,10 @@
     {
       "source": "/community",
       "destination": "/community.html"
+    },
+    {
+      "source": "/news",
+      "destination": "/news.html"
     }
   ],
   "headers": [
@@ -91,6 +95,15 @@
     },
     {
       "source": "/community",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, must-revalidate, max-age=0"
+        }
+      ]
+    },
+    {
+      "source": "/news",
       "headers": [
         {
           "key": "Cache-Control",

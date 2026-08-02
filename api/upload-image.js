@@ -3,6 +3,7 @@
 // Used by the admin panel for posting events with images.
 
 const ADMIN_SECRET = process.env.DRIPPY_EVENTS_SECRET;
+const NEWS_SECRET = process.env.DRIPPY_NEWS_SECRET; // news posters may upload images too
 const BLOB_TOKEN = process.env.BLOB_READ_WRITE_TOKEN;
 const BLOB_API = 'https://blob.vercel-storage.com';
 
@@ -19,7 +20,8 @@ module.exports = async (req, res) => {
   }
 
   const secret = req.headers['x-admin-secret'] || req.query.secret;
-  if (!ADMIN_SECRET || secret !== ADMIN_SECRET) {
+  const validSecrets = [ADMIN_SECRET, NEWS_SECRET].filter(Boolean);
+  if (!validSecrets.length || !validSecrets.includes(secret)) {
     return res.status(401).json({ error: 'unauthorized' });
   }
 
