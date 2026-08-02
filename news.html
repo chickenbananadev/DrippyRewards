@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>$DRIPPY — Newsroom</title>
-<meta name="description" content="Official news and announcements from the $DRIPPY pack — updates, milestones, and what's shipping next.">
+<title>The Daily Drip — $DRIPPY News</title>
+<meta name="description" content="The Daily Drip — official news from the $DRIPPY pack, hot off the hydrant. Updates, milestones, and what's shipping next.">
 <meta name="theme-color" content="#0a0610">
-<meta property="og:title" content="$DRIPPY — Newsroom">
-<meta property="og:description" content="Official news and announcements from the $DRIPPY pack.">
+<meta property="og:title" content="The Daily Drip — $DRIPPY News">
+<meta property="og:description" content="Official news from the $DRIPPY pack, hot off the hydrant.">
 <meta property="og:image" content="https://drippyrewards.com/assets/banner.jpg">
 <meta property="og:type" content="website">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -34,9 +34,9 @@
 <!-- PAGE HEADER -->
 <header class="hero" id="top">
   <div class="container">
-    <div class="eyebrow" style="text-align:center">📰 The Newsroom</div>
-    <h1 style="text-align:center;max-width:820px;margin:6px auto 0">Drippy <span class="gold">News</span></h1>
-    <p class="lede" style="text-align:center;max-width:680px;margin:16px auto 0">Official announcements from the pack — updates, milestones, and what's shipping next.</p>
+    <div class="eyebrow" style="text-align:center">📰 Drippy's Newsroom</div>
+    <h1 style="text-align:center;max-width:820px;margin:6px auto 0">The Daily <span class="gold">Drip</span></h1>
+    <p class="lede" style="text-align:center;max-width:680px;margin:16px auto 0">Official news from the pack, hot off the hydrant — updates, milestones, and what's shipping next.</p>
   </div>
 </header>
 
@@ -68,7 +68,7 @@
 <div class="modal" id="newsAdminModal">
   <div class="modal-box">
     <button class="close" id="newsAdminClose" aria-label="Close">✕</button>
-    <h3>📰 Post News</h3>
+    <h3>📰 Post to The Daily Drip</h3>
     <input id="naKey" type="password" placeholder="Access key" autocomplete="off">
     <input id="naTitle" type="text" maxlength="160" placeholder="Headline">
     <textarea id="naBody" maxlength="8000" rows="7" placeholder="Write the article... (blank line = new paragraph)"></textarea>
@@ -104,7 +104,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const d = await r.json();
       const arts = d.articles || [];
       if(!arts.length){
-        list.innerHTML = '<div class="news-empty">No news yet — the first drop is coming soon. 🐾</div>';
+        list.innerHTML = '<div class="news-empty">The presses are warming up — the first edition drops soon. 🐾</div>';
         return arts;
       }
       list.innerHTML = arts.map(a =>
