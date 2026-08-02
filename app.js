@@ -362,7 +362,9 @@ let currentWallet = null;
       $('wcTotalSol').textContent = fmtSol(d.totalReceivedSol);
       $('wcWalletShort').textContent = shortAddr(d.wallet);
       $('wcDistCount').textContent = (d.distributionCount || 0).toLocaleString();
-      $('wcHoldings').textContent = fmtTokens(d.currentHoldings?.uiAmount);
+      const holdingsUi = d.currentHoldings ? d.currentHoldings.uiAmount : null;
+      $('wcHoldings').textContent = (holdingsUi == null) ? '—' : fmtTokensFull(holdingsUi);
+      $('wcHoldings').title = (holdingsUi == null) ? 'Balance lookup failed — try again in a moment' : holdingsUi.toLocaleString('en-US', { maximumFractionDigits: 2 }) + ' $DRIPPY';
       $('wcBurnedMain').textContent = (d.burner && d.burner.tokensBurned) ? fmtTokens(d.burner.tokensBurned) : '0';
       if(d.lastDistribution){
         $('wcLastAmount').textContent = fmtSol(d.lastDistribution.amountSol);

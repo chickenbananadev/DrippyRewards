@@ -59,17 +59,45 @@ async function rpc(method, params){
   return j.result;
 }
 
+async function balanceViaRpc(owner){
+  const result = await rpc('getTokenAccountsByOwner', [owner, { mint: TOKEN_MINT }, { encoding: 'jsonParsed', commitment: 'confirmed' }]);
+  const accounts = result?.value || [];
+  let total = 0;
+  accounts.forEach(acc => {
+    const ui = acc?.account?.data?.parsed?.info?.tokenAmount?.uiAmount;
+    if(typeof ui === 'number') total += ui;
+  });
+  return total;
+}
+
+// Fallback: Helius DAS getTokenAccounts (different backend than the RPC path).
+// Returns raw base units; DRIPPY has 9 decimals.
+async function balanceViaDas(owner){
+  const r = await fetch(HELIUS_RPC(), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'getTokenAccounts', params: { owner, mint: TOKEN_MINT, limit: 100 } })
+  });
+  if(!r.ok) throw new Error('das ' + r.status);
+  const j = await r.json();
+  const accounts = j?.result?.token_accounts;
+  if(!Array.isArray(accounts)) throw new Error('das bad response');
+  let raw = 0;
+  accounts.forEach(a => { raw += Number(a.amount) || 0; });
+  return raw / 1e9;
+}
+
+// Returns the wallet's DRIPPY balance, or null when it could NOT be determined.
+// null must never be rendered as 0 — the frontend shows "—" for unknown.
 async function getOnChainBalance(owner){
-  try{
-    const result = await rpc('getTokenAccountsByOwner', [owner, { mint: TOKEN_MINT }, { encoding: 'jsonParsed' }]);
-    const accounts = result?.value || [];
-    let total = 0;
-    accounts.forEach(acc => {
-      const ui = acc?.account?.data?.parsed?.info?.tokenAmount?.uiAmount;
-      if(typeof ui === 'number') total += ui;
-    });
-    return total;
-  }catch(e){ return null; }
+  try{ return await balanceViaRpc(owner); }catch(e1){
+    try{ return await balanceViaRpc(owner); }catch(e2){
+      try{ return await balanceViaDas(owner); }catch(e3){
+        console.error('[balance]', owner.slice(0,8), e1.message, '|', e2.message, '|', e3.message);
+        return null;
+      }
+    }
+  }
 }
 
 // Incremental distribution scan.
@@ -223,7 +251,7 @@ module.exports = async (req, res) => {
       if(existingMeta){ try { meta = JSON.parse(existingMeta); } catch(_){} }
       meta.totalReceivedSol = totalReceivedSol;
       meta.distributionCount = distributionCount;
-      meta.currentHoldings = balance || 0;
+      if(balance != null) meta.currentHoldings = balance; // don't overwrite with 0 on lookup failure
       meta.updatedAt = Date.now();
       await redis(['SET', META_PREFIX + address, JSON.stringify(meta)]);
       const er = await redis(['ZREVRANK', LB_EARN_KEY, address]);
@@ -235,7 +263,7 @@ module.exports = async (req, res) => {
       wallet: address,
       totalReceivedSol,
       distributionCount,
-      currentHoldings: { uiAmount: balance || 0 },
+      currentHoldings: { uiAmount: balance }, // null = lookup failed (frontend shows "—"), never fake 0
       lastDistribution,
       recentDistributions: recent,
       burner,
