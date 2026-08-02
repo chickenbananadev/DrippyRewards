@@ -60,28 +60,74 @@
       <a href="https://t.me/DrippyRewards" target="_blank" rel="noopener">✈️ Telegram</a>
     </div>
     <p class="disclaimer">$DRIPPY is a memecoin. This is not financial advice. Crypto is highly volatile and you can lose everything. Only spend what you can afford to lose. Drippy is a good dog but he is still a dog.</p>
-    <a class="admin-link" href="#" id="newsAdminOpen">· post news ·</a>
+    <a class="admin-link" href="#" id="newsAdminOpen">· newsroom login ·</a>
   </div>
 </footer>
 
-<!-- NEWS ADMIN MODAL -->
+<!-- NEWS LOGIN / ADMIN MODAL -->
 <div class="modal" id="newsAdminModal">
   <div class="modal-box">
     <button class="close" id="newsAdminClose" aria-label="Close">✕</button>
-    <h3>📰 Post to The Daily Drip</h3>
-    <input id="naKey" type="password" placeholder="Access key" autocomplete="off">
-    <input id="naTitle" type="text" maxlength="160" placeholder="Headline">
-    <textarea id="naBody" maxlength="8000" rows="7" placeholder="Write the article... (blank line = new paragraph)"></textarea>
-    <input id="naAuthor" type="text" maxlength="40" placeholder="Author (optional)">
-    <input id="naLink" type="text" placeholder="Link (optional, https://...)">
-    <label class="admin-file">
-      <input id="naImage" type="file" accept="image/*">
-      <span id="naImageLabel">📷 Add an image (optional)</span>
-    </label>
-    <button id="naPost">Publish</button>
-    <div class="modal-msg" id="naMsg"></div>
-    <h3 style="margin-top:18px">Published articles</h3>
-    <div class="ev-admin-list" id="naList"></div>
+    <h3>📰 The Daily Drip</h3>
+
+    <div class="trade-tabs" id="naTabs">
+      <button class="trade-tab active" data-pane="naPanePoster">Poster Login</button>
+      <button class="trade-tab" data-pane="naPaneAdmin">Admin</button>
+    </div>
+
+    <!-- POSTER LOGIN -->
+    <div class="na-pane active" id="naPanePoster">
+      <div id="naLoginBox">
+        <input id="naUser" type="text" maxlength="20" placeholder="Username" autocomplete="username">
+        <input id="naPass" type="password" placeholder="Password" autocomplete="current-password">
+        <button id="naLoginBtn">Sign In</button>
+        <div class="modal-msg" id="naLoginMsg"></div>
+      </div>
+      <div id="naPosterSignedIn" style="display:none">
+        <p class="modal-signedin">Signed in as <strong id="naPosterName"></strong> · <a href="#" id="naLogout">log out</a></p>
+      </div>
+    </div>
+
+    <!-- ADMIN KEY -->
+    <div class="na-pane" id="naPaneAdmin">
+      <div id="naKeyBox">
+        <input id="naKey" type="password" placeholder="Admin key" autocomplete="off">
+        <button id="naKeyBtn">Unlock</button>
+        <div class="modal-msg" id="naKeyMsg"></div>
+      </div>
+      <div id="naAdminSignedIn" style="display:none">
+        <p class="modal-signedin">Admin unlocked · <a href="#" id="naKeyLogout">lock</a></p>
+      </div>
+    </div>
+
+    <!-- PUBLISH FORM (shown once poster OR admin is authenticated) -->
+    <div id="naPublishBox" style="display:none">
+      <h3 style="margin-top:18px">Publish an article</h3>
+      <input id="naTitle" type="text" maxlength="160" placeholder="Headline">
+      <textarea id="naBody" maxlength="8000" rows="7" placeholder="Write the article... (blank line = new paragraph)"></textarea>
+      <input id="naAuthor" type="text" maxlength="40" placeholder="Byline (optional — defaults to your username)">
+      <input id="naLink" type="text" placeholder="Link (optional, https://...)">
+      <label class="admin-file">
+        <input id="naImage" type="file" accept="image/*">
+        <span id="naImageLabel">📷 Add an image (optional)</span>
+      </label>
+      <button id="naPost">Publish</button>
+      <div class="modal-msg" id="naMsg"></div>
+
+      <h3 style="margin-top:18px">Published articles</h3>
+      <div class="ev-admin-list" id="naList"></div>
+    </div>
+
+    <!-- POSTER ACCOUNTS (admin only) -->
+    <div id="naPostersBox" style="display:none">
+      <h3 style="margin-top:18px">Poster accounts</h3>
+      <p class="modal-hint">Create a login for someone who should only be able to post &amp; manage their own news — nothing else.</p>
+      <input id="npUser" type="text" maxlength="20" placeholder="New username (letters, numbers, _)">
+      <input id="npPass" type="text" placeholder="Password (min 8 characters)">
+      <button id="npAdd">Create poster</button>
+      <div class="modal-msg" id="npMsg"></div>
+      <div class="ev-admin-list" id="npList"></div>
+    </div>
   </div>
 </div>
 
@@ -126,14 +172,111 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   loadNews();
 
-  // ---------- admin panel ----------
+  // ---------- auth state ----------
+  // Only ONE of these is active at a time: poster token, or admin key.
+  let posterToken = null, posterName = null, adminKey = null;
+  try{ posterToken = localStorage.getItem('drippyNewsToken') || null; }catch(_){}
+  try{ posterName = localStorage.getItem('drippyNewsUser') || null; }catch(_){}
+  try{ adminKey = sessionStorage.getItem('drippyNewsAdminKey') || null; }catch(_){}
+
+  function credential(){
+    // Prefer admin if unlocked in this tab; else poster session.
+    if(adminKey) return { key: adminKey };
+    if(posterToken) return { token: posterToken };
+    return null;
+  }
+
   const modal = $id('newsAdminModal');
-  const msgEl = $id('naMsg');
-  function msg(text, kind){ msgEl.textContent = text || ''; msgEl.className = 'modal-msg' + (kind ? ' ' + kind : ''); }
+  function msg(el, text, kind){ el.textContent = text || ''; el.className = 'modal-msg' + (kind ? ' ' + kind : ''); }
 
-  try{ const saved = localStorage.getItem('drippyNewsKey'); if(saved) $id('naKey').value = saved; }catch(_){}
+  // ---------- tabs ----------
+  $id('naTabs').addEventListener('click', (e) => {
+    const btn = e.target.closest('.trade-tab');
+    if(!btn) return;
+    document.querySelectorAll('#naTabs .trade-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.na-pane').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    $id(btn.getAttribute('data-pane')).classList.add('active');
+  });
 
-  $id('newsAdminOpen').addEventListener('click', (e) => { e.preventDefault(); modal.classList.add('open'); renderAdminList(); });
+  function refreshAuthUI(){
+    const cred = credential();
+    $id('naPublishBox').style.display = cred ? 'block' : 'none';
+    $id('naPostersBox').style.display = adminKey ? 'block' : 'none';
+
+    $id('naLoginBox').style.display = posterToken ? 'none' : 'block';
+    $id('naPosterSignedIn').style.display = posterToken ? 'block' : 'none';
+    if(posterToken) $id('naPosterName').textContent = posterName || '';
+
+    $id('naKeyBox').style.display = adminKey ? 'none' : 'block';
+    $id('naAdminSignedIn').style.display = adminKey ? 'block' : 'none';
+
+    if(cred){ renderAdminList(); if(adminKey) renderPosterList(); }
+  }
+
+  // ---------- poster login ----------
+  $id('naLoginBtn').addEventListener('click', async () => {
+    const username = $id('naUser').value.trim();
+    const password = $id('naPass').value;
+    const el = $id('naLoginMsg');
+    if(!username || !password){ msg(el, 'Enter your username and password.', 'err'); return; }
+    const btn = $id('naLoginBtn'); btn.disabled = true; btn.textContent = 'Signing in...';
+    try{
+      const r = await fetch('/api/news', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'login', username, password })
+      });
+      const d = await r.json();
+      if(d.error){ msg(el, d.error, 'err'); return; }
+      posterToken = d.token; posterName = d.username;
+      try{ localStorage.setItem('drippyNewsToken', posterToken); localStorage.setItem('drippyNewsUser', posterName); }catch(_){}
+      adminKey = null; try{ sessionStorage.removeItem('drippyNewsAdminKey'); }catch(_){}
+      $id('naPass').value = '';
+      msg(el, '');
+      refreshAuthUI();
+    }catch(e){ msg(el, 'Something went wrong. Try again.', 'err'); }
+    finally{ btn.disabled = false; btn.textContent = 'Sign In'; }
+  });
+
+  $id('naLogout').addEventListener('click', (e) => {
+    e.preventDefault();
+    posterToken = null; posterName = null;
+    try{ localStorage.removeItem('drippyNewsToken'); localStorage.removeItem('drippyNewsUser'); }catch(_){}
+    refreshAuthUI();
+  });
+
+  // ---------- admin key ----------
+  $id('naKeyBtn').addEventListener('click', async () => {
+    const key = $id('naKey').value.trim();
+    const el = $id('naKeyMsg');
+    if(!key){ msg(el, 'Enter the admin key.', 'err'); return; }
+    const btn = $id('naKeyBtn'); btn.disabled = true; btn.textContent = 'Checking...';
+    try{
+      const r = await fetch('/api/news', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'checkkey', key })
+      });
+      const d = await r.json();
+      if(d.error){ msg(el, d.error, 'err'); return; }
+      adminKey = key;
+      try{ sessionStorage.setItem('drippyNewsAdminKey', adminKey); }catch(_){}
+      posterToken = null; posterName = null;
+      try{ localStorage.removeItem('drippyNewsToken'); localStorage.removeItem('drippyNewsUser'); }catch(_){}
+      $id('naKey').value = '';
+      msg(el, '');
+      refreshAuthUI();
+    }catch(e){ msg(el, 'Something went wrong. Try again.', 'err'); }
+    finally{ btn.disabled = false; btn.textContent = 'Unlock'; }
+  });
+
+  $id('naKeyLogout').addEventListener('click', (e) => {
+    e.preventDefault();
+    adminKey = null;
+    try{ sessionStorage.removeItem('drippyNewsAdminKey'); }catch(_){}
+    refreshAuthUI();
+  });
+
+  $id('newsAdminOpen').addEventListener('click', (e) => { e.preventDefault(); modal.classList.add('open'); refreshAuthUI(); });
   $id('newsAdminClose').addEventListener('click', () => modal.classList.remove('open'));
   modal.addEventListener('click', (e) => { if(e.target === modal) modal.classList.remove('open'); });
 
@@ -142,39 +285,43 @@ document.addEventListener('DOMContentLoaded', () => {
     $id('naImageLabel').textContent = f ? ('📷 ' + f.name) : '📷 Add an image (optional)';
   });
 
+  // ---------- published articles list (delete buttons) ----------
   async function renderAdminList(){
     const arts = await loadNews();
     const box = $id('naList');
+    const cred = credential();
     if(!arts.length){ box.innerHTML = '<div class="ev-admin-row"><span>Nothing published yet</span></div>'; return; }
-    box.innerHTML = arts.map(a =>
-      '<div class="ev-admin-row"><span>' + esc(a.title.slice(0, 34)) + (a.title.length > 34 ? '…' : '') + '</span>' +
-      '<button data-del="' + esc(a.id) + '">Delete</button></div>'
-    ).join('');
+    box.innerHTML = arts.map(a => {
+      const mine = adminKey || (cred && cred.token && a.postedBy === posterName);
+      return '<div class="ev-admin-row"><span>' + esc(a.title.slice(0, 34)) + (a.title.length > 34 ? '…' : '') + '</span>' +
+        (mine ? '<button data-del="' + esc(a.id) + '">Delete</button>' : '<span class="ev-admin-note">not yours</span>') + '</div>';
+    }).join('');
     box.querySelectorAll('button[data-del]').forEach(btn => btn.addEventListener('click', async () => {
-      const key = $id('naKey').value.trim();
-      if(!key){ msg('Enter your access key first.', 'err'); return; }
+      const cred2 = credential();
+      if(!cred2){ msg($id('naMsg'), 'Sign in first.', 'err'); return; }
       btn.disabled = true;
       const r = await fetch('/api/news', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'del', key, id: btn.getAttribute('data-del') })
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(Object.assign({ action: 'del', id: btn.getAttribute('data-del') }, cred2))
       });
       const d = await r.json();
-      if(d.error){ msg(d.error, 'err'); btn.disabled = false; return; }
-      msg('Deleted.', 'ok');
+      if(d.error){ msg($id('naMsg'), d.error, 'err'); btn.disabled = false; return; }
+      msg($id('naMsg'), 'Deleted.', 'ok');
       renderAdminList();
     }));
   }
 
+  // ---------- publish ----------
   $id('naPost').addEventListener('click', async () => {
-    const key = $id('naKey').value.trim();
+    const cred = credential();
+    const el = $id('naMsg');
+    if(!cred){ msg(el, 'Sign in first.', 'err'); return; }
     const title = $id('naTitle').value.trim();
     const body = $id('naBody').value.trim();
     const author = $id('naAuthor').value.trim();
     const link = $id('naLink').value.trim();
-    if(!key){ msg('Enter your access key.', 'err'); return; }
-    if(!title){ msg('A headline is required.', 'err'); return; }
-    if(!body){ msg('The article body is required.', 'err'); return; }
+    if(!title){ msg(el, 'A headline is required.', 'err'); return; }
+    if(!body){ msg(el, 'The article body is required.', 'err'); return; }
 
     const btn = $id('naPost');
     btn.disabled = true; btn.textContent = 'Publishing...';
@@ -182,34 +329,81 @@ document.addEventListener('DOMContentLoaded', () => {
       let image = '';
       const file = $id('naImage').files[0];
       if(file){
-        msg('Uploading image...');
-        const up = await fetch('/api/upload-image', {
-          method: 'POST',
-          headers: { 'Content-Type': file.type || 'image/jpeg', 'X-Filename': file.name, 'X-Admin-Secret': key },
-          body: file
-        });
+        msg(el, 'Uploading image...');
+        const headers = { 'Content-Type': file.type || 'image/jpeg', 'X-Filename': file.name };
+        if(cred.key) headers['X-Admin-Secret'] = cred.key;
+        if(cred.token) headers['X-Poster-Token'] = cred.token;
+        const up = await fetch('/api/upload-image', { method: 'POST', headers, body: file });
         const uj = await up.json();
-        if(!up.ok || uj.error){ msg('Image upload failed: ' + (uj.error || up.status), 'err'); return; }
+        if(!up.ok || uj.error){ msg(el, 'Image upload failed: ' + (uj.error || up.status), 'err'); return; }
         image = uj.url;
       }
       const r = await fetch('/api/news', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'add', key, title, body, author, link, image })
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(Object.assign({ action: 'add', title, body, author, link, image }, cred))
       });
       const d = await r.json();
-      if(d.error){ msg(d.error, 'err'); return; }
-      try{ localStorage.setItem('drippyNewsKey', key); }catch(_){}
-      msg('Published! 🎉', 'ok');
-      $id('naTitle').value = ''; $id('naBody').value = ''; $id('naLink').value = '';
+      if(d.error){ msg(el, d.error, 'err'); return; }
+      msg(el, 'Published! 🎉', 'ok');
+      $id('naTitle').value = ''; $id('naBody').value = ''; $id('naLink').value = ''; $id('naAuthor').value = '';
       $id('naImage').value = ''; $id('naImageLabel').textContent = '📷 Add an image (optional)';
       renderAdminList();
     }catch(e){
-      msg('Something went wrong: ' + e.message, 'err');
+      msg(el, 'Something went wrong: ' + e.message, 'err');
     }finally{
       btn.disabled = false; btn.textContent = 'Publish';
     }
   });
+
+  // ---------- poster account management (admin only) ----------
+  async function renderPosterList(){
+    if(!adminKey) return;
+    const box = $id('npList');
+    try{
+      const r = await fetch('/api/news', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'poster_list', key: adminKey })
+      });
+      const d = await r.json();
+      if(d.error || !d.posters){ box.innerHTML = ''; return; }
+      if(!d.posters.length){ box.innerHTML = '<div class="ev-admin-row"><span>No poster accounts yet</span></div>'; return; }
+      box.innerHTML = d.posters.map(p =>
+        '<div class="ev-admin-row"><span>' + esc(p.username) + '</span>' +
+        '<button data-revoke="' + esc(p.username) + '">Revoke</button></div>'
+      ).join('');
+      box.querySelectorAll('button[data-revoke]').forEach(btn => btn.addEventListener('click', async () => {
+        if(!confirm('Revoke poster "' + btn.getAttribute('data-revoke') + '"? They will be signed out immediately.')) return;
+        btn.disabled = true;
+        await fetch('/api/news', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'poster_del', key: adminKey, username: btn.getAttribute('data-revoke') })
+        });
+        renderPosterList();
+      }));
+    }catch(e){ box.innerHTML = ''; }
+  }
+
+  $id('npAdd').addEventListener('click', async () => {
+    if(!adminKey){ msg($id('npMsg'), 'Unlock admin first.', 'err'); return; }
+    const username = $id('npUser').value.trim().toLowerCase();
+    const password = $id('npPass').value;
+    const el = $id('npMsg');
+    const btn = $id('npAdd'); btn.disabled = true; btn.textContent = 'Creating...';
+    try{
+      const r = await fetch('/api/news', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'poster_add', key: adminKey, username, password })
+      });
+      const d = await r.json();
+      if(d.error){ msg(el, d.error, 'err'); return; }
+      msg(el, 'Poster "' + d.username + '" created.', 'ok');
+      $id('npUser').value = ''; $id('npPass').value = '';
+      renderPosterList();
+    }catch(e){ msg(el, 'Something went wrong.', 'err'); }
+    finally{ btn.disabled = false; btn.textContent = 'Create poster'; }
+  });
+
+  refreshAuthUI();
 });
 </script>
 </body>

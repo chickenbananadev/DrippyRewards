@@ -472,6 +472,12 @@ footer{border-top:1px solid var(--card-border);padding:50px 0 40px;text-align:ce
 .modal-msg{font-family:var(--mono);font-size:12px;margin-top:8px;min-height:14px}
 .modal-msg.ok{color:var(--green)}
 .modal-msg.err{color:var(--red)}
+.na-pane{display:none}
+.na-pane.active{display:block}
+.modal-signedin{font-family:var(--mono);font-size:12.5px;color:var(--green);background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.3);border-radius:10px;padding:11px 13px;margin-bottom:6px}
+.modal-signedin a{color:var(--cream-dim);text-decoration:underline}
+.modal-hint{font-family:var(--serif);font-size:13px;color:var(--cream-faint);margin:-2px 0 10px}
+.ev-admin-note{font-family:var(--mono);font-size:10.5px;color:var(--cream-faint);text-transform:uppercase;letter-spacing:1px}
 
 /* a11y */
 :focus-visible{outline:2px solid var(--purple-bright);outline-offset:2px}

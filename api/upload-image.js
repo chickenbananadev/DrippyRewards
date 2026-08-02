@@ -1,6 +1,8 @@
 // /api/upload-image.js
 // Uploads an image file to Vercel Blob storage and returns its public URL.
-// Used by the admin panel for posting events with images.
+// Used by the events/news admin panels, and by logged-in news posters.
+
+const { safeEqual, verifyToken, getPoster } = require('./_auth');
 
 const ADMIN_SECRET = process.env.DRIPPY_EVENTS_SECRET;
 const NEWS_SECRET = process.env.DRIPPY_NEWS_SECRET; // news posters may upload images too
@@ -11,7 +13,7 @@ const BLOB_API = 'https://blob.vercel-storage.com';
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Filename, X-Admin-Secret');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Filename, X-Admin-Secret, X-Poster-Token');
   res.setHeader('Cache-Control', 'no-store');
 
   if (req.method === 'OPTIONS') { res.status(204).end(); return; }
@@ -21,7 +23,13 @@ module.exports = async (req, res) => {
 
   const secret = req.headers['x-admin-secret'] || req.query.secret;
   const validSecrets = [ADMIN_SECRET, NEWS_SECRET].filter(Boolean);
-  if (!validSecrets.length || !validSecrets.includes(secret)) {
+  const hasValidSecret = secret && validSecrets.some(s => safeEqual(secret, s));
+
+  const posterToken = req.headers['x-poster-token'] || req.query.token;
+  let posterUser = posterToken ? verifyToken(posterToken) : null;
+  if (posterUser && !(await getPoster(posterUser))) posterUser = null; // revoked account
+
+  if (!hasValidSecret && !posterUser) {
     return res.status(401).json({ error: 'unauthorized' });
   }
 
