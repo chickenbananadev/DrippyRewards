@@ -54,10 +54,13 @@
   <div class="container">
     <div class="eyebrow" style="text-align:center">🐦 Straight From The Source</div>
     <h2 style="text-align:center">Latest From <span class="gold">@drippyrewards</span></h2>
-    <p class="lede" style="text-align:center;max-width:680px;margin:16px auto 26px">Live posts from the pack's official X account — no reposting, straight from the source.</p>
+    <p class="lede" style="text-align:center;max-width:680px;margin:16px auto 26px">Live posts from the pack's official X account — no reposting, straight from the source. X can take a few minutes to sync new posts into this feed.</p>
     <div class="x-embed-card">
+      <button class="x-refresh-btn" id="xRefreshBtn" title="Check X for new posts">↻ Refresh</button>
       <div class="x-embed-loading" id="xEmbedLoading">Loading the feed...</div>
-      <a class="twitter-timeline" data-theme="dark" data-chrome="noheader nofooter noborders transparent" data-tweet-limit="10" href="https://twitter.com/drippyrewards?ref_src=twsrc%5Etfw">Tweets by @drippyrewards</a>
+      <div id="xTimelineWrap">
+        <a class="twitter-timeline" data-theme="dark" data-chrome="noheader nofooter noborders transparent" data-tweet-limit="10" href="https://twitter.com/drippyrewards?ref_src=twsrc%5Etfw">Tweets by @drippyrewards</a>
+      </div>
       <div class="x-embed-fallback" id="xEmbedFallback">
         <p style="color:var(--cream-dim);margin-bottom:14px">The live feed didn't load in this browser (ad blockers sometimes block it).</p>
         <a class="btn btn-purple" href="https://x.com/drippyrewards" target="_blank" rel="noopener">Open @drippyrewards on X →</a>
@@ -68,21 +71,68 @@
 <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
 <script defer>
 (function(){
-  var tries = 0;
-  function checkEmbed(){
-    var card = document.querySelector('.x-embed-card');
+  var AUTO_REFRESH_MS = 5 * 60 * 1000; // re-poll X every 5 minutes so an open tab catches new posts
+  var timelineHref = 'https://twitter.com/drippyrewards?ref_src=twsrc%5Etfw';
+
+  function timelineAnchorHtml(){
+    return '<a class="twitter-timeline" data-theme="dark" data-chrome="noheader nofooter noborders transparent" data-tweet-limit="10" href="' + timelineHref + '">Tweets by @drippyrewards</a>';
+  }
+
+  // Destroys and re-creates the widget so widgets.js issues a fresh request
+  // to X instead of reusing whatever it rendered on first load.
+  function reloadTimeline(){
+    var wrap = document.getElementById('xTimelineWrap');
+    if(!wrap) return;
+    wrap.innerHTML = timelineAnchorHtml();
+    if(window.twttr && window.twttr.widgets && typeof window.twttr.widgets.load === 'function'){
+      window.twttr.widgets.load(wrap);
+    }
+  }
+
+  // giveUp=true means "stop waiting, show the fallback now" (used once the
+  // initial poll times out, or right after a manual/auto refresh attempt).
+  function syncUiToState(giveUp){
+    var wrap = document.getElementById('xTimelineWrap');
     var loading = document.getElementById('xEmbedLoading');
     var fallback = document.getElementById('xEmbedFallback');
-    if(!card) return;
-    var iframe = card.querySelector('iframe');
-    if(iframe){ if(loading) loading.style.display = 'none'; return; }
-    if(++tries < 40){ setTimeout(checkEmbed, 250); return; } // ~10s
-    if(loading) loading.style.display = 'none';
-    var placeholder = card.querySelector('a.twitter-timeline');
-    if(placeholder) placeholder.style.display = 'none';
-    if(fallback) fallback.classList.add('show');
+    var hasIframe = wrap && !!wrap.querySelector('iframe');
+    if(hasIframe){
+      if(loading) loading.style.display = 'none';
+      if(fallback) fallback.classList.remove('show');
+      var placeholder = wrap.querySelector('a.twitter-timeline');
+      if(placeholder) placeholder.style.display = '';
+    } else if(giveUp){
+      if(loading) loading.style.display = 'none';
+      var ph = wrap && wrap.querySelector('a.twitter-timeline');
+      if(ph) ph.style.display = 'none';
+      if(fallback) fallback.classList.add('show');
+    }
+    return hasIframe;
   }
-  setTimeout(checkEmbed, 250);
+
+  var tries = 0;
+  function pollInitialLoad(){
+    if(syncUiToState(false)) return;
+    if(++tries < 40){ setTimeout(pollInitialLoad, 250); return; } // ~10s
+    syncUiToState(true);
+  }
+  setTimeout(pollInitialLoad, 250);
+
+  var refreshBtn = document.getElementById('xRefreshBtn');
+  if(refreshBtn){
+    refreshBtn.addEventListener('click', function(){
+      refreshBtn.disabled = true;
+      refreshBtn.textContent = '↻ Checking...';
+      reloadTimeline();
+      setTimeout(function(){
+        syncUiToState(true);
+        refreshBtn.disabled = false;
+        refreshBtn.textContent = '↻ Refresh';
+      }, 2500);
+    });
+  }
+
+  setInterval(function(){ reloadTimeline(); setTimeout(function(){ syncUiToState(true); }, 2500); }, AUTO_REFRESH_MS);
 })();
 </script>
 
