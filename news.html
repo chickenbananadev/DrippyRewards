@@ -49,6 +49,43 @@
   </div>
 </section>
 
+<!-- X FEED -->
+<section id="xfeed">
+  <div class="container">
+    <div class="eyebrow" style="text-align:center">🐦 Straight From The Source</div>
+    <h2 style="text-align:center">Latest From <span class="gold">@drippyrewards</span></h2>
+    <p class="lede" style="text-align:center;max-width:680px;margin:16px auto 26px">Live posts from the pack's official X account — no reposting, straight from the source.</p>
+    <div class="x-embed-card">
+      <div class="x-embed-loading" id="xEmbedLoading">Loading the feed...</div>
+      <a class="twitter-timeline" data-theme="dark" data-chrome="noheader nofooter noborders transparent" data-tweet-limit="10" href="https://twitter.com/drippyrewards?ref_src=twsrc%5Etfw">Tweets by @drippyrewards</a>
+      <div class="x-embed-fallback" id="xEmbedFallback">
+        <p style="color:var(--cream-dim);margin-bottom:14px">The live feed didn't load in this browser (ad blockers sometimes block it).</p>
+        <a class="btn btn-purple" href="https://x.com/drippyrewards" target="_blank" rel="noopener">Open @drippyrewards on X →</a>
+      </div>
+    </div>
+  </div>
+</section>
+<script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+<script defer>
+(function(){
+  var tries = 0;
+  function checkEmbed(){
+    var card = document.querySelector('.x-embed-card');
+    var loading = document.getElementById('xEmbedLoading');
+    var fallback = document.getElementById('xEmbedFallback');
+    if(!card) return;
+    var iframe = card.querySelector('iframe');
+    if(iframe){ if(loading) loading.style.display = 'none'; return; }
+    if(++tries < 40){ setTimeout(checkEmbed, 250); return; } // ~10s
+    if(loading) loading.style.display = 'none';
+    var placeholder = card.querySelector('a.twitter-timeline');
+    if(placeholder) placeholder.style.display = 'none';
+    if(fallback) fallback.classList.add('show');
+  }
+  setTimeout(checkEmbed, 250);
+})();
+</script>
+
 <!-- FOOTER -->
 <footer>
   <div class="container">
