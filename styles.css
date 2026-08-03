@@ -560,6 +560,13 @@ footer{border-top:1px solid var(--card-border);padding:50px 0 40px;text-align:ce
 .news-link:hover{color:var(--gold-bright)}
 .news-empty{text-align:center;font-family:var(--mono);font-size:14px;color:var(--cream-faint);padding:48px 0}
 
+/* X (Twitter) embedded timeline */
+.x-embed-card{max-width:560px;margin:0 auto;background:var(--card-bg);border:1px solid var(--card-border-gold);border-radius:var(--radius);padding:6px;min-height:200px;position:relative}
+.x-embed-card iframe{border-radius:calc(var(--radius) - 4px)}
+.x-embed-loading{text-align:center;font-family:var(--mono);font-size:13px;color:var(--cream-faint);padding:60px 20px}
+.x-embed-fallback{display:none;text-align:center;padding:40px 20px}
+.x-embed-fallback.show{display:block}
+
 /* news admin extras (textarea + file picker, matching modal inputs) */
 .modal-box textarea{
   width:100%;background:var(--black-2);border:1px solid var(--card-border);border-radius:10px;
