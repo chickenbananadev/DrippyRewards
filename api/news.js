@@ -161,6 +161,69 @@ module.exports = async (req, res) => {
       return res.status(404).json({ error: 'article not found' });
     }
 
+    // ---------- X feed: server-side fetch of @drippyrewards posts ----------
+    // Pulls from X's syndication backend (the data source behind the official
+    // embed widget) and caches in Redis. Server-side fetch + our own render
+    // beats the embed widget, whose client-side cache serves stale/empty
+    // timelines for many accounts since the 2023 API lockdown.
+    if (action === 'xfeed') {
+      const X_CACHE_KEY = 'drippy:xfeed:cache';
+      const fresh = params.fresh === '1' || params.fresh === 1;
+      const ttlMs = fresh ? 60_000 : 300_000; // refresh button may re-pull after 60s; normal cache 5 min
+
+      const rawCache = await redis(['GET', X_CACHE_KEY]);
+      let cacheEntry = null;
+      if (rawCache) { try { cacheEntry = JSON.parse(rawCache); } catch(_) {} }
+      if (cacheEntry && (Date.now() - cacheEntry.t) < ttlMs) {
+        return res.status(200).json({ tweets: cacheEntry.v, cached: true, fetchedAt: new Date(cacheEntry.t).toISOString() });
+      }
+
+      try {
+        const r = await fetch('https://syndication.twitter.com/srv/timeline-profile/screen-name/drippyrewards?showReplies=false', {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml'
+          }
+        });
+        if (!r.ok) throw new Error('syndication ' + r.status);
+        const html = await r.text();
+        const m = html.match(/<script id="__NEXT_DATA__" type="application\/json"[^>]*>([\s\S]*?)<\/script>/);
+        if (!m) throw new Error('no data payload in syndication response');
+        const data = JSON.parse(m[1]);
+        const entries = data?.props?.pageProps?.timeline?.entries || [];
+
+        const tweets = [];
+        for (const e of entries) {
+          const t = e?.content?.tweet;
+          if (!t || !t.id_str) continue;
+          if (t.in_reply_to_status_id_str) continue; // top-level posts only
+          let text = String(t.full_text || t.text || '');
+          text = text.replace(/\s*https:\/\/t\.co\/\w+\s*$/g, ''); // trailing media/card shortlink
+          const images = (t.mediaDetails || [])
+            .filter(md => md && md.type === 'photo' && md.media_url_https)
+            .map(md => md.media_url_https)
+            .slice(0, 4);
+          tweets.push({
+            id: t.id_str,
+            text: text.trim(),
+            createdAt: t.created_at || null,
+            likes: Number(t.favorite_count) || 0,
+            images,
+            isRetweet: !!t.retweeted_status,
+            url: 'https://x.com/drippyrewards/status/' + t.id_str
+          });
+          if (tweets.length >= 10) break;
+        }
+
+        await redis(['SET', X_CACHE_KEY, JSON.stringify({ t: Date.now(), v: tweets })]);
+        return res.status(200).json({ tweets, fetchedAt: new Date().toISOString() });
+      } catch (e) {
+        console.error('[xfeed]', e.message);
+        if (cacheEntry) return res.status(200).json({ tweets: cacheEntry.v, cached: true, stale: true });
+        return res.status(200).json({ tweets: [], error: 'unavailable' });
+      }
+    }
+
     // ---------- default: public list ----------
     const all = await redis(['ZRANGE', NEWS_KEY, '0', '-1', 'REV']) || [];
     const articles = [];
