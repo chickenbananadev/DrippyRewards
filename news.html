@@ -49,103 +49,6 @@
   </div>
 </section>
 
-<!-- X FEED -->
-<section id="xfeed">
-  <div class="container">
-    <div class="eyebrow" style="text-align:center">🐦 Straight From The Source</div>
-    <h2 style="text-align:center">Latest From <span class="gold">@drippyrewards</span></h2>
-    <p class="lede" style="text-align:center;max-width:680px;margin:16px auto 26px">Swipe through the pack's last 10 posts on X — no reposting, straight from the source.</p>
-
-    <div class="x-car-shell">
-      <button class="x-refresh-btn" id="xRefreshBtn" title="Check X for new posts">↻ Refresh</button>
-      <div class="x-embed-loading" id="xFeedLoading">Fetching the latest from X...</div>
-      <div class="x-car-wrap" id="xCarWrap" style="display:none">
-        <button class="x-car-arrow" id="xPrev" aria-label="Previous post">‹</button>
-        <div class="x-car" id="xCar"></div>
-        <button class="x-car-arrow" id="xNext" aria-label="Next post">›</button>
-      </div>
-      <div class="x-embed-fallback" id="xFeedFallback">
-        <p style="color:var(--cream-dim);margin-bottom:14px" id="xFeedFallbackMsg">Couldn't reach X for the latest posts right now.</p>
-        <a class="btn btn-purple" href="https://x.com/drippyrewards" target="_blank" rel="noopener">Open @drippyrewards on X →</a>
-      </div>
-    </div>
-  </div>
-</section>
-<script defer>
-document.addEventListener('DOMContentLoaded', function(){
-  var escX = function(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); };
-  var AUTO_REFRESH_MS = 5 * 60 * 1000;
-
-  function fmtTweetDate(s){
-    if(!s) return '';
-    var d = new Date(s);
-    if(isNaN(d)) return '';
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  }
-
-  function render(tweets, none){
-    var wrap = document.getElementById('xCarWrap');
-    var car = document.getElementById('xCar');
-    var loading = document.getElementById('xFeedLoading');
-    var fallback = document.getElementById('xFeedFallback');
-    var fbMsg = document.getElementById('xFeedFallbackMsg');
-    loading.style.display = 'none';
-    if(!tweets || !tweets.length){
-      wrap.style.display = 'none';
-      if(fbMsg) fbMsg.textContent = none
-        ? 'Fresh drops are on the way — catch everything on X in the meantime.'
-        : "Couldn't reach X for the latest posts right now.";
-      fallback.classList.add('show');
-      return;
-    }
-    fallback.classList.remove('show');
-    car.innerHTML = tweets.map(function(t){
-      return '<article class="x-tweet">' +
-        '<div class="x-tweet-head"><span class="x-tweet-who">🐦 @drippyrewards</span><span class="x-tweet-date">' + escX(fmtTweetDate(t.createdAt)) + '</span></div>' +
-        (t.isRetweet ? '<div class="x-tweet-rt">↻ Reposted</div>' : '') +
-        '<p class="x-tweet-text">' + escX(t.text).replace(/\n/g, '<br>') + '</p>' +
-        (t.images && t.images.length ? '<img class="x-tweet-img" src="' + escX(t.images[0]) + '" alt="" loading="lazy">' : '') +
-        '<div class="x-tweet-foot"><span>♥ ' + Number(t.likes || 0).toLocaleString() + '</span>' +
-        '<a href="' + escX(t.url) + '" target="_blank" rel="noopener">View on X ↗</a></div>' +
-      '</article>';
-    }).join('');
-    wrap.style.display = 'flex';
-  }
-
-  function loadFeed(fresh){
-    return fetch('/api/news?action=xfeed' + (fresh ? '&fresh=1' : ''), { cache: 'no-store' })
-      .then(function(r){ return r.json(); })
-      .then(function(d){ render(d.tweets || [], !!d.none); })
-      .catch(function(){ render([], false); });
-  }
-  loadFeed(false);
-  window._loadXFeed = loadFeed; // newsroom panel refreshes the carousel after add/remove
-
-  function cardStep(){
-    var card = document.querySelector('.x-tweet');
-    return card ? card.getBoundingClientRect().width + 14 : 334;
-  }
-  document.getElementById('xPrev').addEventListener('click', function(){
-    document.getElementById('xCar').scrollBy({ left: -cardStep(), behavior: 'smooth' });
-  });
-  document.getElementById('xNext').addEventListener('click', function(){
-    document.getElementById('xCar').scrollBy({ left: cardStep(), behavior: 'smooth' });
-  });
-
-  var refreshBtn = document.getElementById('xRefreshBtn');
-  refreshBtn.addEventListener('click', function(){
-    refreshBtn.disabled = true;
-    refreshBtn.textContent = '↻ Checking...';
-    loadFeed(true).then(function(){
-      refreshBtn.disabled = false;
-      refreshBtn.textContent = '↻ Refresh';
-    });
-  });
-
-  setInterval(function(){ loadFeed(false); }, AUTO_REFRESH_MS);
-});
-</script>
-
 <!-- FOOTER -->
 <footer>
   <div class="container">
@@ -213,13 +116,6 @@ document.addEventListener('DOMContentLoaded', function(){
 
       <h3 style="margin-top:18px">Published articles</h3>
       <div class="ev-admin-list" id="naList"></div>
-
-      <h3 style="margin-top:18px">X carousel posts</h3>
-      <p class="modal-hint">After posting on X, paste the post's link here and it appears in the "Latest From @drippyrewards" carousel with live likes &amp; images. Newest 10 show.</p>
-      <input id="nxUrl" type="text" placeholder="https://x.com/drippyrewards/status/...">
-      <button id="nxAdd">Add to carousel</button>
-      <div class="modal-msg" id="nxMsg"></div>
-      <div class="ev-admin-list" id="nxList"></div>
     </div>
 
     <!-- POSTER ACCOUNTS (admin only) -->
@@ -315,59 +211,8 @@ document.addEventListener('DOMContentLoaded', () => {
     $id('naKeyBox').style.display = adminKey ? 'none' : 'block';
     $id('naAdminSignedIn').style.display = adminKey ? 'block' : 'none';
 
-    if(cred){ renderAdminList(); renderXPosts(); if(adminKey) renderPosterList(); }
+    if(cred){ renderAdminList(); if(adminKey) renderPosterList(); }
   }
-
-  // ---------- X carousel posts (poster or admin) ----------
-  async function renderXPosts(){
-    const box = $id('nxList');
-    try{
-      const r = await fetch('/api/news?action=xpost_list', { cache: 'no-store' });
-      const d = await r.json();
-      const ids = d.ids || [];
-      if(!ids.length){ box.innerHTML = '<div class="ev-admin-row"><span>No posts on the carousel yet</span></div>'; return; }
-      box.innerHTML = ids.map(id =>
-        '<div class="ev-admin-row"><a href="https://x.com/drippyrewards/status/' + esc(id) + '" target="_blank" rel="noopener" style="color:var(--cream-dim)">post …' + esc(String(id).slice(-8)) + '</a>' +
-        '<button data-xdel="' + esc(id) + '">Remove</button></div>'
-      ).join('');
-      box.querySelectorAll('button[data-xdel]').forEach(btn => btn.addEventListener('click', async () => {
-        const cred = credential();
-        if(!cred){ msg($id('nxMsg'), 'Sign in first.', 'err'); return; }
-        btn.disabled = true;
-        const r2 = await fetch('/api/news', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(Object.assign({ action: 'xpost_del', id: btn.getAttribute('data-xdel') }, cred))
-        });
-        const d2 = await r2.json();
-        if(d2.error){ msg($id('nxMsg'), d2.error, 'err'); btn.disabled = false; return; }
-        msg($id('nxMsg'), 'Removed from the carousel.', 'ok');
-        renderXPosts();
-        if(window._loadXFeed) window._loadXFeed(true);
-      }));
-    }catch(e){ box.innerHTML = ''; }
-  }
-
-  $id('nxAdd').addEventListener('click', async () => {
-    const cred = credential();
-    const el = $id('nxMsg');
-    if(!cred){ msg(el, 'Sign in first.', 'err'); return; }
-    const url = $id('nxUrl').value.trim();
-    if(!url){ msg(el, "Paste the X post's link first.", 'err'); return; }
-    const btn = $id('nxAdd'); btn.disabled = true; btn.textContent = 'Adding...';
-    try{
-      const r = await fetch('/api/news', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(Object.assign({ action: 'xpost_add', url }, cred))
-      });
-      const d = await r.json();
-      if(d.error){ msg(el, d.error, 'err'); return; }
-      msg(el, 'Added! It\'s live on the carousel. 🎉', 'ok');
-      $id('nxUrl').value = '';
-      renderXPosts();
-      if(window._loadXFeed) window._loadXFeed(true);
-    }catch(e){ msg(el, 'Something went wrong. Try again.', 'err'); }
-    finally{ btn.disabled = false; btn.textContent = 'Add to carousel'; }
-  });
 
   // ---------- poster login ----------
   $id('naLoginBtn').addEventListener('click', async () => {
