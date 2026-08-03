@@ -161,16 +161,52 @@ module.exports = async (req, res) => {
       return res.status(404).json({ error: 'article not found' });
     }
 
-    // ---------- X feed: server-side fetch of @drippyrewards posts ----------
-    // Pulls from X's syndication backend (the data source behind the official
-    // embed widget) and caches in Redis. Server-side fetch + our own render
-    // beats the embed widget, whose client-side cache serves stale/empty
-    // timelines for many accounts since the 2023 API lockdown.
+    // ---------- X carousel: curated posts, live data per tweet ----------
+    // X rate-limits (429) timeline listing from shared Vercel IPs, and the
+    // legacy timeline endpoint is dead (200/empty) — confirmed via debug diag
+    // in production. But the single-tweet endpoint on cdn.syndication.twimg.com
+    // (the service behind embedded tweets across the web) works and that host
+    // is reachable. So: admins/posters curate which post IDs are on the
+    // carousel (paste a link after posting on X), and the server pulls each
+    // tweet's LIVE text/image/date/likes from the single-tweet endpoint.
+
+    // Shared helpers for the X actions
+    const X_IDS_KEY = 'drippy:xfeed:ids';     // zset: score=addedAt, member=tweet id
+    const X_CACHE_KEY = 'drippy:xfeed:cache'; // rendered tweets cache
+    const parseTweetId = (input) => {
+      const s = String(input || '').trim();
+      const m = s.match(/status(?:es)?\/(\d{5,25})/) || s.match(/^(\d{5,25})$/);
+      return m ? m[1] : null;
+    };
+
+    if (action === 'xpost_add' || action === 'xpost_del') {
+      // Same access rule as publishing articles: admin key OR poster login.
+      let allowed = isAdmin;
+      if (!allowed && tokenUser) allowed = !!(await getPoster(tokenUser));
+      if (!allowed) return res.status(401).json({ error: 'Sign in (or use a valid key) first' });
+
+      const id = parseTweetId(params.url || params.id);
+      if (!id) return res.status(400).json({ error: 'Paste a full X post link (x.com/.../status/...)' });
+
+      if (action === 'xpost_add') {
+        await redis(['ZADD', X_IDS_KEY, Date.now(), id]);
+        await redis(['ZREMRANGEBYRANK', X_IDS_KEY, '0', '-21']); // keep newest 20
+      } else {
+        await redis(['ZREM', X_IDS_KEY, id]);
+      }
+      await redis(['DEL', X_CACHE_KEY]); // carousel updates immediately
+      return res.status(200).json({ ok: true, id });
+    }
+
+    if (action === 'xpost_list') {
+      const ids = await redis(['ZRANGE', X_IDS_KEY, '0', '-1', 'REV']) || [];
+      return res.status(200).json({ ids });
+    }
+
     if (action === 'xfeed') {
-      const X_CACHE_KEY = 'drippy:xfeed:cache';
       const fresh = params.fresh === '1' || params.fresh === 1;
       const debug = params.debug === '1' || params.debug === 1;
-      const ttlMs = fresh ? 60_000 : 300_000; // refresh button may re-pull after 60s; normal cache 5 min
+      const ttlMs = fresh ? 60_000 : 300_000;
 
       const rawCache = await redis(['GET', X_CACHE_KEY]);
       let cacheEntry = null;
@@ -179,109 +215,50 @@ module.exports = async (req, res) => {
         return res.status(200).json({ tweets: cacheEntry.v, cached: true, fetchedAt: new Date(cacheEntry.t).toISOString() });
       }
 
-      const BROWSER_HEADERS = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
-        'Accept-Language': 'en-US,en;q=0.9'
-      };
-      // diag: per-attempt status/why, returned only with debug=1 so we can see
-      // the real upstream failure from a phone without Vercel log access.
-      const diag = [];
-      let tweets = null;
-
-      const decodeEnt = (s) => String(s || '')
-        .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)))
-        .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
-        .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, ' ');
-
-      // --- attempt 1: modern syndication page (__NEXT_DATA__ JSON) ---
-      try {
-        const r = await fetch('https://syndication.twitter.com/srv/timeline-profile/screen-name/drippyrewards?showReplies=false', {
-          headers: Object.assign({ 'Accept': 'text/html,application/xhtml+xml' }, BROWSER_HEADERS)
-        });
-        const html = await r.text();
-        const d = { src: 'srv', status: r.status, bytes: html.length, hasPayload: html.includes('__NEXT_DATA__') };
-        diag.push(d);
-        if (r.ok) {
-          const m = html.match(/<script id="__NEXT_DATA__" type="application\/json"[^>]*>([\s\S]*?)<\/script>/);
-          if (m) {
-            const data = JSON.parse(m[1]);
-            const entries = data?.props?.pageProps?.timeline?.entries || [];
-            d.entries = entries.length;
-            const out = [];
-            for (const e of entries) {
-              const t = e?.content?.tweet;
-              if (!t || !t.id_str) continue;
-              if (t.in_reply_to_status_id_str) continue; // top-level posts only
-              let text = String(t.full_text || t.text || '');
-              text = text.replace(/\s*https:\/\/t\.co\/\w+\s*$/g, '');
-              const images = (t.mediaDetails || [])
-                .filter(md => md && md.type === 'photo' && md.media_url_https)
-                .map(md => md.media_url_https)
-                .slice(0, 4);
-              out.push({
-                id: t.id_str,
-                text: text.trim(),
-                createdAt: t.created_at || null,
-                likes: Number(t.favorite_count) || 0,
-                images,
-                isRetweet: !!t.retweeted_status,
-                url: 'https://x.com/drippyrewards/status/' + t.id_str
-              });
-              if (out.length >= 10) break;
-            }
-            if (out.length) tweets = out;
-          }
-        }
-      } catch (e) { diag.push({ src: 'srv', err: e.message }); }
-
-      // --- attempt 2: legacy CDN timeline (JSON whose body is rendered HTML) ---
-      if (!tweets) {
-        try {
-          const r2 = await fetch('https://cdn.syndication.twimg.com/timeline/profile?screen_name=drippyrewards&lang=en&dnt=true&suppress_response_codes=true', {
-            headers: Object.assign({ 'Accept': 'application/json, text/javascript' }, BROWSER_HEADERS)
-          });
-          const txt = await r2.text();
-          const d2 = { src: 'cdn', status: r2.status, bytes: txt.length };
-          diag.push(d2);
-          let j = null;
-          try { j = JSON.parse(txt); } catch (_) { d2.note = 'not json'; }
-          const bodyHtml = (j && j.body) ? String(j.body) : '';
-          if (bodyHtml) {
-            const out = [];
-            // Capture the tweet div's class attr together with its id — the
-            // class precedes data-tweet-id, so naive splitting on the id
-            // attributes mis-assigns per-tweet flags to the previous chunk.
-            const heads = [...bodyHtml.matchAll(/<div[^>]*class="([^"]*timeline-Tweet[^"]*)"[^>]*data-tweet-id="(\d+)"[^>]*>/g)];
-            for (let i = 0; i < heads.length; i++) {
-              const classAttr = heads[i][1];
-              const id = heads[i][2];
-              const start = heads[i].index + heads[i][0].length;
-              const end = (i + 1 < heads.length) ? heads[i + 1].index : bodyHtml.length;
-              const chunk = bodyHtml.slice(start, end);
-              const textM = chunk.match(/<p[^>]*class="[^"]*timeline-Tweet-text[^"]*"[^>]*>([\s\S]*?)<\/p>/);
-              let text = textM ? decodeEnt(textM[1].replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ').trim() : '';
-              text = text.replace(/\s*https:\/\/t\.co\/\w+\s*$/g, '').trim();
-              const dateM = chunk.match(/datetime="([^"]+)"/);
-              const imgM = chunk.match(/src="(https:\/\/pbs\.twimg\.com\/media\/[^"]+)"/);
-              if (!text && !imgM) continue;
-              out.push({
-                id,
-                text,
-                createdAt: dateM ? dateM[1] : null,
-                likes: 0,
-                images: imgM ? [decodeEnt(imgM[1])] : [],
-                isRetweet: /timeline-Tweet--isRetweet/.test(classAttr),
-                url: 'https://x.com/drippyrewards/status/' + id
-              });
-              if (out.length >= 10) break;
-            }
-            d2.parsed = out.length;
-            if (out.length) tweets = out;
-          }
-        } catch (e) { diag.push({ src: 'cdn', err: e.message }); }
+      const ids = (await redis(['ZRANGE', X_IDS_KEY, '0', '-1', 'REV']) || []).slice(0, 10);
+      if (!ids.length) {
+        const none = { tweets: [], none: true };
+        if (debug) none.diag = [{ note: 'no curated post ids — add posts via the newsroom panel' }];
+        return res.status(200).json(none);
       }
 
-      if (tweets && tweets.length) {
+      // Same token scheme react-tweet uses for the public tweet-result endpoint.
+      const tweetToken = (id) => ((Number(id) / 1e15) * Math.PI).toString(36).replace(/(0+|\.)/g, '');
+      const FEATURES = 'tfw_timeline_list:;tfw_follower_count_sunset:true;tfw_tweet_edit_backend:on;tfw_refsrc_session:on;tfw_fosnr_soft_interventions_enabled:on;tfw_show_birdwatch_pivots_enabled:on;tfw_show_business_verified_badge:on;tfw_duplicate_scribes_to_settings:on;tfw_use_profile_image_shape_enabled:on;tfw_show_blue_verified_badge:on;tfw_legacy_timeline_sunset:true;tfw_show_gov_verified_badge:on;tfw_show_business_affiliate_badge:on;tfw_tweet_edit_frontend:on';
+      const diag = [];
+
+      const results = await Promise.allSettled(ids.map(async (id) => {
+        const u = 'https://cdn.syndication.twimg.com/tweet-result?id=' + id + '&lang=en&features=' + encodeURIComponent(FEATURES) + '&token=' + tweetToken(id);
+        const r = await fetch(u, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+            'Accept': 'application/json'
+          }
+        });
+        const d = { id, status: r.status };
+        if (!r.ok) { diag.push(d); throw new Error('tweet ' + id + ' HTTP ' + r.status); }
+        const j = await r.json();
+        d.typename = j && j.__typename;
+        diag.push(d);
+        if (!j || j.__typename === 'TweetTombstone') throw new Error('tweet ' + id + ' unavailable');
+        let text = String(j.text || '');
+        text = text.replace(/\s*https:\/\/t\.co\/\w+\s*$/g, '').trim();
+        const screen = j.user && j.user.screen_name ? j.user.screen_name : 'drippyrewards';
+        return {
+          id,
+          text,
+          createdAt: j.created_at || null,
+          likes: Number(j.favorite_count) || 0,
+          images: (j.photos || []).map(p => p && p.url).filter(Boolean).slice(0, 4),
+          isRetweet: false,
+          url: 'https://x.com/' + screen + '/status/' + id
+        };
+      }));
+
+      const tweets = results.filter(x => x.status === 'fulfilled').map(x => x.value);
+      tweets.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+
+      if (tweets.length) {
         await redis(['SET', X_CACHE_KEY, JSON.stringify({ t: Date.now(), v: tweets })]);
         const ok = { tweets, fetchedAt: new Date().toISOString() };
         if (debug) ok.diag = diag;
