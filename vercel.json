@@ -34,6 +34,10 @@
     {
       "source": "/news",
       "destination": "/news.html"
+    },
+    {
+      "source": "/news/share/:id",
+      "destination": "/api/news?action=share&id=:id"
     }
   ],
   "headers": [
