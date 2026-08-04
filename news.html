@@ -153,17 +153,29 @@ document.addEventListener('DOMContentLoaded', () => {
         list.innerHTML = '<div class="news-empty">The presses are warming up — the first edition drops soon. 🐾</div>';
         return arts;
       }
-      list.innerHTML = arts.map(a =>
-        '<article class="news-card">' +
+      list.innerHTML = arts.map(a => {
+        // Share via X intent: the shared /news/share/:id URL carries this
+        // article's OG tags, so X renders the headline + picture as a card.
+        const shareUrl = location.origin + '/news/share/' + encodeURIComponent(a.id);
+        const intent = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(a.title + ' — The Daily Drip') + '&url=' + encodeURIComponent(shareUrl);
+        return '<article class="news-card" id="a-' + esc(a.id) + '">' +
           (a.image ? '<img class="news-img" src="' + esc(a.image) + '" alt="" loading="lazy">' : '') +
           '<div class="news-body">' +
             '<div class="news-meta">' + fmtDate(a.publishedAt) + (a.author ? ' · ' + esc(a.author) : '') + '</div>' +
             '<h2 class="news-title">' + esc(a.title) + '</h2>' +
             '<div class="news-text">' + paragraphs(a.body) + '</div>' +
-            (a.link ? '<a class="news-link" href="' + esc(a.link) + '" target="_blank" rel="noopener">Read more ↗</a>' : '') +
+            '<div class="news-actions">' +
+              (a.link ? '<a class="news-link" href="' + esc(a.link) + '" target="_blank" rel="noopener">Read more ↗</a>' : '') +
+              '<a class="news-share-x" href="' + esc(intent) + '" target="_blank" rel="noopener">𝕏 Share this</a>' +
+            '</div>' +
           '</div>' +
-        '</article>'
-      ).join('');
+        '</article>';
+      }).join('');
+      // Deep link from a share URL: scroll to the article once it exists.
+      if(location.hash && location.hash.indexOf('#a-') === 0){
+        const el = document.getElementById(location.hash.slice(1));
+        if(el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
       return arts;
     }catch(e){
       list.innerHTML = '<div class="news-empty">Could not load the news. Try again in a moment.</div>';

@@ -557,6 +557,10 @@ footer{border-top:1px solid var(--card-border);padding:50px 0 40px;text-align:ce
 .news-text p{color:var(--cream-dim);font-size:15.5px;line-height:1.7;margin:0 0 12px}
 .news-text p:last-child{margin-bottom:0}
 .news-link{display:inline-block;margin-top:12px;font-family:var(--mono);font-size:13px;color:var(--purple-glow);text-decoration:none}
+.news-actions{display:flex;gap:20px;align-items:center;flex-wrap:wrap;margin-top:12px}
+.news-actions .news-link{margin-top:0}
+.news-share-x{font-family:var(--mono);font-size:13px;color:var(--gold-bright);text-decoration:none;border:1px solid var(--card-border-gold);border-radius:8px;padding:6px 12px}
+.news-share-x:hover{background:rgba(212,164,49,.1)}
 .news-link:hover{color:var(--gold-bright)}
 .news-empty{text-align:center;font-family:var(--mono);font-size:14px;color:var(--cream-faint);padding:48px 0}
 
