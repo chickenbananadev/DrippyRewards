@@ -164,8 +164,11 @@ module.exports = async (req, res) => {
     // ---------- share page: per-article OG tags so X shows the picture ----------
     // X's share intent can't attach an image directly; instead the shared URL
     // (/news/share/:id, rewritten here) serves the article's own OG meta tags
-    // so X renders a large card with the headline, excerpt and image, then
-    // redirects human visitors to the article on /news.
+    // so X renders a large card with the headline, excerpt and image.
+    // Crawlers (Twitterbot etc.) get a PURE meta page — no meta-refresh, no
+    // redirect — because X's scraper can treat a refresh as a redirect and
+    // abandon the scrape before fetching the image. Real visitors are 302'd
+    // server-side (by User-Agent) straight to the article on /news.
     if (action === 'share') {
       const SITE = 'https://drippyrewards.com';
       const escH = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -183,30 +186,42 @@ module.exports = async (req, res) => {
         return res.end();
       }
       const target = SITE + '/news#a-' + encodeURIComponent(article.id);
+
+      const ua = String((req.headers && req.headers['user-agent']) || '');
+      const isCrawler = /Twitterbot|facebookexternalhit|Slackbot|TelegramBot|Discordbot|LinkedInBot|WhatsApp|Googlebot|bingbot|Pinterest/i.test(ua);
+      if (!isCrawler) {
+        res.status(302);
+        res.setHeader('Cache-Control', 'no-store');
+        res.setHeader('Location', target);
+        return res.end();
+      }
+
       const flat = String(article.body || '').replace(/\s+/g, ' ').trim();
       const desc = flat.length > 200 ? flat.slice(0, 200).trim() + '…' : flat;
+      const hasOwnImage = !!article.image;
       const img = article.image || (SITE + '/assets/banner.jpg');
-      const card = article.image ? 'summary_large_image' : 'summary';
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
       res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=600');
       return res.status(200).end('<!DOCTYPE html>\n<html lang="en"><head>\n' +
         '<meta charset="utf-8">\n' +
         '<title>' + escH(article.title) + ' — The Daily Drip</title>\n' +
         '<meta name="description" content="' + escH(desc) + '">\n' +
+        '<meta name="robots" content="noindex">\n' +
         '<meta property="og:type" content="article">\n' +
         '<meta property="og:site_name" content="The Daily Drip — $DRIPPY News">\n' +
         '<meta property="og:title" content="' + escH(article.title) + '">\n' +
         '<meta property="og:description" content="' + escH(desc) + '">\n' +
         '<meta property="og:image" content="' + escH(img) + '">\n' +
-        '<meta property="og:url" content="' + escH(target) + '">\n' +
-        '<meta name="twitter:card" content="' + card + '">\n' +
+        (hasOwnImage ? '' : '<meta property="og:image:width" content="1280">\n<meta property="og:image:height" content="426">\n') +
+        '<meta property="og:image:alt" content="' + escH(article.title) + '">\n' +
+        '<meta property="og:url" content="' + escH(SITE + '/news/share/' + encodeURIComponent(article.id)) + '">\n' +
+        '<meta name="twitter:card" content="summary_large_image">\n' +
         '<meta name="twitter:title" content="' + escH(article.title) + '">\n' +
         '<meta name="twitter:description" content="' + escH(desc) + '">\n' +
         '<meta name="twitter:image" content="' + escH(img) + '">\n' +
-        '<meta http-equiv="refresh" content="0;url=' + escH(target) + '">\n' +
+        '<meta name="twitter:image:alt" content="' + escH(article.title) + '">\n' +
         '</head><body style="background:#0a0610;color:#f6e9c4;font-family:sans-serif;text-align:center;padding:60px 20px">\n' +
-        '<p>Taking you to <a href="' + escH(target) + '" style="color:#f5c542">The Daily Drip</a>...</p>\n' +
-        '<script>location.replace(' + JSON.stringify(target) + ');</script>\n' +
+        '<p><a href="' + escH(target) + '" style="color:#f5c542">Read on The Daily Drip →</a></p>\n' +
         '</body></html>');
     }
 
