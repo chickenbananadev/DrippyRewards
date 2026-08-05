@@ -75,16 +75,40 @@ async function cached(key, ttlMs, refresh){
   return entry ? entry.v : null; // stale beats nothing
 }
 
+// RPC endpoint chain: Helius first, then free public endpoints. Helius has
+// been sustaining 429s (plan quota), which froze supply/payout data — but the
+// standard JSON-RPC methods used here work on public endpoints too, and Redis
+// caching keeps our call volume tiny. Sticky preference: once an endpoint
+// works, keep using it for this warm instance so a rate-limited Helius isn't
+// retried (and re-billed) on every single call; a fresh instance tries Helius
+// first again.
+function rpcEndpoints(){
+  const eps = [];
+  if (HELIUS_KEY) eps.push(HELIUS_RPC());
+  eps.push('https://api.mainnet-beta.solana.com');
+  eps.push('https://solana-rpc.publicnode.com');
+  return eps;
+}
+let rpcPreferred = 0;
 async function rpc(method, params){
-  const r = await fetch(HELIUS_RPC(), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params })
-  });
-  if(!r.ok) throw new Error(method + ' HTTP ' + r.status);
-  const j = await r.json();
-  if(j.error) throw new Error(method + ': ' + j.error.message);
-  return j.result;
+  const eps = rpcEndpoints();
+  let lastErr = null;
+  for (let n = 0; n < eps.length; n++){
+    const i = (rpcPreferred + n) % eps.length;
+    try{
+      const r = await fetch(eps[i], {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params })
+      });
+      if(!r.ok) throw new Error(method + ' HTTP ' + r.status);
+      const j = await r.json();
+      if(j.error) throw new Error(method + ': ' + j.error.message);
+      rpcPreferred = i;
+      return j.result;
+    }catch(e){ lastErr = e; }
+  }
+  throw lastErr;
 }
 
 // --- Market data from DexScreener (30s cache) ----------------------------
@@ -187,32 +211,73 @@ function fetchHolders(){
 
 // --- Global recent distributions: distributor outgoing SOL (60s cache) ----
 function fetchRecentDrips(){
-  return cached('drippy:stats:recentdrips', 300_000, async () => { // 5 min — sigs + parse are two Helius calls
+  return cached('drippy:stats:recentdrips', 300_000, async () => { // 5 min cache
     const sigs = await rpc('getSignaturesForAddress', [DISTRIBUTOR, { limit: 25 }]);
-    const sigList = (sigs || []).filter(s => !s.err).map(s => s.signature);
+    const sigList = (sigs || []).filter(s => !s.err).map(s => s.signature).slice(0, 15);
     if(!sigList.length) return [];
-    const parseRes = await fetch(PARSE_URL(), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ transactions: sigList })
-    });
-    if(!parseRes.ok) throw new Error('parse ' + parseRes.status);
-    const txs = await parseRes.json();
-    const drips = [];
-    for(const tx of (txs || [])){
-      let outLamports = 0;
-      let recipients = 0;
-      for(const t of (tx.nativeTransfers || [])){
-        if(t.fromUserAccount === DISTRIBUTOR && t.toUserAccount !== DISTRIBUTOR){
-          outLamports += Number(t.amount) || 0;
-          recipients++;
+
+    // Preferred: Helius enhanced parse — one request for all transactions.
+    try{
+      const parseRes = await fetch(PARSE_URL(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ transactions: sigList })
+      });
+      if(!parseRes.ok) throw new Error('parse ' + parseRes.status);
+      const txs = await parseRes.json();
+      const drips = [];
+      for(const tx of (txs || [])){
+        let outLamports = 0;
+        let recipients = 0;
+        for(const t of (tx.nativeTransfers || [])){
+          if(t.fromUserAccount === DISTRIBUTOR && t.toUserAccount !== DISTRIBUTOR){
+            outLamports += Number(t.amount) || 0;
+            recipients++;
+          }
         }
+        if(outLamports > 0){
+          drips.push({
+            txSig: tx.signature,
+            timestamp: tx.timestamp ? new Date(tx.timestamp * 1000).toISOString() : null,
+            amountSol: outLamports / 1e9,
+            recipients
+          });
+        }
+        if(drips.length >= 15) break;
       }
-      if(outLamports > 0){
+      return drips;
+    }catch(e){
+      console.error('[stats] helius parse failed, falling back to getTransaction:', e.message);
+    }
+
+    // Fallback: standard getTransaction per signature — works on public RPC
+    // when the Helius enhanced API is rate-limited. Distributor outflow is
+    // derived from pre/post balances (minus the fee when it's the fee payer);
+    // recipients = accounts whose SOL balance increased.
+    const settled = await Promise.allSettled(sigList.map(sig =>
+      rpc('getTransaction', [sig, { encoding: 'jsonParsed', maxSupportedTransactionVersion: 0 }]).then(tx => ({ sig, tx }))
+    ));
+    const drips = [];
+    for(const s of settled){
+      if(s.status !== 'fulfilled') continue;
+      const { sig, tx } = s.value;
+      if(!tx || !tx.meta || !tx.transaction) continue;
+      const keys = (tx.transaction.message.accountKeys || []).map(k => (typeof k === 'string') ? k : (k && k.pubkey));
+      const di = keys.indexOf(DISTRIBUTOR);
+      if(di < 0) continue;
+      const pre = tx.meta.preBalances || [];
+      const post = tx.meta.postBalances || [];
+      let lamports = (pre[di] || 0) - (post[di] || 0);
+      if(di === 0) lamports -= (tx.meta.fee || 0); // fee payer: exclude the tx fee from "paid out"
+      let recipients = 0;
+      for(let i = 0; i < keys.length; i++){
+        if(i !== di && (post[i] || 0) > (pre[i] || 0)) recipients++;
+      }
+      if(lamports > 0){
         drips.push({
-          txSig: tx.signature,
-          timestamp: tx.timestamp ? new Date(tx.timestamp * 1000).toISOString() : null,
-          amountSol: outLamports / 1e9,
+          txSig: sig,
+          timestamp: tx.blockTime ? new Date(tx.blockTime * 1000).toISOString() : null,
+          amountSol: lamports / 1e9,
           recipients
         });
       }

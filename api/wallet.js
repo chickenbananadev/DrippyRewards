@@ -47,16 +47,36 @@ function withTimeout(p, ms){
   ]);
 }
 
+// RPC endpoint chain: Helius first, then free public endpoints (Helius has
+// been sustaining 429s on plan quota). Standard JSON-RPC methods used here
+// work on public endpoints too. Sticky preference per warm instance.
+function rpcEndpoints(){
+  const eps = [];
+  if (HELIUS_KEY) eps.push(HELIUS_RPC());
+  eps.push('https://api.mainnet-beta.solana.com');
+  eps.push('https://solana-rpc.publicnode.com');
+  return eps;
+}
+let rpcPreferred = 0;
 async function rpc(method, params){
-  const r = await fetch(HELIUS_RPC(), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params })
-  });
-  if(!r.ok) throw new Error(method + ' HTTP ' + r.status);
-  const j = await r.json();
-  if(j.error) throw new Error(method + ': ' + j.error.message);
-  return j.result;
+  const eps = rpcEndpoints();
+  let lastErr = null;
+  for (let n = 0; n < eps.length; n++){
+    const i = (rpcPreferred + n) % eps.length;
+    try{
+      const r = await fetch(eps[i], {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params })
+      });
+      if(!r.ok) throw new Error(method + ' HTTP ' + r.status);
+      const j = await r.json();
+      if(j.error) throw new Error(method + ': ' + j.error.message);
+      rpcPreferred = i;
+      return j.result;
+    }catch(e){ lastErr = e; }
+  }
+  throw lastErr;
 }
 
 async function balanceViaRpc(owner){
