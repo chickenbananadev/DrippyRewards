@@ -40,6 +40,7 @@ async function redis(command){
 // problems (e.g. a source silently serving week-old stale cache) can be seen
 // from a browser without Vercel log access. Warm-instance state; best effort.
 const DIAG = {};
+const FAIL_AT = {}; // key -> ms timestamp of last refresh failure (warm-instance backoff)
 
 // Cache helper: returns cached value if younger than ttlMs, otherwise calls
 // refresh(), stores, and returns fresh. Falls back to stale cache on failure.
@@ -51,6 +52,12 @@ async function cached(key, ttlMs, refresh){
     DIAG[key] = { source: 'cache', ageSec: Math.round((Date.now() - entry.t) / 1000) };
     return entry.v;
   }
+  // Backoff: if this source just failed (e.g. Helius 429), don't re-hit it on
+  // every request — serve stale for 60s so a rate-limited upstream can recover.
+  if(entry && FAIL_AT[key] && (Date.now() - FAIL_AT[key]) < 60_000){
+    DIAG[key] = { source: 'stale-cache-backoff', ageSec: Math.round((Date.now() - entry.t) / 1000) };
+    return entry.v;
+  }
   try{
     const fresh = await refresh();
     if(fresh != null){
@@ -58,9 +65,11 @@ async function cached(key, ttlMs, refresh){
       DIAG[key] = { source: 'fresh' };
       return fresh;
     }
+    FAIL_AT[key] = Date.now();
     DIAG[key] = { source: entry ? 'stale-cache' : 'none', ageSec: entry ? Math.round((Date.now() - entry.t) / 1000) : null, error: 'refresh returned null' };
   }catch(e){
     console.error('[stats]', key, e.message);
+    FAIL_AT[key] = Date.now();
     DIAG[key] = { source: entry ? 'stale-cache' : 'none', ageSec: entry ? Math.round((Date.now() - entry.t) / 1000) : null, error: e.message };
   }
   return entry ? entry.v : null; // stale beats nothing
@@ -97,7 +106,7 @@ function fetchMarket(){
 
 // --- On-chain supply (5 min cache) ----------------------------------------
 function fetchSupply(){
-  return cached('drippy:stats:supply', 300_000, async () => {
+  return cached('drippy:stats:supply', 1_800_000, async () => { // 30 min — Helius quota relief; supply moves slowly
     const res = await rpc('getTokenSupply', [TOKEN_MINT]);
     const amt = Number(res?.value?.uiAmount);
     return isFinite(amt) ? { circulating: amt } : null;
@@ -154,7 +163,7 @@ function fetchDistribution(){
 
 // --- Holder count via Helius DAS getTokenAccounts (10 min cache) ----------
 function fetchHolders(){
-  return cached('drippy:stats:holders', 600_000, async () => {
+  return cached('drippy:stats:holders', 3_600_000, async () => { // 1 h — heaviest Helius call (paginated account scan)
     const owners = new Set();
     let cursor = null;
     for(let page = 0; page < 10; page++){ // up to 10k accounts
@@ -178,7 +187,7 @@ function fetchHolders(){
 
 // --- Global recent distributions: distributor outgoing SOL (60s cache) ----
 function fetchRecentDrips(){
-  return cached('drippy:stats:recentdrips', 60_000, async () => {
+  return cached('drippy:stats:recentdrips', 300_000, async () => { // 5 min — sigs + parse are two Helius calls
     const sigs = await rpc('getSignaturesForAddress', [DISTRIBUTOR, { limit: 25 }]);
     const sigList = (sigs || []).filter(s => !s.err).map(s => s.signature);
     if(!sigList.length) return [];
@@ -246,17 +255,27 @@ module.exports = async (req, res) => {
     fetchBurnTotals().catch(() => ({ tokensBurned: 0, burnEvents: 0 }))
   ]);
 
-  // Prefer Forge burn figures when they are larger (Forge has full history),
-  // otherwise use our own webhook-fed totals.
-  const bestBurned = Math.max(burnTotals.tokensBurned, distribution?.forgeTokensBurned || 0);
-  const forgePct = distribution?.forgeSupplyBurnedPct;
-  const burns = {
-    tokensBurned: bestBurned,
-    burnEvents: Math.max(burnTotals.burnEvents, distribution?.forgeBurnEvents || 0),
-    supplyBurnedPct: (forgePct != null && forgePct > 0)
-      ? forgePct
-      : (supply?.circulating ? (bestBurned / (supply.circulating + bestBurned)) * 100 : null),
-    pctSource: (forgePct != null && forgePct > 0) ? 'forge' : 'computed-fallback'
+  // Forge is the single source of truth for the burn trio when reachable —
+  // never mix sources. (Production debug showed the old Math.max approach
+  // pairing Forge's 27.56% with the internal webhook tally of 319.4M tokens,
+  // which is inflated: more tokens than Forge across fewer events. Forge:
+  // 216.08M / 369 events / 27.56% — a consistent set.) The webhook tally is
+  // only a last resort when Forge is completely unavailable, and its pct then
+  // uses Forge's own definition (burned / current circulating) so the pair it
+  // produces is at least internally consistent.
+  const haveForge = !!(distribution && (distribution.forgeTokensBurned > 0 || (distribution.forgeSupplyBurnedPct || 0) > 0));
+  const burns = haveForge ? {
+    tokensBurned: distribution.forgeTokensBurned,
+    burnEvents: distribution.forgeBurnEvents || 0,
+    supplyBurnedPct: (distribution.forgeSupplyBurnedPct || 0) > 0
+      ? distribution.forgeSupplyBurnedPct
+      : (supply?.circulating ? (distribution.forgeTokensBurned / supply.circulating) * 100 : null),
+    pctSource: 'forge'
+  } : {
+    tokensBurned: burnTotals.tokensBurned,
+    burnEvents: burnTotals.burnEvents,
+    supplyBurnedPct: supply?.circulating ? (burnTotals.tokensBurned / supply.circulating) * 100 : null,
+    pctSource: 'webhook-fallback'
   };
 
   let marketCap = null;
