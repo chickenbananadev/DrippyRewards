@@ -184,7 +184,7 @@ document.addEventListener('DOMContentLoaded', () => {
       list.innerHTML = arts.map(a => {
         // Share via X intent: the shared /news/share/:id URL carries this
         // article's OG tags, so X renders the headline + picture as a card.
-        const shareUrl = location.origin + '/news/share/' + encodeURIComponent(a.id) + '?v=2'; // v bust: X caches its scrape per exact URL
+        const shareUrl = location.origin + '/news/share/' + encodeURIComponent(a.id) + '?v=3'; // v bust: X caches its scrape per exact URL
         const intent = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(a.title + ' — The Daily Drip') + '&url=' + encodeURIComponent(shareUrl);
         return '<article class="news-card" id="a-' + esc(a.id) + '">' +
           (a.image ? '<img class="news-img" src="' + esc(a.image) + '" alt="" loading="lazy">' : '') +

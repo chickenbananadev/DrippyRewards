@@ -169,17 +169,50 @@ module.exports = async (req, res) => {
     // redirect — because X's scraper can treat a refresh as a redirect and
     // abandon the scrape before fetching the image. Real visitors are 302'd
     // server-side (by User-Agent) straight to the article on /news.
+    const findArticle = async (id) => {
+      if (!id) return null;
+      const all = await redis(['ZRANGE', NEWS_KEY, '0', '-1']) || [];
+      for (const aStr of all) {
+        try { const a = JSON.parse(aStr); if (a.id === id) return a; } catch(_) {}
+      }
+      return null;
+    };
+
+    // ---------- share image proxy ----------
+    // X's card fetcher honors robots.txt on the IMAGE host. Uploaded article
+    // images live on *.public.blob.vercel-storage.com, which serves a
+    // deny-all robots.txt — so cards showed the title but never the picture.
+    // Stream the image bytes from our own domain instead (via the
+    // /news/img/:id rewrite); drippyrewards.com has no robots restrictions.
+    if (action === 'img') {
+      const SITE = 'https://drippyrewards.com';
+      const article = await findArticle(String(params.id || ''));
+      if (!article || !article.image) {
+        res.status(302);
+        res.setHeader('Location', SITE + '/assets/banner.jpg');
+        return res.end();
+      }
+      try {
+        const r = await fetch(article.image);
+        if (!r.ok) throw new Error('image upstream ' + r.status);
+        const buf = Buffer.from(await r.arrayBuffer());
+        const ctype = (r.headers && typeof r.headers.get === 'function' && r.headers.get('content-type')) || 'image/jpeg';
+        res.status(200);
+        res.setHeader('Content-Type', ctype.split(';')[0]);
+        res.setHeader('Cache-Control', 'public, max-age=86400, s-maxage=31536000, immutable');
+        return res.end(buf);
+      } catch (e) {
+        console.error('[news img]', e.message);
+        res.status(302);
+        res.setHeader('Location', SITE + '/assets/banner.jpg');
+        return res.end();
+      }
+    }
+
     if (action === 'share') {
       const SITE = 'https://drippyrewards.com';
       const escH = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-      const id = String(params.id || '');
-      let article = null;
-      if (id) {
-        const all = await redis(['ZRANGE', NEWS_KEY, '0', '-1']) || [];
-        for (const aStr of all) {
-          try { const a = JSON.parse(aStr); if (a.id === id) { article = a; break; } } catch(_) {}
-        }
-      }
+      const article = await findArticle(String(params.id || ''));
       if (!article) {
         res.status(302);
         res.setHeader('Location', SITE + '/news');
@@ -199,7 +232,8 @@ module.exports = async (req, res) => {
       const flat = String(article.body || '').replace(/\s+/g, ' ').trim();
       const desc = flat.length > 200 ? flat.slice(0, 200).trim() + '…' : flat;
       const hasOwnImage = !!article.image;
-      const img = article.image || (SITE + '/assets/banner.jpg');
+      // Own-domain proxy URL — X won't fetch images straight off the blob host.
+      const img = hasOwnImage ? (SITE + '/news/img/' + encodeURIComponent(article.id)) : (SITE + '/assets/banner.jpg');
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
       res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=600');
       return res.status(200).end('<!DOCTYPE html>\n<html lang="en"><head>\n' +
