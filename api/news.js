@@ -233,7 +233,10 @@ module.exports = async (req, res) => {
       const desc = flat.length > 200 ? flat.slice(0, 200).trim() + '…' : flat;
       const hasOwnImage = !!article.image;
       // Own-domain proxy URL — X won't fetch images straight off the blob host.
-      const img = hasOwnImage ? (SITE + '/news/img/' + encodeURIComponent(article.id)) : (SITE + '/assets/banner.jpg');
+      // ?v= busts X's separate per-URL IMAGE cache too, not just the page scrape.
+      const img = hasOwnImage
+        ? (SITE + '/news/img/' + encodeURIComponent(article.id) + '?v=' + (article.publishedAt || 1))
+        : (SITE + '/assets/banner.jpg');
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
       res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=600');
       return res.status(200).end('<!DOCTYPE html>\n<html lang="en"><head>\n' +
