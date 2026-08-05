@@ -36,20 +36,33 @@ async function redis(command){
   }catch(e){ return null; }
 }
 
+// Per-source diagnostics, exposed via /api/stats?debug=1 so data-freshness
+// problems (e.g. a source silently serving week-old stale cache) can be seen
+// from a browser without Vercel log access. Warm-instance state; best effort.
+const DIAG = {};
+
 // Cache helper: returns cached value if younger than ttlMs, otherwise calls
 // refresh(), stores, and returns fresh. Falls back to stale cache on failure.
 async function cached(key, ttlMs, refresh){
   const raw = await redis(['GET', key]);
   let entry = null;
   if(raw){ try{ entry = JSON.parse(raw); }catch(_){} }
-  if(entry && (Date.now() - entry.t) < ttlMs) return entry.v;
+  if(entry && (Date.now() - entry.t) < ttlMs){
+    DIAG[key] = { source: 'cache', ageSec: Math.round((Date.now() - entry.t) / 1000) };
+    return entry.v;
+  }
   try{
     const fresh = await refresh();
     if(fresh != null){
       await redis(['SET', key, JSON.stringify({ t: Date.now(), v: fresh })]);
+      DIAG[key] = { source: 'fresh' };
       return fresh;
     }
-  }catch(e){ console.error('[stats]', key, e.message); }
+    DIAG[key] = { source: entry ? 'stale-cache' : 'none', ageSec: entry ? Math.round((Date.now() - entry.t) / 1000) : null, error: 'refresh returned null' };
+  }catch(e){
+    console.error('[stats]', key, e.message);
+    DIAG[key] = { source: entry ? 'stale-cache' : 'none', ageSec: entry ? Math.round((Date.now() - entry.t) / 1000) : null, error: e.message };
+  }
   return entry ? entry.v : null; // stale beats nothing
 }
 
@@ -235,17 +248,21 @@ module.exports = async (req, res) => {
 
   // Prefer Forge burn figures when they are larger (Forge has full history),
   // otherwise use our own webhook-fed totals.
+  const bestBurned = Math.max(burnTotals.tokensBurned, distribution?.forgeTokensBurned || 0);
+  const forgePct = distribution?.forgeSupplyBurnedPct;
   const burns = {
-    tokensBurned: Math.max(burnTotals.tokensBurned, distribution?.forgeTokensBurned || 0),
+    tokensBurned: bestBurned,
     burnEvents: Math.max(burnTotals.burnEvents, distribution?.forgeBurnEvents || 0),
-    supplyBurnedPct: distribution?.forgeSupplyBurnedPct
-      || (supply?.circulating ? (burnTotals.tokensBurned / (supply.circulating + burnTotals.tokensBurned)) * 100 : null)
+    supplyBurnedPct: (forgePct != null && forgePct > 0)
+      ? forgePct
+      : (supply?.circulating ? (bestBurned / (supply.circulating + bestBurned)) * 100 : null),
+    pctSource: (forgePct != null && forgePct > 0) ? 'forge' : 'computed-fallback'
   };
 
   let marketCap = null;
   if(market?.priceUsd && supply?.circulating) marketCap = market.priceUsd * supply.circulating;
 
-  res.status(200).json({
+  const payload = {
     market: market ? Object.assign({ marketCap }, market) : null,
     supply,
     distribution,
@@ -253,5 +270,9 @@ module.exports = async (req, res) => {
     holders,
     recentDrips: recentDrips || [],
     fetchedAt: new Date().toISOString()
-  });
+  };
+  if (req.query && (req.query.debug === '1' || req.query.debug === 1)) {
+    payload.debug = { sources: DIAG, webhookBurnTotals: burnTotals };
+  }
+  res.status(200).json(payload);
 };

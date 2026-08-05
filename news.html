@@ -142,6 +142,34 @@ document.addEventListener('DOMContentLoaded', () => {
     return String(text || '').split(/\n{2,}/).map(p => '<p>' + esc(p).replace(/\n/g, '<br>') + '</p>').join('');
   }
 
+  // Downscale a photo to a web-sized JPEG (max 1600px, q0.85) before upload.
+  // Resolves to a Blob, or null if the browser couldn't decode the file
+  // (caller falls back to uploading the original).
+  function shrinkImage(file){
+    return new Promise((resolve) => {
+      try{
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = () => {
+          try{
+            const MAX = 1600;
+            let w = img.naturalWidth, h = img.naturalHeight;
+            if(!w || !h){ URL.revokeObjectURL(url); resolve(null); return; }
+            const scale = Math.min(1, MAX / Math.max(w, h));
+            w = Math.max(1, Math.round(w * scale)); h = Math.max(1, Math.round(h * scale));
+            const c = document.createElement('canvas');
+            c.width = w; c.height = h;
+            c.getContext('2d').drawImage(img, 0, 0, w, h);
+            URL.revokeObjectURL(url);
+            c.toBlob(b => resolve(b || null), 'image/jpeg', 0.85);
+          }catch(e){ URL.revokeObjectURL(url); resolve(null); }
+        };
+        img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
+        img.src = url;
+      }catch(e){ resolve(null); }
+    });
+  }
+
   // ---------- public feed ----------
   async function loadNews(){
     const list = $id('newsList');
@@ -341,13 +369,28 @@ document.addEventListener('DOMContentLoaded', () => {
       let image = '';
       const file = $id('naImage').files[0];
       if(file){
+        // Phone photos are often 3–8 MB, over the 4 MB upload cap (and Vercel's
+        // own ~4.5 MB body limit). Downscale client-side to a web-sized JPEG so
+        // any photo uploads reliably; also normalizes HEIC to JPEG on iPhones.
+        msg(el, 'Preparing image...');
+        const shrunk = await shrinkImage(file);
+        const blob = shrunk || file;
+        if(blob.size > 4 * 1024 * 1024){
+          msg(el, 'That image is too large (4 MB max after compression). Try a smaller photo.', 'err');
+          return;
+        }
         msg(el, 'Uploading image...');
-        const headers = { 'Content-Type': file.type || 'image/jpeg', 'X-Filename': file.name };
+        const fname = shrunk ? (String(file.name || 'image').replace(/\.[a-z0-9]+$/i, '') + '.jpg') : (file.name || 'image');
+        const headers = { 'Content-Type': shrunk ? 'image/jpeg' : (file.type || 'image/jpeg'), 'X-Filename': fname };
         if(cred.key) headers['X-Admin-Secret'] = cred.key;
         if(cred.token) headers['X-Poster-Token'] = cred.token;
-        const up = await fetch('/api/upload-image', { method: 'POST', headers, body: file });
-        const uj = await up.json();
-        if(!up.ok || uj.error){ msg(el, 'Image upload failed: ' + (uj.error || up.status), 'err'); return; }
+        const up = await fetch('/api/upload-image', { method: 'POST', headers, body: blob });
+        const rawResp = await up.text();
+        let uj = {}; try{ uj = JSON.parse(rawResp); }catch(_){}
+        if(!up.ok || uj.error || !uj.url){
+          msg(el, 'Image upload failed: ' + (uj.error || ('HTTP ' + up.status)) + (up.status === 413 ? ' — the photo is too large.' : ''), 'err');
+          return;
+        }
         image = uj.url;
       }
       const r = await fetch('/api/news', {
