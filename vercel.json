@@ -38,6 +38,10 @@
     {
       "source": "/news/share/:id",
       "destination": "/api/news?action=share&id=:id"
+    },
+    {
+      "source": "/news/img/:id",
+      "destination": "/api/news?action=img&id=:id"
     }
   ],
   "headers": [
