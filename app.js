@@ -386,9 +386,15 @@ let currentWallet = null;
 
       const history = $('wcHistory');
       history.innerHTML = '';
+      if(d.syncing){
+        const note = document.createElement('div');
+        note.className = 'feed-empty';
+        note.textContent = '⏳ Still counting this wallet\'s older payouts — totals grow each time you re-check.';
+        history.appendChild(note);
+      }
       const recents = d.recentDistributions || [];
       if(recents.length === 0){
-        history.innerHTML = '<div class="feed-empty">No recent payouts</div>';
+        if(!d.syncing) history.innerHTML = '<div class="feed-empty">No recent payouts</div>';
       } else {
         recents.forEach(p => {
           const row = document.createElement('a');
