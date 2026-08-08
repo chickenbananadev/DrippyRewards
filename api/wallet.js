@@ -121,56 +121,78 @@ async function getOnChainBalance(owner){
 }
 
 // Incremental distribution scan.
-// Cache shape: { totalLamports, count, newestSig, recent: [...], updatedAt }
-// Each check only parses transactions newer than newestSig, then accumulates.
+// Cache shape v2: { v: 2, totalLamports, count, newestSig, recent: [...], updatedAt }
+//
+// Correctness rules (a prior version violated all three and permanently
+// zeroed wallets that were first checked while Helius was rate-limited):
+//   1. newestSig only ever advances through signatures that were actually
+//      PARSED — a failed parse must never mark history as processed.
+//   2. Signatures are processed oldest→newest so a partial pass leaves a
+//      clean resume point instead of holes.
+//   3. `until` is applied to every signature page, so paging can't descend
+//      into already-counted history and double count.
+// v1 caches are discarded (v2 marker) so previously-poisoned wallets heal
+// with a full rescan on their next check.
+const EARN_CACHE_V = 2;
+const SIG_PAGE_LIMIT = 1000;   // getSignaturesForAddress max per page
+const SIG_MAX_PAGES = 3;       // up to 3,000 sigs ≈ two months at 48 drips/day
+const FALLBACK_TX_CAP = 40;    // per-check budget for per-tx parsing on public RPC
+
 async function getDistributions(owner){
   let cache = null;
   const cachedStr = await redis(['GET', EARN_CACHE_PREFIX + owner]);
   if(cachedStr){ try{ cache = JSON.parse(cachedStr); }catch(_){} }
+  if(cache && cache.v !== EARN_CACHE_V) cache = null; // discard poisoned v1 state
 
   // Within 60 seconds of the last scan just serve the cache untouched.
   if(cache && cache.updatedAt && (Date.now() - cache.updatedAt) < 60_000){
-    return { totalSol: cache.totalLamports / 1e9, count: cache.count, recent: cache.recent || [], cached: true };
+    return { totalSol: cache.totalLamports / 1e9, count: cache.count, recent: cache.recent || [], cached: true, syncing: !!cache.syncing };
   }
 
-  const state = cache || { totalLamports: 0, count: 0, newestSig: null, recent: [] };
+  const state = cache || { v: EARN_CACHE_V, totalLamports: 0, count: 0, newestSig: null, recent: [] };
+  state.v = EARN_CACHE_V;
 
   try{
-    // Collect signatures newer than the last processed one, up to 3 pages.
+    // Collect signatures newer than the last processed one (newest-first).
     let newSigs = [];
     let before = null;
-    for(let page = 0; page < 3; page++){
-      const params = [owner, { limit: 100 }];
-      if(before) params[1].before = before;
-      if(state.newestSig && !before) params[1].until = state.newestSig;
-      const sigs = await rpc('getSignaturesForAddress', params);
+    for(let page = 0; page < SIG_MAX_PAGES; page++){
+      const opts = { limit: SIG_PAGE_LIMIT };
+      if(before) opts.before = before;
+      if(state.newestSig) opts.until = state.newestSig; // every page, not just the first
+      const sigs = await rpc('getSignaturesForAddress', [owner, opts]);
       if(!sigs || !sigs.length) break;
-      newSigs = newSigs.concat(sigs.map(s => s.signature));
-      if(sigs.length < 100) break;
+      newSigs = newSigs.concat(sigs.filter(s => !s.err).map(s => s.signature));
+      if(sigs.length < SIG_PAGE_LIMIT) break;
       before = sigs[sigs.length - 1].signature;
     }
 
     if(newSigs.length){
-      const newest = newSigs[0];
-      const newRecent = [];
-      // Parse in batches of 100 with the enhanced API
-      for(let i = 0; i < newSigs.length; i += 100){
-        const batch = newSigs.slice(i, i + 100);
-        const parseRes = await fetch(PARSE_URL(), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ transactions: batch })
-        });
-        if(!parseRes.ok) break;
-        const txs = await parseRes.json();
-        for(const tx of (txs || [])){
+      const oldestFirst = newSigs.slice().reverse();
+      const parsedDrips = [];       // oldest-first while collecting
+      let parsedThrough = -1;       // index into oldestFirst of the last parsed sig
+
+      // --- Primary: Helius enhanced parse, 100-sig chunks in order.
+      // Stop at the first failed chunk; everything before it is counted and
+      // newestSig advances exactly that far.
+      for(let i = 0; i < oldestFirst.length; i += 100){
+        const batch = oldestFirst.slice(i, i + 100);
+        let txs = null;
+        try{
+          const parseRes = await fetch(PARSE_URL(), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ transactions: batch })
+          });
+          if(parseRes.ok) txs = await parseRes.json();
+        }catch(_){ /* fall through */ }
+        if(!Array.isArray(txs)) break;
+        for(const tx of txs){
           for(const t of (tx.nativeTransfers || [])){
             if(t.fromUserAccount === DISTRIBUTOR && t.toUserAccount === owner){
               const lamports = Number(t.amount) || 0;
               if(lamports > 0){
-                state.totalLamports += lamports;
-                state.count++;
-                newRecent.push({
+                parsedDrips.push({
                   timestamp: tx.timestamp ? new Date(tx.timestamp * 1000).toISOString() : null,
                   amountSol: lamports / 1e9,
                   status: 'succeeded',
@@ -180,19 +202,63 @@ async function getDistributions(owner){
             }
           }
         }
+        parsedThrough = Math.min(i + 100, oldestFirst.length) - 1;
       }
-      // Newest first: fresh payouts go in front of cached ones
-      state.recent = newRecent.concat(state.recent || []).slice(0, 10);
-      state.newestSig = newest;
+
+      // --- Fallback: Helius parse unavailable → standard getTransaction on
+      // the RPC chain (public endpoints), a bounded slice per check. Repeat
+      // checks keep advancing until history is fully counted.
+      if(parsedThrough < 0){
+        const slice = oldestFirst.slice(0, FALLBACK_TX_CAP);
+        const settled = await Promise.allSettled(slice.map(sig =>
+          rpc('getTransaction', [sig, { encoding: 'jsonParsed', maxSupportedTransactionVersion: 0 }]).then(tx => ({ sig, tx }))
+        ));
+        for(let i = 0; i < settled.length; i++){
+          const s = settled[i];
+          if(s.status !== 'fulfilled'){ break; } // keep the resume point contiguous
+          const { sig, tx } = s.value;
+          parsedThrough = i;
+          if(!tx || !tx.meta || !tx.transaction) continue;
+          const keys = (tx.transaction.message.accountKeys || []).map(k => (typeof k === 'string') ? k : (k && k.pubkey));
+          const oi = keys.indexOf(owner);
+          const di = keys.indexOf(DISTRIBUTOR);
+          if(oi < 0 || di < 0) continue;
+          const pre = tx.meta.preBalances || [];
+          const post = tx.meta.postBalances || [];
+          const gained = (post[oi] || 0) - (pre[oi] || 0);
+          const distPaid = (pre[di] || 0) > (post[di] || 0);
+          if(gained > 0 && distPaid){
+            parsedDrips.push({
+              timestamp: tx.blockTime ? new Date(tx.blockTime * 1000).toISOString() : null,
+              amountSol: gained / 1e9,
+              status: 'succeeded',
+              txSig: sig
+            });
+          }
+        }
+      }
+
+      if(parsedThrough >= 0){
+        for(const d of parsedDrips){
+          state.totalLamports += Math.round(d.amountSol * 1e9);
+          state.count++;
+        }
+        // Newest first: fresh payouts go in front of cached ones
+        state.recent = parsedDrips.slice().reverse().concat(state.recent || []).slice(0, 10);
+        state.newestSig = oldestFirst[parsedThrough]; // ONLY as far as actually parsed
+      }
+      state.syncing = parsedThrough < (oldestFirst.length - 1); // backlog remains
+    } else {
+      state.syncing = false;
     }
 
     state.updatedAt = Date.now();
     await redis(['SET', EARN_CACHE_PREFIX + owner, JSON.stringify(state)]);
-    return { totalSol: state.totalLamports / 1e9, count: state.count, recent: state.recent };
+    return { totalSol: state.totalLamports / 1e9, count: state.count, recent: state.recent, syncing: !!state.syncing };
   }catch(e){
     console.error('[distributions]', e.message);
     // If the scan fails but we have a cache, serve the cache.
-    if(cache) return { totalSol: cache.totalLamports / 1e9, count: cache.count, recent: cache.recent || [], stale: true };
+    if(cache) return { totalSol: cache.totalLamports / 1e9, count: cache.count, recent: cache.recent || [], stale: true, syncing: !!cache.syncing };
     return null;
   }
 }
@@ -286,6 +352,7 @@ module.exports = async (req, res) => {
       currentHoldings: { uiAmount: balance }, // null = lookup failed (frontend shows "—"), never fake 0
       lastDistribution,
       recentDistributions: recent,
+      syncing: !!(dist && dist.syncing), // older payouts still being counted — UI shows a note
       burner,
       burnRank: burnRanks ? burnRanks.burnRank : null,
       earnRank: burnRanks ? burnRanks.earnRank : null,
