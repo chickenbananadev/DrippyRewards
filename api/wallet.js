@@ -139,7 +139,11 @@ async function getOnChainBalance(owner){
 // the already-scanned range get picked up.
 const EARN_CACHE_V = 3;
 const SIG_PAGE_LIMIT = 1000;   // getSignaturesForAddress max per page
-const SIG_MAX_PAGES = 3;       // up to 3,000 sigs ≈ two months at 48 drips/day
+const SIG_MAX_PAGES = 10;      // up to 10,000 sigs ≈ 6+ months at 48 drips/day.
+                               // Must exhaust the wallet's backlog: if the
+                               // window truncates, everything between the
+                               // cursor and the window bottom would be skipped
+                               // forever once the cursor advances into it.
 const FALLBACK_BATCH = 50;       // per-tx fallback: txs fetched per parallel batch
 const FALLBACK_TX_MAX = 400;     // hard cap per check
 const FALLBACK_TIME_MS = 8000;   // time budget per check for fallback parsing
@@ -177,6 +181,14 @@ function drippyDelta(txMeta, who){
   return sum(txMeta.postTokenBalances) - sum(txMeta.preTokenBalances);
 }
 
+// While a wallet's history is still catching up, the live head probe
+// (state.recentLive) knows the true newest payouts; the catch-up list
+// (state.recent) lags behind. Serve whichever is fresher.
+function pickRecent(state){
+  if(state.syncing && Array.isArray(state.recentLive) && state.recentLive.length) return state.recentLive;
+  return state.recent || [];
+}
+
 async function getDistributions(owner){
   let cache = null;
   const cachedStr = await redis(['GET', EARN_CACHE_PREFIX + owner]);
@@ -185,7 +197,7 @@ async function getDistributions(owner){
 
   // Within 60 seconds of the last scan just serve the cache untouched.
   if(cache && cache.updatedAt && (Date.now() - cache.updatedAt) < 60_000){
-    return { totalSol: cache.totalLamports / 1e9, count: cache.count, recent: cache.recent || [], cached: true, syncing: !!cache.syncing };
+    return { totalSol: cache.totalLamports / 1e9, count: cache.count, recent: pickRecent(cache), cached: true, syncing: !!cache.syncing };
   }
 
   const state = cache || { v: EARN_CACHE_V, totalLamports: 0, count: 0, newestSig: null, recent: [] };
@@ -195,15 +207,23 @@ async function getDistributions(owner){
     // Collect signatures newer than the last processed one (newest-first).
     let newSigs = [];
     let before = null;
+    let windowTruncated = true; // true until a short page proves we reached the cursor/genesis
     for(let page = 0; page < SIG_MAX_PAGES; page++){
       const opts = { limit: SIG_PAGE_LIMIT };
       if(before) opts.before = before;
       if(state.newestSig) opts.until = state.newestSig; // every page, not just the first
       const sigs = await rpc('getSignaturesForAddress', [owner, opts]);
-      if(!sigs || !sigs.length) break;
+      if(!sigs || !sigs.length){ windowTruncated = false; break; }
       newSigs = newSigs.concat(sigs.filter(s => !s.err).map(s => s.signature));
-      if(sigs.length < SIG_PAGE_LIMIT) break;
+      if(sigs.length < SIG_PAGE_LIMIT){ windowTruncated = false; break; }
       before = sigs[sigs.length - 1].signature;
+    }
+    if(windowTruncated){
+      // >10,000 sigs above the cursor. Advancing the cursor into this window
+      // would permanently skip the gap below it, so log loudly and don't
+      // count this pass — extremely unlikely for a real holder wallet.
+      console.error('[distributions] signature window truncated for', owner, '- backlog exceeds', SIG_MAX_PAGES * SIG_PAGE_LIMIT);
+      if(state.newestSig) newSigs = [];
     }
 
     let burnsRecorded = 0;
@@ -316,16 +336,56 @@ async function getDistributions(owner){
       }
       state.syncing = parsedThrough < (oldestFirst.length - 1); // backlog remains
     } else {
-      state.syncing = false;
+      // No new work this pass. Still syncing only in the (rare) truncated-
+      // window case above, where a backlog exists but wasn't safe to count.
+      state.syncing = !!(windowTruncated && state.newestSig);
     }
+
+    // --- Live head probe: while the historical catch-up runs, state.recent
+    // fills oldest→newest and can lag DAYS behind the chain, which made the
+    // "Last payout" card show stale times on actively-dripping wallets.
+    // Parse just the newest few signatures directly so the card always shows
+    // the wallet's true latest payout. Display-only: these are never added
+    // to the totals, and the real scan replaces them once it catches up.
+    if(state.syncing && newSigs.length){
+      try{
+        const head = newSigs.slice(0, 10); // newSigs is newest-first
+        const settled = await Promise.allSettled(head.map(sig =>
+          rpc('getTransaction', [sig, { encoding: 'jsonParsed', maxSupportedTransactionVersion: 0 }]).then(tx => ({ sig, tx }))
+        ));
+        const live = [];
+        for(const s of settled){
+          if(s.status !== 'fulfilled') continue;
+          const { sig, tx } = s.value;
+          if(!tx || !tx.meta || !tx.transaction) continue;
+          const keys = (tx.transaction.message.accountKeys || []).map(k => (typeof k === 'string') ? k : (k && k.pubkey));
+          const oi = keys.indexOf(owner);
+          const di = keys.indexOf(DISTRIBUTOR);
+          if(oi < 0 || di < 0) continue;
+          const pre = tx.meta.preBalances || [];
+          const post = tx.meta.postBalances || [];
+          const gained = (post[oi] || 0) - (pre[oi] || 0);
+          if(gained > 0 && (pre[di] || 0) > (post[di] || 0)){
+            live.push({
+              timestamp: tx.blockTime ? new Date(tx.blockTime * 1000).toISOString() : null,
+              amountSol: gained / 1e9,
+              status: 'succeeded',
+              txSig: sig
+            });
+          }
+        }
+        if(live.length) state.recentLive = live; // newest-first, like head
+      }catch(_){ /* display-only — never fail the scan over it */ }
+    }
+    if(!state.syncing) delete state.recentLive;
 
     state.updatedAt = Date.now();
     await redis(['SET', EARN_CACHE_PREFIX + owner, JSON.stringify(state)]);
-    return { totalSol: state.totalLamports / 1e9, count: state.count, recent: state.recent, syncing: !!state.syncing, burnsRecorded };
+    return { totalSol: state.totalLamports / 1e9, count: state.count, recent: pickRecent(state), syncing: !!state.syncing, burnsRecorded };
   }catch(e){
     console.error('[distributions]', e.message);
     // If the scan fails but we have a cache, serve the cache.
-    if(cache) return { totalSol: cache.totalLamports / 1e9, count: cache.count, recent: cache.recent || [], stale: true, syncing: !!cache.syncing };
+    if(cache) return { totalSol: cache.totalLamports / 1e9, count: cache.count, recent: pickRecent(cache), stale: true, syncing: !!cache.syncing };
     return null;
   }
 }
