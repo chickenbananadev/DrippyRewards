@@ -133,10 +133,49 @@ async function getOnChainBalance(owner){
 //      into already-counted history and double count.
 // v1 caches are discarded (v2 marker) so previously-poisoned wallets heal
 // with a full rescan on their next check.
-const EARN_CACHE_V = 2;
+// v3: the scan now ALSO detects burns (DRIPPY transfers to the burn address)
+// in the same transaction history, healing wallets whose burns the Helius
+// webhook missed. The bump forces one rescan of v2 wallets so burns inside
+// the already-scanned range get picked up.
+const EARN_CACHE_V = 3;
 const SIG_PAGE_LIMIT = 1000;   // getSignaturesForAddress max per page
 const SIG_MAX_PAGES = 3;       // up to 3,000 sigs ≈ two months at 48 drips/day
-const FALLBACK_TX_CAP = 40;    // per-check budget for per-tx parsing on public RPC
+const FALLBACK_BATCH = 50;       // per-tx fallback: txs fetched per parallel batch
+const FALLBACK_TX_MAX = 400;     // hard cap per check
+const FALLBACK_TIME_MS = 8000;   // time budget per check for fallback parsing
+
+// Record scan-detected burns through the SAME idempotent path the Helius
+// webhook uses (permanent per-signature SET NX guard) — so a burn the webhook
+// already recorded is never double counted, and one it missed heals the
+// wallet meta, the burn leaderboard AND the global totals.
+async function recordScannedBurns(owner, burns){
+  let recorded = 0;
+  for(const b of burns){
+    const guard = await redis(['SET', 'drippy:burnsig:' + b.sig + ':' + owner, '1', 'NX']);
+    if(guard !== 'OK') continue; // already recorded by webhook/backfill, or redis unavailable
+    await redis(['ZINCRBY', LB_BURN_KEY, String(b.amount), owner]);
+    await redis(['INCRBYFLOAT', TOTAL_BURN_KEY, String(b.amount)]);
+    await redis(['INCR', 'drippy:burn:events']);
+    let meta = {};
+    const existing = await redis(['GET', META_PREFIX + owner]);
+    if(existing){ try{ meta = JSON.parse(existing); }catch(_){} }
+    meta.tokensBurned = (Number(meta.tokensBurned) || 0) + b.amount;
+    meta.burnEvents = (Number(meta.burnEvents) || 0) + 1;
+    meta.lastBurnAt = b.ts || Date.now();
+    meta.updatedAt = Date.now();
+    await redis(['SET', META_PREFIX + owner, JSON.stringify(meta)]);
+    recorded++;
+  }
+  return recorded;
+}
+
+// UI-amount delta of the DRIPPY mint for `who` across a jsonParsed transaction.
+function drippyDelta(txMeta, who){
+  const sum = (arr) => (arr || [])
+    .filter(b => b && b.mint === TOKEN_MINT && b.owner === who)
+    .reduce((s, b) => s + ((b.uiTokenAmount && b.uiTokenAmount.uiAmount) || 0), 0);
+  return sum(txMeta.postTokenBalances) - sum(txMeta.preTokenBalances);
+}
 
 async function getDistributions(owner){
   let cache = null;
@@ -167,9 +206,11 @@ async function getDistributions(owner){
       before = sigs[sigs.length - 1].signature;
     }
 
+    let burnsRecorded = 0;
     if(newSigs.length){
       const oldestFirst = newSigs.slice().reverse();
       const parsedDrips = [];       // oldest-first while collecting
+      const foundBurns = [];        // DRIPPY transfers owner -> burn address seen in the scan
       let parsedThrough = -1;       // index into oldestFirst of the last parsed sig
 
       // --- Primary: Helius enhanced parse, 100-sig chunks in order.
@@ -201,40 +242,65 @@ async function getDistributions(owner){
               }
             }
           }
+          // Burn detection (mirrors burn-webhook's extractBurns, scoped to owner)
+          for(const t of (tx.tokenTransfers || [])){
+            if(t.mint !== TOKEN_MINT) continue;
+            const amount = Number(t.tokenAmount) || 0;
+            if(amount <= 0 || t.fromUserAccount !== owner) continue;
+            if(t.toUserAccount === DISTRIBUTOR || tx.type === 'BURN'){
+              foundBurns.push({ sig: tx.signature, amount, ts: tx.timestamp ? tx.timestamp * 1000 : Date.now() });
+            }
+          }
         }
         parsedThrough = Math.min(i + 100, oldestFirst.length) - 1;
       }
 
       // --- Fallback: Helius parse unavailable → standard getTransaction on
-      // the RPC chain (public endpoints), a bounded slice per check. Repeat
-      // checks keep advancing until history is fully counted.
+      // the RPC chain (public endpoints). Time-budgeted batches so catch-up
+      // moves at a few hundred transactions per check instead of 40.
       if(parsedThrough < 0){
-        const slice = oldestFirst.slice(0, FALLBACK_TX_CAP);
-        const settled = await Promise.allSettled(slice.map(sig =>
-          rpc('getTransaction', [sig, { encoding: 'jsonParsed', maxSupportedTransactionVersion: 0 }]).then(tx => ({ sig, tx }))
-        ));
-        for(let i = 0; i < settled.length; i++){
-          const s = settled[i];
-          if(s.status !== 'fulfilled'){ break; } // keep the resume point contiguous
-          const { sig, tx } = s.value;
-          parsedThrough = i;
-          if(!tx || !tx.meta || !tx.transaction) continue;
-          const keys = (tx.transaction.message.accountKeys || []).map(k => (typeof k === 'string') ? k : (k && k.pubkey));
-          const oi = keys.indexOf(owner);
-          const di = keys.indexOf(DISTRIBUTOR);
-          if(oi < 0 || di < 0) continue;
-          const pre = tx.meta.preBalances || [];
-          const post = tx.meta.postBalances || [];
-          const gained = (post[oi] || 0) - (pre[oi] || 0);
-          const distPaid = (pre[di] || 0) > (post[di] || 0);
-          if(gained > 0 && distPaid){
-            parsedDrips.push({
-              timestamp: tx.blockTime ? new Date(tx.blockTime * 1000).toISOString() : null,
-              amountSol: gained / 1e9,
-              status: 'succeeded',
-              txSig: sig
-            });
+        const t0 = Date.now();
+        let idx = 0;
+        outer: while(idx < oldestFirst.length && idx < FALLBACK_TX_MAX && (Date.now() - t0) < FALLBACK_TIME_MS){
+          const slice = oldestFirst.slice(idx, idx + FALLBACK_BATCH);
+          const settled = await Promise.allSettled(slice.map(sig =>
+            rpc('getTransaction', [sig, { encoding: 'jsonParsed', maxSupportedTransactionVersion: 0 }]).then(tx => ({ sig, tx }))
+          ));
+          for(let i = 0; i < settled.length; i++){
+            const s = settled[i];
+            if(s.status !== 'fulfilled'){ break outer; } // keep the resume point contiguous
+            const { sig, tx } = s.value;
+            parsedThrough = idx + i;
+            if(!tx || !tx.meta || !tx.transaction) continue;
+            // Burn detection via token balances: owner's DRIPPY down AND the
+            // burn address's DRIPPY up in the same tx. Needs only tokenBalances
+            // (the burn address's MAIN account is often absent from accountKeys
+            // — only its token account is touched). A DEX sell also drops the
+            // owner's balance, but the counterparty is a pool — requiring the
+            // burn address to gain keeps this exact.
+            const burnGain = drippyDelta(tx.meta, DISTRIBUTOR);
+            const ownerLoss = -drippyDelta(tx.meta, owner);
+            if(burnGain > 0 && ownerLoss > 0){
+              foundBurns.push({ sig, amount: Math.min(burnGain, ownerLoss), ts: tx.blockTime ? tx.blockTime * 1000 : Date.now() });
+            }
+            const keys = (tx.transaction.message.accountKeys || []).map(k => (typeof k === 'string') ? k : (k && k.pubkey));
+            const oi = keys.indexOf(owner);
+            const di = keys.indexOf(DISTRIBUTOR);
+            if(oi < 0 || di < 0) continue;
+            const pre = tx.meta.preBalances || [];
+            const post = tx.meta.postBalances || [];
+            const gained = (post[oi] || 0) - (pre[oi] || 0);
+            const distPaid = (pre[di] || 0) > (post[di] || 0);
+            if(gained > 0 && distPaid){
+              parsedDrips.push({
+                timestamp: tx.blockTime ? new Date(tx.blockTime * 1000).toISOString() : null,
+                amountSol: gained / 1e9,
+                status: 'succeeded',
+                txSig: sig
+              });
+            }
           }
+          idx += slice.length;
         }
       }
 
@@ -246,6 +312,7 @@ async function getDistributions(owner){
         // Newest first: fresh payouts go in front of cached ones
         state.recent = parsedDrips.slice().reverse().concat(state.recent || []).slice(0, 10);
         state.newestSig = oldestFirst[parsedThrough]; // ONLY as far as actually parsed
+        if(foundBurns.length) burnsRecorded = await recordScannedBurns(owner, foundBurns);
       }
       state.syncing = parsedThrough < (oldestFirst.length - 1); // backlog remains
     } else {
@@ -254,7 +321,7 @@ async function getDistributions(owner){
 
     state.updatedAt = Date.now();
     await redis(['SET', EARN_CACHE_PREFIX + owner, JSON.stringify(state)]);
-    return { totalSol: state.totalLamports / 1e9, count: state.count, recent: state.recent, syncing: !!state.syncing };
+    return { totalSol: state.totalLamports / 1e9, count: state.count, recent: state.recent, syncing: !!state.syncing, burnsRecorded };
   }catch(e){
     console.error('[distributions]', e.message);
     // If the scan fails but we have a cache, serve the cache.
@@ -266,9 +333,10 @@ async function getDistributions(owner){
 async function getBurnAndRanks(owner){
   const out = { burner: null, burnRank: null, earnRank: null };
   try{
-    const [metaStr, totalBurnStr, br, er] = await Promise.all([
+    const [metaStr, totalBurnStr, forgeStr, br, er] = await Promise.all([
       redis(['GET', META_PREFIX + owner]),
       redis(['GET', TOTAL_BURN_KEY]),
+      redis(['GET', 'drippy:stats:forge']), // stats.js's cached Forge snapshot
       redis(['ZREVRANK', LB_BURN_KEY, owner]),
       redis(['ZREVRANK', LB_EARN_KEY, owner])
     ]);
@@ -280,12 +348,16 @@ async function getBurnAndRanks(owner){
         if(burnUi / 1e9 <= 1_000_000_000) burnUi = burnUi / 1e9;
         else if(burnUi / 1e6 <= 1_000_000_000) burnUi = burnUi / 1e6;
       }
-      const totalBurn = Number(totalBurnStr) || 0;
+      // Burn-weight denominator: prefer Forge's authoritative total (the
+      // internal webhook total is known-inflated, which understated shares).
+      let forgeTotal = 0;
+      if(forgeStr){ try{ forgeTotal = Number(JSON.parse(forgeStr).v.forgeTokensBurned) || 0; }catch(_){} }
+      const denom = forgeTotal > 0 ? forgeTotal : (Number(totalBurnStr) || 0);
       out.burner = {
         enabled: burnUi > 0,
         tokensBurned: burnUi,
         burnEvents: meta.burnEvents || 0,
-        burnWeightSharePct: totalBurn > 0 ? (burnUi / totalBurn) * 100 : (meta.burnWeightSharePct || 0)
+        burnWeightSharePct: denom > 0 ? (burnUi / denom) * 100 : (meta.burnWeightSharePct || 0)
       };
     }
     if(br != null) out.burnRank = Number(br) + 1;
@@ -312,11 +384,14 @@ module.exports = async (req, res) => {
   if (!SOL_RE.test(address)) { res.status(400).json({ error: 'Invalid Solana wallet address' }); return; }
 
   try {
-    const [balance, dist, burnRanks] = await Promise.all([
+    const [balance, dist] = await Promise.all([
       withTimeout(getOnChainBalance(address), 8000).catch(() => null),
-      withTimeout(getDistributions(address), 20000).catch(() => null),
-      withTimeout(getBurnAndRanks(address), 5000).catch(() => ({ burner: null, burnRank: null, earnRank: null }))
+      withTimeout(getDistributions(address), 20000).catch(() => null)
     ]);
+    // Read burn data AFTER the scan: if the scan just healed missed burns,
+    // this very response already shows them.
+    const burnRanks = await withTimeout(getBurnAndRanks(address), 5000)
+      .catch(() => ({ burner: null, burnRank: null, earnRank: null }));
 
     const totalReceivedSol = dist ? dist.totalSol : 0;
     const distributionCount = dist ? dist.count : 0;
