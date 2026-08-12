@@ -307,6 +307,51 @@ function ringP(x,y,col,n,spd){for(let i=0;i<n;i++){const a=i/n*Math.PI*2;particl
 function addFloat(x,y,txt,col,big){floaters.push({x,y,txt,col,life:1.15,vy:-0.65,big});}
 function addEffect(key,x,y,h,dur){effects.push({key,x,y,h:h||90,t:0,dur:dur||0.45});}
 
+/* ---------- sprite-sheet animation ----------
+   Frame-by-frame effects played off a packed sheet. assets/fx-burst.png is
+   StumpyStrust's "Explosion Sheet" from OpenGameArt (CC0 / public domain, no
+   attribution required), re-cut to 24 frames at 80px for the web.
+   Fire is drawn additively while it's burning and normally as it turns to
+   smoke, which is what makes it sit on top of the scene like real light. */
+const SHEETS={burst:{src:'assets/fx-burst.png',cols:6,rows:4,frames:24,fw:80,fh:80,fps:38}};
+for(const k in SHEETS){const s=SHEETS[k];s.img=new Image();s.img.src=s.src;}
+let anims=[];
+function addAnim(key,x,y,size,o){
+  o=o||{};
+  anims.push({key,x,y,size:size||120,t:0,rot:o.rot||0,sy:o.sy||1,
+    speed:o.speed||1,alpha:o.alpha==null?1:o.alpha,delay:o.delay||0});
+}
+function drawAnims(){
+  for(const a of anims){
+    if(a.delay>0)continue;
+    const s=SHEETS[a.key];if(!s||!s.img.width)continue;
+    const f=Math.floor(a.t*s.fps*a.speed);
+    if(f>=s.frames)continue;
+    const sx=(f%s.cols)*s.fw,sy=Math.floor(f/s.cols)*s.fh;
+    const w=a.size,h=a.size*a.sy,k=f/s.frames;
+    ctx.save();
+    ctx.translate(a.x-camX,a.y-camY);
+    if(a.rot)ctx.rotate(a.rot);
+    // warm light thrown on the scene while the fireball is burning. The sheet's
+    // core is white-hot, so compositing the frames additively blows them out to
+    // white — the glow goes underneath instead and the frames draw normally.
+    if(k<0.55){
+      const gr=ctx.createRadialGradient(0,0,w*0.06,0,0,w*0.62);
+      const ga=(1-k/0.55)*0.5*a.alpha;
+      gr.addColorStop(0,'rgba(255,196,96,'+(ga*0.9).toFixed(3)+')');
+      gr.addColorStop(0.5,'rgba(255,124,40,'+(ga*0.42).toFixed(3)+')');
+      gr.addColorStop(1,'rgba(255,90,20,0)');
+      ctx.globalCompositeOperation='lighter';
+      ctx.fillStyle=gr;ctx.beginPath();ctx.ellipse(0,0,w*0.62,h*0.62,0,0,7);ctx.fill();
+      ctx.globalCompositeOperation='source-over';
+    }
+    ctx.globalAlpha=a.alpha*(k>0.72?(1-k)*3.6:1);
+    ctx.drawImage(s.img,sx,sy,s.fw,s.fh,-w/2,-h/2,w,h);
+    ctx.restore();
+  }
+  ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
+}
+
 /* ---------- physics consts ---------- */
 const GRAV=2300,WALK=250,RUN=400,ACC=2200,FRIC=1900,AIRACC=1400,JUMP=760,DJUMP=660,WJUMPV=700,WJUMPH=430;
 
@@ -952,7 +997,7 @@ function startLevel(i){
   level.dripsTotal=level.coins.reduce((s,c)=>s+c.v,0);
   player=newPlayer(90,420);if(GOD){player.hp=99;player.hpMax=99;}
   if(i===0)applySkinPerks(player); // perks only granted at the start of a run (level 1), not every level
-  cam={x:0,y:0};projectiles=[];drops=[];particles=[];floaters=[];effects=[];
+  cam={x:0,y:0};projectiles=[];drops=[];particles=[];floaters=[];effects=[];anims=[];
   runStats={drips:0,kills:0,deaths:0,time:0,maxCombo:0,checkpoint:{x:90,y:420}};
   state='play';gt=0;
   AUDIO.init();AUDIO.playSong(LEVELS[i].music);
@@ -1175,6 +1220,10 @@ function landPound(){
   const p=player;p.pound=0;
   addShake(9,0.3);hitstop(0.05);AUDIO.sfx.pound();
   ringP(p.x,p.y,'#f5c542',14,260);spawnP(p.x,p.y,'#b0a890',10,200);
+  // slam blast: squashed flat against the floor and thrown out to both sides
+  addAnim('burst',p.x,p.y-14,150,{sy:0.55,speed:1.5});
+  addAnim('burst',p.x-58,p.y-8,90,{sy:0.5,speed:1.7,alpha:0.7,delay:0.04});
+  addAnim('burst',p.x+58,p.y-8,90,{sy:0.5,speed:1.7,alpha:0.7,delay:0.04});
   for(const cr of level.crates){if(!cr.dead&&Math.abs(cr.x+cr.w/2-p.x)<110&&Math.abs(cr.y+cr.h-p.y)<60)breakCrate(cr);}
   for(const e of level.enemies){if(e.dead)continue;const gr=e.type!=='bat'&&e.variant!=='tele';
     if(gr&&Math.abs(e.x-p.x)<120&&Math.abs(e.y-p.y)<40){dmgEnemy(e,2,true);}}
@@ -1230,6 +1279,7 @@ function pushCoin(coin, fromScatter){
 }
 function breakCrate(cr){
   cr.dead=true;AUDIO.sfx.crate();spawnP(cr.x+cr.w/2,cr.y+cr.h/2,'#8a6a3a',12,220);addShake(2,0.12);
+  addAnim('burst',cr.x+cr.w/2,cr.y+cr.h/2,86,{speed:1.6,alpha:0.85,rot:Math.random()*6});
   if(cr.loot==='coins'){
     const n=cr.isEgg?9:6;
     for(let i=0;i<n;i++){
@@ -1309,6 +1359,8 @@ function dmgEnemy(e,n,pound){
     const sc=3*player.combo*(player.x2>0?2:1);runStats.drips+=0;
     AUDIO.sfx.stomp();if(player.combo>=2){AUDIO.sfx.combo(player.combo);addFloat(e.x,e.y-110,'COMBO x'+player.combo,'#ffd966',true);}
     addEffect('poof',e.x,e.y-30,100,0.5);spawnP(e.x,e.y-40,'#f5c542',10,220);hitstop(0.03);
+    // real frame-animated blast on top of the puff — bigger the deeper the combo
+    addAnim('burst',e.x,e.y-38,110+Math.min(60,player.combo*14),{speed:1.25,rot:Math.random()*6});
   } else {e.flash=0.2;AUDIO.sfx.stomp();}
 }
 function updateEnemies(dt){
@@ -1422,6 +1474,12 @@ function bossDefeat(){
   AUDIO.sfx.explode();AUDIO.stopMusic();addShake(18,1.0);hitstop(0.35);
   level._koFlash = 0.7; // white flash overlay duration (rendered in drawHUD)
   addFloat(level.boss.x, level.boss.y - 240, 'K.O.', '#ffffff', true);
+  // rolling chain of real explosions across the boss instead of one static puff
+  for(let i=0;i<9;i++)addAnim('burst',
+    level.boss.x+(Math.random()-0.5)*220,
+    level.boss.y-40-Math.random()*150,
+    150+Math.random()*110,
+    {delay:i*0.16,speed:0.9+Math.random()*0.5,rot:Math.random()*6});
   for(let i=0;i<5;i++)setTimeout(()=>{
     addEffect('burst', level.boss.x+(Math.random()-0.5)*160, level.boss.y-60-Math.random()*80, 160, 0.7);
     AUDIO.sfx.explode();
@@ -1749,6 +1807,8 @@ function update(dt){
   floaters=floaters.filter(f=>f.life>0);
   for(const ef of effects)ef.t+=dt;
   effects=effects.filter(ef=>ef.t<ef.dur);
+  for(const a of anims){if(a.delay>0){a.delay-=dt;continue;}a.t+=dt;}
+  anims=anims.filter(a=>{const s=SHEETS[a.key];return a.delay>0||a.t*s.fps*a.speed<s.frames;});
   for(const tr of trails)tr.life-=dt;
   trails=trails.filter(t=>t.life>0);
   if(level.banner!=null)level.banner-=dt;
@@ -2170,6 +2230,7 @@ function render(){
   // effects (poof/burst)
   for(const ef of effects){const k=ef.t/ef.dur;ctx.globalAlpha=1-k;blit(SPR(ef.key),ef.x,ef.y+ef.h/2,ef.h*(0.7+k*0.6),1);}
   ctx.globalAlpha=1;
+  drawAnims();
   // particles
   for(const pt of particles){ctx.globalAlpha=Math.max(0,pt.life*2);ctx.fillStyle=pt.col;ctx.fillRect(pt.x-camX-2,pt.y-camY-2,4,4);}
   ctx.globalAlpha=1;
