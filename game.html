@@ -330,10 +330,17 @@ const PALS={
   midnight:{sky:['#040614','#0a1028','#1a2050','#040818'],far:'#080e22',mid:'#101838',ground:'#22293a',gtop:'#3a4664',acc:'#9fc9ff',win:'rgba(159,201,255,.08)',rain:true,wind:true,mountains:true},
   alley:{sky:['#0a0614','#1a0a2a','#2a0e3a','#0c0618'],far:'#140a22',mid:'#1e0e30',ground:'#24202c',gtop:'#3a3346',acc:'#ff3ea5',win:'rgba(255,62,165,.10)'},
   glizzy:{sky:['#2a1850','#5a2a72','#9a4a6a','#e08a4a'],far:'#2a1a44',mid:'#3a2255',ground:'#3a2a1c',gtop:'#6a4a2c',acc:'#ffcf3a',win:'rgba(255,200,80,.10)'},
-  desert:{sky:['#3a2a6a','#7a4a6a','#d07a4a','#f5b54a'],far:'#5a4060',mid:'#8a5a4a',ground:'#7a5a2c',gtop:'#b58a3c',acc:'#ffd24a',win:'rgba(255,210,74,.10)',embers:true},
+  desert:{sky:['#3a2a6a','#7a4a6a','#d07a4a','#f5b54a'],far:'#5a4060',mid:'#8a5a4a',ground:'#7a5a2c',gtop:'#b58a3c',acc:'#ffd24a',win:'rgba(255,210,74,.10)',embers:true,dunes:true},
   meme:{sky:['#0a0626','#2a0a4a','#5a0a6a','#1a0628'],far:'#160a36',mid:'#260c48',ground:'#2a1042',gtop:'#5a2a78',acc:'#2ff0ff',win:'rgba(47,240,255,.12)'},
-  gothic:{sky:['#0c0818','#1a1230','#2a1a48','#0e0a1c'],far:'#140e26',mid:'#1e1638',ground:'#28222e',gtop:'#4a3a2c',acc:'#ffd24a',win:'rgba(186,140,255,.10)',dark:true},
+  gothic:{sky:['#0c0818','#1a1230','#2a1a48','#0e0a1c'],far:'#140e26',mid:'#1e1638',ground:'#28222e',gtop:'#4a3a2c',acc:'#ffd24a',win:'rgba(186,140,255,.10)',dark:true,spires:true},
 };
+
+/* Surface material per palette — drives the procedural tile texture that
+   platforms and ground are painted with (see matTile below). */
+const MATS={downtown:'brick',alley:'brick',rooftops:'metal',scrap:'metal',neon:'metal',midnight:'metal',
+  sky:'metal',vault:'vault',deep:'stone',boss:'stone',gothic:'stone',void:'void',meme:'grid',
+  ice:'ice',boardwalk:'wood',glizzy:'wood',pines:'earth',desert:'sand'};
+for(const k in MATS){if(PALS[k])PALS[k].mat=MATS[k];}
 
 /* ---------- level definitions ---------- */
 function mkL(name,music,palKey,w){return{name,music,pal:PALS[palKey],w,h:600,platforms:[],springs:[],spikes:[],jets:[],lasers:[],icicles:[],traffic:[],crates:[],checkpoints:[],coins:[],powerups:[],billboards:[],cars:[],enemies:[],shocks:[],supply:null,water:null,windAmp:0,goal:null,boss:null,bossTitle:'',eventT:0,eventMsg:''};}
@@ -1008,6 +1015,12 @@ function updatePlayer(dt){
     if(dir!==0){p.vx+=dir*acc*dt;p.face=dir;if(Math.abs(p.vx)>max)p.vx=Math.sign(p.vx)*(icy?Math.max(max,Math.abs(p.vx)-FRIC*0.08*dt):max);}
     else if(p.onGround){const f=FRIC*dt*(icy?0.08:1);if(Math.abs(p.vx)<=f)p.vx=0;else p.vx-=Math.sign(p.vx)*f;}
   }
+  // Skid: turning against your own momentum pivots Drippy and kicks up grit
+  p._skid=Math.max(0,(p._skid||0)-dt);
+  if(p.onGround&&dir!==0&&Math.sign(p.vx)===-dir&&Math.abs(p.vx)>150){
+    p._skid=0.12;
+    if(Math.random()<0.55)spawnP(p.x-Math.sign(p.vx)*10,p.y,'rgba(214,204,178,.85)',1,140);
+  }
   if(level.windAmp&&!p.onGround){p.vx+=Math.sin(gt*0.35)*level.windAmp*dt*3;}
   p.dashcd-=dt;
   if(held('x')&&p.dash<=0&&p.dashcd<=0&&p.pound<=0){p.dash=0.16;p.dashcd=0.6;p.iframe=Math.max(p.iframe,0.22);AUDIO.sfx.dash();spawnP(p.x,p.y-p.h/2,'#2fd6c4',8,260);}
@@ -1067,7 +1080,7 @@ function updatePlayer(dt){
   if(p.x<p.w/2)p.x=p.w/2;if(p.x>level.w-p.w/2)p.x=level.w-p.w/2;
   p.sx+=(1-p.sx)*Math.min(1,dt*12);p.sy+=(1-p.sy)*Math.min(1,dt*12);
   // springs
-  for(const s of level.springs){if(p.vy>=0&&aabb(pRect(),s)){p.vy=s.p;p.onGround=false;p.jumps=1;p.pound=0;p.sy=1.4;p.sx=0.7;AUDIO.sfx.jump();spawnP(s.x+s.w/2,s.y,'#f5c542',10,200);}}
+  for(const s of level.springs){if(p.vy>=0&&aabb(pRect(),s)){p.vy=s.p;p.onGround=false;p.jumps=1;p.pound=0;p.sy=1.4;p.sx=0.7;s._c=0.25;AUDIO.sfx.jump();spawnP(s.x+s.w/2,s.y,'#f5c542',10,200);ringP(s.x+s.w/2,s.y,'rgba(245,197,66,.5)',9,150);}}
   // spikes
   for(const sp of level.spikes){if(aabb(pRect(),sp))hurt();}
   // water hazard
@@ -1742,25 +1755,233 @@ function update(dt){
   // goal
   if(level.goal&&Math.abs(player.x-level.goal.x)<46&&Math.abs(player.y-level.goal.y)<80)winLevel();
   // camera
-  const lookahead=player.face*90;
+  // Look further down the track the faster you run, and peek downward on a long
+  // fall so pits and landings are readable before you commit to them.
+  const lookahead=player.face*70+Math.max(-95,Math.min(95,player.vx*0.20));
   cam.x+=((player.x+lookahead-VW*0.45)-cam.x)*Math.min(1,dt*5);
-  cam.y+=(((player.y-VH*0.62))-cam.y)*Math.min(1,dt*4);
+  const camTargetY=player.y-VH*0.62+Math.max(-45,Math.min(80,player.vy*0.055));
+  cam.y+=(camTargetY-cam.y)*Math.min(1,dt*4);
   cam.x=Math.max(0,Math.min(level.w-VW,cam.x));cam.y=Math.max(-40,Math.min(level.h-VH+80,cam.y));
   shakeT-=dt;if(shakeT<=0)shakeMag=0;
 }
 
 /* ---------- render ---------- */
 let camX=0,camY=0;
-function blit(img,wx,wy,th,face,flashAmt,sqx,sqy){
+function blit(img,wx,wy,th,face,flashAmt,sqx,sqy,rot){
   if(!img||!img.width)return;
   const sc=th/img.height,w=img.width*sc*(sqx||1),h=th*(sqy||1);
-  ctx.save();ctx.translate(wx-camX,wy-camY);if(face<0)ctx.scale(-1,1);
+  ctx.save();ctx.translate(wx-camX,wy-camY);if(rot)ctx.rotate(rot);if(face<0)ctx.scale(-1,1);
   ctx.drawImage(img,-w/2,-h,w,h);
   if(flashAmt>0){ctx.globalAlpha=Math.min(1,flashAmt)*0.75;ctx.globalCompositeOperation='source-atop';ctx.fillStyle='#fff';ctx.fillRect(-w/2,-h,w,h);ctx.globalCompositeOperation='source-over';}
   ctx.restore();
 }
 function roundRect(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
 let rainDrops=null,emberPts=null;
+
+/* ================= PROCEDURAL ART LAYER =================
+   Every piece of scenery art in the game is generated in code: material
+   tiles, skylines, roof props and foreground detail are rendered ONCE into
+   offscreen canvases at first use and then blitted, so all the extra detail
+   costs virtually nothing per frame. Palettes drive the colours, so a new
+   level theme automatically gets matching art. */
+function mkCanvas(w,h){const c=document.createElement('canvas');c.width=w;c.height=h;return c;}
+function hashStr(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return h>>>0;}
+function rng(seed){let s=(seed>>>0)||1;return()=>{s^=s<<13;s>>>=0;s^=s>>>17;s^=s<<5;s>>>=0;return s/4294967296;};}
+function hx(c){c=(c||'#000000').replace('#','');if(c.length===3)c=c[0]+c[0]+c[1]+c[1]+c[2]+c[2];const n=parseInt(c,16);return[(n>>16)&255,(n>>8)&255,n&255];}
+// amt > 0 lightens toward white, amt < 0 darkens toward black
+function shade(c,amt){const p=hx(c);const f=v=>Math.max(0,Math.min(255,Math.round(amt>0?v+(255-v)*amt:v*(1+amt))));return'rgb('+f(p[0])+','+f(p[1])+','+f(p[2])+')';}
+function rgbaC(c,a){const p=hx(c);return'rgba('+p[0]+','+p[1]+','+p[2]+','+a+')';}
+
+/* --- material tile: one 64×64 seamless texture per palette --- */
+function matTile(pal){
+  if(pal._tile)return pal._tile;
+  const S=64,mat=pal.mat||'brick',base=pal.ground;
+  const c=mkCanvas(S,S),g=c.getContext('2d'),R=rng(hashStr(mat+base));
+  const dk=shade(base,-0.30),dk2=shade(base,-0.52),lt=shade(base,0.16),lt2=shade(base,0.34);
+  g.fillStyle=base;g.fillRect(0,0,S,S);
+  if(mat==='brick'){
+    const bh=16;
+    for(let row=0;row<S/bh;row++){
+      const y=row*bh,off=(row%2)?-16:0;
+      for(let x=off;x<S;x+=32){
+        g.fillStyle=shade(base,-0.06+R()*0.16);g.fillRect(x+1,y+1,30,bh-2);
+        g.fillStyle='rgba(255,255,255,.06)';g.fillRect(x+1,y+1,30,1);
+        g.fillStyle='rgba(0,0,0,.20)';g.fillRect(x+1,y+bh-2,30,1);
+      }
+      g.fillStyle=dk2;g.fillRect(0,y,S,1);
+    }
+  }else if(mat==='metal'){
+    for(let x=0;x<S;x+=21){
+      g.fillStyle=shade(base,-0.04+R()*0.14);g.fillRect(x,0,20,S);
+      g.fillStyle=dk2;g.fillRect(x+20,0,1,S);
+      g.fillStyle='rgba(255,255,255,.07)';g.fillRect(x+1,0,2,S);
+      for(let y=6;y<S;y+=26){g.fillStyle=lt2;g.beginPath();g.arc(x+4,y,1.4,0,7);g.arc(x+16,y,1.4,0,7);g.fill();
+        g.fillStyle='rgba(0,0,0,.3)';g.beginPath();g.arc(x+4,y+1,1.4,0,7);g.arc(x+16,y+1,1.4,0,7);g.fill();}
+    }
+    g.fillStyle='rgba(0,0,0,.22)';g.fillRect(0,31,S,2);
+  }else if(mat==='wood'){
+    for(let y=0;y<S;y+=16){
+      g.fillStyle=shade(base,-0.05+R()*0.16);g.fillRect(0,y+1,S,14);
+      g.fillStyle=dk2;g.fillRect(0,y,S,1);
+      for(let i=0;i<3;i++){const gy=y+3+R()*9;g.fillStyle='rgba(0,0,0,.13)';g.fillRect(R()*S*0.6,gy,10+R()*30,1);}
+      g.fillStyle='rgba(255,255,255,.05)';g.fillRect(0,y+2,S,1);
+      g.fillStyle=dk2;g.beginPath();g.arc(6,y+8,1.5,0,7);g.arc(S-8,y+8,1.5,0,7);g.fill();
+    }
+  }else if(mat==='stone'){
+    for(let y=0;y<S;y+=21){
+      let x=(y/21)%2?-14:0;
+      while(x<S){const w=24+R()*14;
+        g.fillStyle=shade(base,-0.08+R()*0.2);g.fillRect(x+1.5,y+1.5,w-3,18);
+        g.fillStyle='rgba(255,255,255,.05)';g.fillRect(x+1.5,y+1.5,w-3,1.5);
+        g.fillStyle='rgba(0,0,0,.22)';g.fillRect(x+1.5,y+17,w-3,2.5);x+=w;}
+      g.fillStyle=dk2;g.fillRect(0,y,S,1.5);
+    }
+    for(let i=0;i<26;i++){g.fillStyle='rgba(255,255,255,.05)';g.fillRect(R()*S,R()*S,1,1);}
+  }else if(mat==='ice'){
+    g.fillStyle=lt;g.fillRect(0,0,S,S);
+    for(let i=0;i<7;i++){const x=R()*S,y=R()*S;g.strokeStyle='rgba(255,255,255,.35)';g.lineWidth=1;
+      g.beginPath();g.moveTo(x,y);g.lineTo(x+10-R()*20,y+14+R()*16);g.stroke();}
+    for(let i=0;i<9;i++){g.fillStyle='rgba(255,255,255,.5)';g.fillRect(R()*S,R()*S,2,2);}
+    const gg=g.createLinearGradient(0,0,S,S);gg.addColorStop(0,'rgba(255,255,255,.16)');gg.addColorStop(0.5,'rgba(255,255,255,0)');gg.addColorStop(1,'rgba(180,235,255,.14)');
+    g.fillStyle=gg;g.fillRect(0,0,S,S);
+  }else if(mat==='sand'){
+    for(let y=0;y<S;y+=8){g.fillStyle=shade(base,-0.05+R()*0.14);g.fillRect(0,y,S,8);
+      g.strokeStyle='rgba(0,0,0,.10)';g.lineWidth=1;g.beginPath();
+      for(let x=0;x<=S;x+=8)g.lineTo(x,y+3+Math.sin((x+y)*0.14)*2);g.stroke();}
+    for(let i=0;i<40;i++){g.fillStyle=R()<0.5?'rgba(255,255,255,.14)':'rgba(0,0,0,.12)';g.fillRect(R()*S,R()*S,1,1);}
+  }else if(mat==='earth'){
+    for(let i=0;i<70;i++){g.fillStyle=shade(base,-0.3+R()*0.5);const s=1+R()*2.4;g.fillRect(R()*S,R()*S,s,s);}
+    for(let i=0;i<5;i++){g.strokeStyle='rgba(0,0,0,.18)';g.lineWidth=1.4;g.beginPath();
+      const x=R()*S,y=R()*S;g.moveTo(x,y);g.quadraticCurveTo(x+14,y+6,x+26,y+2);g.stroke();}
+    for(let i=0;i<6;i++){g.fillStyle=lt;g.beginPath();g.ellipse(R()*S,R()*S,2.4,1.7,R()*3,0,7);g.fill();}
+  }else if(mat==='vault'){
+    for(let y=0;y<S;y+=32)for(let x=0;x<S;x+=32){
+      g.fillStyle=shade(base,0.05);g.fillRect(x+2,y+2,28,28);
+      g.fillStyle=dk2;g.fillRect(x+2,y+2,28,2);g.fillRect(x+2,y+2,2,28);
+      g.fillStyle=lt2;g.fillRect(x+6,y+6,20,4);
+      g.fillStyle='rgba(255,210,74,.18)';g.fillRect(x+6,y+14,20,12);
+    }
+    g.fillStyle=dk2;g.fillRect(0,0,S,1.5);g.fillRect(0,0,1.5,S);
+  }else if(mat==='grid'||mat==='void'){
+    const acc=pal.acc;
+    g.fillStyle=shade(base,-0.25);g.fillRect(0,0,S,S);
+    for(let i=0;i<=S;i+=16){g.fillStyle=rgbaC(acc,mat==='grid'?0.20:0.10);g.fillRect(i,0,1,S);g.fillRect(0,i,S,1);}
+    g.fillStyle=rgbaC(acc,mat==='grid'?0.10:0.05);g.fillRect(0,0,S,S);
+    for(let i=0;i<10;i++){g.fillStyle=rgbaC(acc,0.35);g.fillRect(Math.floor(R()*4)*16,Math.floor(R()*4)*16,3,3);}
+  }
+  // unify: subtle grain over every material so flat fills never read as plastic
+  for(let i=0;i<50;i++){g.fillStyle=R()<0.5?'rgba(255,255,255,.035)':'rgba(0,0,0,.05)';g.fillRect(R()*S,R()*S,2,2);}
+  pal._tile=c;return c;
+}
+function matPat(pal){if(!pal._pat)pal._pat=ctx.createPattern(matTile(pal),'repeat');return pal._pat;}
+/* Vertical gradients built in LOCAL space (0..h) and cached forever, so the
+   hot render path translates instead of allocating a gradient per object per
+   frame — keeps the extra shading free on phones. */
+const _grads={};
+function vGrad(key,h,stops){return vGradAt(key,0,Math.round(h),stops);}
+function vGradAt(key,y0,y1,stops){
+  const k=key+'|'+Math.round(y0)+'|'+Math.round(y1);
+  let g=_grads[k];
+  if(!g){g=ctx.createLinearGradient(0,y0,0,y1);for(const s of stops)g.addColorStop(s[0],s[1]);_grads[k]=g;}
+  return g;
+}
+
+/* --- parallax skyline layers, baked once per palette + depth tier --- */
+function skyLayer(pal,tier){
+  const key='_sky'+tier;
+  if(pal[key])return pal[key];
+  const W=1920,H=tier===0?300:tier===1?360:420;
+  const c=mkCanvas(W,H),g=c.getContext('2d');
+  const col=tier===0?pal.far:pal.mid;
+  const body=tier===2?shade(col,-0.10):col;
+  const R=rng(hashStr(col+'t'+tier+(pal.acc||'')));
+  const minH=tier===0?90:tier===1?130:160;
+  const varH=tier===0?150:tier===1?190:210;
+  let x=-30;
+  while(x<W+60){
+    const bw=42+Math.floor(R()*(tier===0?70:100));
+    const bh=minH+R()*varH,top=H-bh;
+    g.fillStyle=body;g.fillRect(x,top,bw,bh);
+    // roof setback block
+    if(R()<0.42){const sw=bw*(0.35+R()*0.3),sh=16+R()*30;g.fillRect(x+(bw-sw)/2,top-sh,sw,sh+4);}
+    // face shading: lit left edge, shadowed right edge, capped roof
+    g.fillStyle=shade(col,0.18);g.fillRect(x,top,bw,2);g.fillRect(x,top,2,bh);
+    g.fillStyle=shade(col,-0.38);g.fillRect(x+bw-3,top,3,bh);
+    // windows
+    if(pal.win){
+      const cw=tier===0?4:5,ch=tier===0?3:4,gapx=cw+5,gapy=ch+7;
+      const hot=tier===0?0.07:tier===1?0.05:0.03; // nearer layers stay dimmer so the play field pops
+      for(let wy=top+12;wy<H-8;wy+=gapy)for(let wx=x+5;wx<x+bw-cw-4;wx+=gapx){
+        const r=R();
+        if(r<0.34){g.fillStyle=pal.win;g.fillRect(wx,wy,cw,ch);
+          if(r<hot*2.6){g.fillStyle=rgbaC(pal.acc,tier===0?0.30:0.20);g.fillRect(wx,wy,cw,ch);}
+          if(r<hot){g.fillStyle=rgbaC(pal.acc,tier===0?0.55:0.40);g.fillRect(wx,wy,cw,ch);}}
+        else if(r<0.62){g.fillStyle='rgba(0,0,0,.22)';g.fillRect(wx,wy,cw,ch);}
+      }
+    }
+    // roof props: water tower, antenna mast, AC units
+    const pr=R();
+    if(pr<0.22&&tier>0){ // water tower
+      const tw=16+R()*8,tx=x+4+R()*(bw-tw-8),ty=top-26;
+      g.fillStyle=shade(col,-0.2);g.fillRect(tx+2,ty+16,2,10);g.fillRect(tx+tw-4,ty+16,2,10);
+      g.fillStyle=shade(col,0.10);g.fillRect(tx,ty,tw,16);
+      g.fillStyle=shade(col,-0.3);g.beginPath();g.moveTo(tx-2,ty);g.lineTo(tx+tw/2,ty-8);g.lineTo(tx+tw+2,ty);g.closePath();g.fill();
+    }else if(pr<0.42){ // antenna with a beacon dot
+      const ax=x+bw*(0.3+R()*0.4),ah=18+R()*30;
+      g.fillStyle=shade(col,0.2);g.fillRect(ax,top-ah,1.5,ah);
+      g.fillStyle='rgba(255,80,80,.7)';g.fillRect(ax-1.5,top-ah-3,4,4);
+    }else if(pr<0.6&&tier>0){ // rooftop AC boxes
+      for(let i=0;i<2;i++){const bx2=x+8+R()*(bw-24);g.fillStyle=shade(col,-0.12);g.fillRect(bx2,top-7,12,7);
+        g.fillStyle=shade(col,0.14);g.fillRect(bx2,top-7,12,1.5);}
+    }
+    x+=bw+3+R()*14;
+  }
+  // haze toward the base so layers melt into each other instead of stacking flat
+  const hz=g.createLinearGradient(0,H*0.45,0,H);
+  hz.addColorStop(0,'rgba(0,0,0,0)');hz.addColorStop(1,rgbaC(pal.sky[pal.sky.length-2]||pal.far,tier===0?0.55:0.32));
+  g.fillStyle=hz;g.fillRect(0,0,W,H);
+  // closer layers sit darker, the way real depth reads — keeps gameplay legible
+  if(tier)  {g.fillStyle='rgba(0,0,0,'+(tier===1?0.10:0.22)+')';g.fillRect(0,0,W,H);}
+  pal[key]=c;return c;
+}
+
+/* --- moon, stars, drifting motes, vignette --- */
+function drawSkyDeco(pal){
+  const mx=VW-120-camX*0.04,my=84;
+  const halo=ctx.createRadialGradient(mx,my,10,mx,my,120);
+  halo.addColorStop(0,'rgba(255,240,200,.22)');halo.addColorStop(1,'rgba(255,240,200,0)');
+  ctx.fillStyle=halo;ctx.beginPath();ctx.arc(mx,my,120,0,7);ctx.fill();
+  ctx.fillStyle='rgba(255,244,214,.95)';ctx.beginPath();ctx.arc(mx,my,38,0,7);ctx.fill();
+  ctx.fillStyle='rgba(226,208,176,.55)';
+  ctx.beginPath();ctx.arc(mx-12,my-8,7,0,7);ctx.arc(mx+11,my+6,5,0,7);ctx.arc(mx+2,my+18,4,0,7);ctx.arc(mx+16,my-14,3,0,7);ctx.fill();
+  for(let i=0;i<34;i++){
+    const sx=(i*173+((i*97)%50))%960,sy=(i*89)%210;
+    const tw=0.35+Math.abs(Math.sin(gt*1.4+i*1.7))*0.5;
+    ctx.fillStyle='rgba(255,255,255,'+tw.toFixed(2)+')';
+    const s=i%7===0?2:1.4;
+    ctx.fillRect((sx-camX*0.02+960)%960,sy+10,s,s);
+  }
+}
+let motes=null;
+function drawAtmosphere(pal){
+  // slow drifting motes / bokeh — free depth, never blocks the play area
+  if(!motes){motes=[];for(let i=0;i<26;i++)motes.push({x:Math.random()*VW,y:Math.random()*VH,s:0.3+Math.random(),ph:Math.random()*9});}
+  for(const m of motes){
+    m.y-=(4+m.s*9)*0.016;m.x+=Math.sin(gt*0.5+m.ph)*0.25;
+    if(m.y<-8){m.y=VH+8;m.x=Math.random()*VW;}
+    const r=1+m.s*(pal.acc?2.6:1.6);
+    ctx.fillStyle=rgbaC(pal.acc,0.05+m.s*0.09);
+    ctx.beginPath();ctx.arc((m.x-camX*0.12+VW*2)%VW,m.y,r,0,7);ctx.fill();
+  }
+  // accent light wash from the top of the frame
+  const wash=ctx.createLinearGradient(0,0,0,220);
+  wash.addColorStop(0,rgbaC(pal.acc,0.07));wash.addColorStop(1,rgbaC(pal.acc,0));
+  ctx.fillStyle=wash;ctx.fillRect(0,0,VW,220);
+  // every level gets a soft vignette — pal.dark levels get the heavier one later
+  const vg=ctx.createRadialGradient(VW/2,VH*0.52,200,VW/2,VH*0.52,620);
+  vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(0,0,0,.34)');
+  ctx.fillStyle=vg;ctx.fillRect(0,0,VW,VH);
+}
 function render(){
   const pal=level?level.pal:PALS.downtown;
   camX=cam.x+(shakeMag?(Math.random()-0.5)*shakeMag:0);
@@ -1768,9 +1989,11 @@ function render(){
   ctx.clearRect(0,0,VW,VH);
   const g=ctx.createLinearGradient(0,0,0,VH);pal.sky.forEach((c,i)=>g.addColorStop(i/(pal.sky.length-1),c));
   ctx.fillStyle=g;ctx.fillRect(0,0,VW,VH);
-  // moon + stars
-  ctx.fillStyle='rgba(255,240,200,.9)';ctx.beginPath();ctx.arc(VW-120-camX*0.04,84,38,0,7);ctx.fill();
-  ctx.fillStyle='rgba(255,255,255,.5)';for(let i=0;i<24;i++){const sx=(i*173+((i*97)%50))%960,sy=(i*89)%200;ctx.fillRect((sx-camX*0.02+960)%960,sy+10,2,2);}
+  drawSkyDeco(pal);
+  // horizon glow — city/atmosphere light bleeding up behind the skyline
+  const hg=ctx.createLinearGradient(0,VH*0.30,0,VH*0.78);
+  hg.addColorStop(0,rgbaC(pal.acc,0));hg.addColorStop(0.72,rgbaC(pal.acc,0.10));hg.addColorStop(1,rgbaC(pal.acc,0.02));
+  ctx.fillStyle=hg;ctx.fillRect(0,VH*0.30,VW,VH*0.48);
   drawBackdrop(0.18,pal.far,360,VH,pal,null);drawBackdrop(0.35,pal.mid,300,VH-8,pal,pal.win);
   for(const b of level.billboards)drawBillboard(b,pal);
   drawBackdrop(0.6,pal.mid,230,VH+40,pal,pal.win);
@@ -1778,8 +2001,35 @@ function render(){
   // jets behind platforms
   for(const j of level.jets)drawJet(j,pal);
   for(const pl of level.platforms)drawPlatform(pl,pal);
-  for(const s of level.springs){const sx=s.x-camX,sy=s.y-camY;ctx.fillStyle='#f5c542';ctx.fillRect(sx,sy+8,s.w,s.h-8);ctx.fillStyle='#d4a431';ctx.fillRect(sx,sy,s.w,8);ctx.fillStyle='#fff7d6';ctx.fillRect(sx+6,sy+2,s.w-12,3);}
-  for(const sp of level.spikes){ctx.fillStyle='#7a6a8a';for(let i=0;i<sp.w;i+=18){const x=sp.x-camX+i,y=sp.y-camY;ctx.beginPath();ctx.moveTo(x,y+sp.h);ctx.lineTo(x+9,y);ctx.lineTo(x+18,y+sp.h);ctx.fill();}}
+  // springs: steel coil on a base plate, compresses when it fires
+  for(const s of level.springs){
+    const sx=s.x-camX;let sy=s.y-camY;
+    if(s._c>0){s._c-=0.03;sy+=Math.min(10,s._c*60);}
+    const coilTop=sy+9,coilBot=s.y-camY+s.h;
+    ctx.fillStyle='#2a2230';ctx.fillRect(sx-2,coilBot-5,s.w+4,6);
+    ctx.strokeStyle='#8e8ea6';ctx.lineWidth=3;ctx.beginPath();
+    for(let i=0;i<=6;i++){const t=i/6,yy=coilBot-5-(coilBot-5-coilTop)*t;ctx.lineTo(sx+(i%2?s.w-6:6),yy);}
+    ctx.stroke();
+    const pg=ctx.createLinearGradient(0,coilTop-9,0,coilTop+4);
+    pg.addColorStop(0,'#ffe89a');pg.addColorStop(0.5,'#f5c542');pg.addColorStop(1,'#a87d1e');
+    ctx.fillStyle=pg;roundRect(sx-3,coilTop-9,s.w+6,13,4);ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,.55)';ctx.fillRect(sx+3,coilTop-7,s.w-6,2.5);
+    ctx.fillStyle='rgba(245,197,66,.55)';for(let i=0;i<3;i++)ctx.fillRect(sx+s.w/2-8+i*7,coilTop-4,3,3);
+  }
+  // spikes: forged steel teeth on a rail, with a light glint down each edge
+  for(const sp of level.spikes){
+    const bx=sp.x-camX,by=sp.y-camY;
+    if(bx+sp.w<-20||bx>VW+20)continue;
+    ctx.fillStyle='#332b3e';ctx.fillRect(bx,by+sp.h-4,sp.w,4);
+    for(let i=0;i<sp.w;i+=18){
+      const x=bx+i;
+      const sg=ctx.createLinearGradient(x,by,x+18,by+sp.h);
+      sg.addColorStop(0,'#c9c3d8');sg.addColorStop(0.45,'#8a819c');sg.addColorStop(1,'#4a4258');
+      ctx.fillStyle=sg;ctx.beginPath();ctx.moveTo(x,by+sp.h);ctx.lineTo(x+9,by);ctx.lineTo(x+18,by+sp.h);ctx.closePath();ctx.fill();
+      ctx.fillStyle='rgba(255,255,255,.55)';ctx.beginPath();ctx.moveTo(x+7.5,by+1.5);ctx.lineTo(x+9,by);ctx.lineTo(x+10.5,by+3);ctx.closePath();ctx.fill();
+      ctx.fillStyle='rgba(0,0,0,.28)';ctx.beginPath();ctx.moveTo(x+9,by+2);ctx.lineTo(x+18,by+sp.h);ctx.lineTo(x+13,by+sp.h);ctx.closePath();ctx.fill();
+    }
+  }
   for(const ic of level.icicles){if(ic.state===3)continue;const jx=ic.state===1?(Math.random()-0.5)*4:0;
     const x=ic.x-camX+jx,y=ic.y-camY;if(x<-30||x>VW+30)continue;
     ctx.fillStyle='#cfe8f4';ctx.beginPath();ctx.moveTo(x-9,y);ctx.lineTo(x+9,y);ctx.lineTo(x,y+30);ctx.closePath();ctx.fill();
@@ -1791,8 +2041,23 @@ function render(){
       ctx.fillStyle='rgba(255,210,210,.8)';ctx.fillRect(x-1.5,y2,3,y1-y2);}
     else{ctx.strokeStyle='rgba(239,68,68,.25)';ctx.lineWidth=2;ctx.setLineDash([4,8]);ctx.beginPath();ctx.moveTo(x,y2);ctx.lineTo(x,y1);ctx.stroke();ctx.setLineDash([]);}}
   // water
-  if(level.water){const wy=level.water.y-camY;ctx.fillStyle='rgba(20,90,80,.75)';ctx.fillRect(0,wy,VW,VH-wy);
-    ctx.fillStyle='rgba(47,214,196,.5)';for(let x=0;x<VW;x+=26)ctx.fillRect(x,wy+Math.sin(gt*2+x*0.06)*3,14,3);}
+  if(level.water){const wy=level.water.y-camY;
+    const wg=ctx.createLinearGradient(0,wy,0,VH);
+    wg.addColorStop(0,'rgba(38,150,132,.62)');wg.addColorStop(1,'rgba(8,44,40,.92)');
+    ctx.fillStyle=wg;ctx.fillRect(0,wy,VW,VH-wy);
+    // surface band + rolling crests
+    ctx.fillStyle='rgba(160,255,240,.30)';ctx.fillRect(0,wy-1,VW,2);
+    ctx.strokeStyle='rgba(47,214,196,.55)';ctx.lineWidth=2;ctx.beginPath();
+    for(let x=0;x<=VW;x+=12)ctx.lineTo(x,wy+Math.sin(gt*2+(x+camX)*0.03)*3.5);
+    ctx.stroke();
+    ctx.fillStyle='rgba(200,255,248,.34)';
+    for(let x=(-camX*0.6)%52;x<VW;x+=52){const yy=wy+6+Math.sin(gt*1.6+x*0.05)*3;ctx.fillRect(x,yy,18,2);ctx.fillRect(x+24,yy+7,10,2);}
+    // light shafts sinking into the deep
+    for(let i=0;i<4;i++){const sx2=((i*260-camX*0.3)%(VW+260)+VW+260)%(VW+260)-130;
+      const sg=ctx.createLinearGradient(sx2,wy,sx2+40,VH);
+      sg.addColorStop(0,'rgba(140,255,235,.10)');sg.addColorStop(1,'rgba(140,255,235,0)');
+      ctx.fillStyle=sg;ctx.beginPath();ctx.moveTo(sx2,wy);ctx.lineTo(sx2+34,wy);ctx.lineTo(sx2+74,VH);ctx.lineTo(sx2+18,VH);ctx.closePath();ctx.fill();}
+  }
   // crates / checkpoints / coins / powerups
   for(const cr of level.crates){
     if(cr.dead)continue;
@@ -1815,8 +2080,25 @@ function render(){
     const x=c.x-camX,y=c.y-camY+bob;
     if(x<-30||x>VW+30)continue;
     if(c.life!=null && c.life<1.0 && Math.floor(gt*16)%2===0) continue; // blink during final second
-    const r=c.v>1?13:8;ctx.fillStyle=c.v>1?'#ffd966':'#f5c542';ctx.beginPath();ctx.ellipse(x,y,r,r*1.3,0,0,7);ctx.fill();
-    ctx.fillStyle='#fff7d6';ctx.fillRect(x-2,y-r*0.7,3,r*1.4);
+    // Spinning drip token: the body squashes horizontally through the spin so
+    // the coin reads as a solid 3D object instead of a flat sticker.
+    const big=c.v>1,r=big?13:9;
+    const spin=Math.sin(gt*3.2+c.x*0.03);
+    const rw=Math.max(1.6,Math.abs(spin)*r);
+    ctx.fillStyle=rgbaC(big?'#ffd966':'#f5c542',big?0.20:0.12);
+    ctx.beginPath();ctx.arc(x,y,r*(big?2.3:1.8),0,7);ctx.fill();
+    if(big){ctx.strokeStyle=rgbaC('#ffd966',0.35+Math.sin(gt*5)*0.2);ctx.lineWidth=2;
+      ctx.beginPath();ctx.arc(x,y,r*1.7+Math.sin(gt*5)*2,0,7);ctx.stroke();}
+    ctx.save();ctx.translate(x,y-r*1.3);
+    ctx.fillStyle=vGrad('coin'+(big?1:0),r*2.6,[[0,'#fff6c8'],[0.45,big?'#ffd34a':'#f5c542'],[1,'#a8761f']]);
+    ctx.beginPath();ctx.ellipse(0,r*1.3,rw,r*1.3,0,0,7);ctx.fill();ctx.restore();
+    ctx.strokeStyle='rgba(96,62,12,.55)';ctx.lineWidth=1.4;ctx.beginPath();ctx.ellipse(x,y,rw,r*1.3,0,0,7);ctx.stroke();
+    if(rw>r*0.5){ // face-on enough to show the drip mark
+      ctx.fillStyle='rgba(255,255,255,.72)';ctx.beginPath();
+      ctx.moveTo(x,y-r*0.62);ctx.quadraticCurveTo(x+rw*0.46,y+r*0.24,x,y+r*0.64);
+      ctx.quadraticCurveTo(x-rw*0.46,y+r*0.24,x,y-r*0.62);ctx.fill();
+    }
+    ctx.fillStyle='rgba(255,255,255,.55)';ctx.beginPath();ctx.ellipse(x-rw*0.4,y-r*0.5,Math.max(0.8,rw*0.2),r*0.34,0,0,7);ctx.fill();
   }
   for(const pu of level.powerups){
     if(pu.got)continue;
@@ -1897,6 +2179,7 @@ function render(){
   ctx.globalAlpha=1;ctx.textAlign='left';
   // weather
   drawWeather(pal);
+  drawAtmosphere(pal);
   // vignette for deep
   if(pal.dark){const vg=ctx.createRadialGradient(VW/2,VH/2,180,VW/2,VH/2,560);vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(0,10,8,.55)');ctx.fillStyle=vg;ctx.fillRect(0,0,VW,VH);}
   drawHUD();
@@ -1910,31 +2193,147 @@ function render(){
 /* Theme-aware parallax: forests get pine silhouettes, the train gets mountain
    ridges, the boardwalk gets pier buildings + a giant ferris wheel. */
 function drawBackdrop(par,col,base,floor,pal,winCol){
-  if(pal&&pal.trees)return drawPineLayer(par,col,base,floor);
-  if(pal&&pal.mountains)return drawMountainLayer(par,col,base,floor);
+  if(pal&&pal.trees)return drawPineLayer(par,col,base,floor,pal);
+  if(pal&&pal.mountains)return drawMountainLayer(par,col,base,floor,pal);
+  if(pal&&pal.dunes)return drawDuneLayer(par,col,base,floor,pal);
+  if(pal&&pal.spires)return drawSpireLayer(par,col,base,floor,pal);
   if(pal&&pal.pier){drawSkyline(par,col,base*0.8,floor,winCol);return drawFerris(par,col,floor);}
   drawSkyline(par,col,base,floor,winCol);
 }
-function drawPineLayer(par,col,base,floor){
-  const off=camX*par,span=14*170;
-  ctx.fillStyle=col;
-  for(let i=0;i<14;i++){const s=i*97%500;const tw=50+(s%50),th=base*0.6+(s%140);
-    let x=(i*170-(off%span));if(x<-span/2)x+=span;
-    // layered pine: 3 stacked triangles + trunk
-    for(let t=0;t<3;t++){const ty=floor-th+t*(th/3.4),w2=tw*(0.55+t*0.28);
-      ctx.beginPath();ctx.moveTo(x,ty+th/2.6);ctx.lineTo(x-w2/2,ty+th/2.6+th/3);ctx.lineTo(x+w2/2,ty+th/2.6+th/3);ctx.fill();}
-    ctx.fillRect(x-4,floor-16,8,16);}
+// Desert: rolling dunes with pyramids on the horizon instead of a city skyline.
+function drawDuneLayer(par,col,base,floor,pal){
+  const tier=par<0.25?0:(par<0.5?1:2);
+  const key='_dune'+tier;
+  if(!pal[key]){
+    const W=1920,H=340,c=mkCanvas(W,H),g=c.getContext('2d'),R=rng(hashStr(col+'dune'+tier));
+    const body=tier===2?shade(col,-0.12):col;
+    if(tier<2){ // pyramids sit behind the dune crests
+      for(let i=0;i<5;i++){
+        const px=R()*W,pw=90+R()*150,ph=pw*0.62,by=H-70-R()*40;
+        g.fillStyle=shade(col,0.10);g.beginPath();g.moveTo(px,by);g.lineTo(px+pw/2,by-ph);g.lineTo(px+pw,by);g.closePath();g.fill();
+        g.fillStyle=shade(col,-0.22);g.beginPath();g.moveTo(px+pw/2,by-ph);g.lineTo(px+pw,by);g.lineTo(px+pw/2,by);g.closePath();g.fill();
+        g.fillStyle=rgbaC(pal.acc,0.16);g.beginPath();g.moveTo(px+pw/2,by-ph);g.lineTo(px+pw/2+7,by-ph+16);g.lineTo(px+pw/2-7,by-ph+16);g.closePath();g.fill();
+      }
+    }
+    g.fillStyle=body;g.beginPath();g.moveTo(0,H);
+    const amp=tier===0?26:tier===1?40:56,baseY=H-(tier===0?60:tier===1?95:130);
+    for(let x=0;x<=W;x+=20)g.lineTo(x,baseY+Math.sin(x*0.004+tier)*amp+Math.sin(x*0.011+tier*2)*amp*0.45);
+    g.lineTo(W,H);g.closePath();g.fill();
+    g.strokeStyle=rgbaC('#ffe9b0',tier===2?0.16:0.10);g.lineWidth=2;g.beginPath();
+    for(let x=0;x<=W;x+=20)g.lineTo(x,baseY+Math.sin(x*0.004+tier)*amp+Math.sin(x*0.011+tier*2)*amp*0.45);
+    g.stroke();
+    if(tier)  {g.fillStyle='rgba(0,0,0,'+(tier===1?0.08:0.18)+')';g.fillRect(0,0,W,H);}
+    pal[key]=c;
+  }
+  const img=pal[key];let off=(camX*par)%img.width;if(off<0)off+=img.width;
+  for(let sx=-off;sx<VW;sx+=img.width)ctx.drawImage(img,Math.round(sx),Math.round(floor-img.height-camY*par*0.3));
 }
-function drawMountainLayer(par,col,base,floor){
-  const off=camX*par,span=6*420;
-  ctx.fillStyle=col;
-  for(let i=0;i<6;i++){const s=i*211%400;const mw=340+(s%160),mh=base*0.9+(s%120);
-    let x=(i*420-(off%span));if(x<-span/2)x+=span;
-    ctx.beginPath();ctx.moveTo(x-mw/2,floor);ctx.lineTo(x,floor-mh);ctx.lineTo(x+mw/2,floor);ctx.fill();
-    // snow cap
-    ctx.fillStyle='rgba(220,230,255,0.18)';
-    ctx.beginPath();ctx.moveTo(x-mw*0.12,floor-mh+mh*0.22);ctx.lineTo(x,floor-mh);ctx.lineTo(x+mw*0.12,floor-mh+mh*0.22);ctx.fill();
-    ctx.fillStyle=col;}
+// Gothic: cathedral spires and buttresses.
+function drawSpireLayer(par,col,base,floor,pal){
+  const tier=par<0.25?0:(par<0.5?1:2);
+  const key='_spire'+tier;
+  if(!pal[key]){
+    const W=1920,H=380,c=mkCanvas(W,H),g=c.getContext('2d'),R=rng(hashStr(col+'spire'+tier));
+    const body=tier===2?shade(col,-0.10):col;
+    let x=-20;
+    while(x<W+40){
+      const bw=40+R()*70,bh=(tier===0?130:tier===1?180:220)+R()*120,top=H-bh;
+      g.fillStyle=body;g.fillRect(x,top,bw,bh);
+      g.fillStyle=shade(col,0.16);g.fillRect(x,top,bw,2);g.fillRect(x,top,2,bh);
+      g.fillStyle=shade(col,-0.4);g.fillRect(x+bw-3,top,3,bh);
+      // steeple
+      const sh=26+R()*46;
+      g.fillStyle=shade(col,-0.05);g.beginPath();g.moveTo(x+bw/2,top-sh);g.lineTo(x+bw*0.82,top);g.lineTo(x+bw*0.18,top);g.closePath();g.fill();
+      g.fillStyle=rgbaC(pal.acc,0.5);g.fillRect(x+bw/2-1,top-sh-7,2,7);g.fillRect(x+bw/2-4,top-sh-5,8,2);
+      // arched windows, lit from within
+      for(let wy=top+18;wy<H-24;wy+=34){
+        for(let wx=x+8;wx<x+bw-12;wx+=18){
+          if(R()<0.45)continue;
+          g.fillStyle=R()<0.35?rgbaC(pal.acc,0.34):(pal.win||'rgba(255,210,74,.1)');
+          g.beginPath();g.moveTo(wx,wy+16);g.lineTo(wx,wy+6);g.quadraticCurveTo(wx+4,wy-2,wx+8,wy+6);g.lineTo(wx+8,wy+16);g.closePath();g.fill();
+        }
+      }
+      x+=bw+4+R()*18;
+    }
+    if(tier)  {g.fillStyle='rgba(0,0,0,'+(tier===1?0.10:0.22)+')';g.fillRect(0,0,W,H);}
+    pal[key]=c;
+  }
+  const img=pal[key];let off=(camX*par)%img.width;if(off<0)off+=img.width;
+  for(let sx=-off;sx<VW;sx+=img.width)ctx.drawImage(img,Math.round(sx),Math.round(floor-img.height-camY*par*0.3));
+}
+// Dense baked evergreen wall — overlapping trees at three depths with a mist
+// band at the base so the forest recedes instead of looking like cut-outs.
+function drawPineLayer(par,col,base,floor,pal){
+  pal=pal||level.pal;
+  const tier=par<0.25?0:(par<0.5?1:2);
+  const key='_pine'+tier;
+  if(!pal[key]){
+    const W=1920,H=420,c=mkCanvas(W,H),g=c.getContext('2d'),R=rng(hashStr(col+'pine'+tier));
+    const body=tier===2?shade(col,-0.14):col;
+    const rows=tier===0?2:3;
+    for(let row=0;row<rows;row++){
+      const depth=row/Math.max(1,rows-1);
+      const tone=shade(body,-0.16+depth*0.30);
+      for(let x=-40;x<W+40;x+=(tier===0?42:56)+R()*26){
+        const tw=(tier===0?34:48)+R()*(tier===0?18:34);
+        const th=(tier===0?90:130)+R()*(tier===0?70:130)+depth*40;
+        const baseY=H-14-row*10;
+        g.fillStyle=shade(tone,-0.5);g.fillRect(x-2.5,baseY-14,5,16);
+        g.fillStyle=tone;
+        for(let t=0;t<4;t++){
+          const ty=baseY-th+t*(th/4.6),w2=tw*(0.42+t*0.22);
+          g.beginPath();g.moveTo(x,ty);g.lineTo(x-w2/2,ty+th/3.1);g.lineTo(x+w2/2,ty+th/3.1);g.closePath();g.fill();
+        }
+        if(R()<0.3){g.fillStyle=rgbaC(pal.acc,0.10);g.beginPath();g.moveTo(x,baseY-th);g.lineTo(x-tw*0.16,baseY-th+16);g.lineTo(x+tw*0.16,baseY-th+16);g.closePath();g.fill();}
+      }
+    }
+    const mist=g.createLinearGradient(0,H-150,0,H);
+    mist.addColorStop(0,'rgba(0,0,0,0)');mist.addColorStop(1,rgbaC(pal.far,tier===0?0.6:0.4));
+    g.fillStyle=mist;g.fillRect(0,H-150,W,150);
+    if(tier)  {g.fillStyle='rgba(0,0,0,'+(tier===1?0.10:0.22)+')';g.fillRect(0,0,W,H);}
+    pal[key]=c;
+  }
+  const img=pal[key];let off=(camX*par)%img.width;if(off<0)off+=img.width;
+  for(let sx=-off;sx<VW;sx+=img.width)ctx.drawImage(img,Math.round(sx),Math.round(floor-img.height-camY*par*0.3));
+}
+// Storm-lit mountain ridges: jagged crests, lit west faces, snow caps and haze.
+function drawMountainLayer(par,col,base,floor,pal){
+  pal=pal||level.pal;
+  const tier=par<0.25?0:(par<0.5?1:2);
+  const key='_mtn'+tier;
+  if(!pal[key]){
+    const W=1920,H=400,c=mkCanvas(W,H),g=c.getContext('2d'),R=rng(hashStr(col+'mtn'+tier));
+    const body=tier===2?shade(col,-0.12):col;
+    const peaks=tier===0?4:tier===1?5:6;
+    for(let i=0;i<peaks;i++){
+      const mw=320+R()*280,mh=(tier===0?150:tier===1?210:250)+R()*110;
+      const x=(i+0.5)*(W/peaks)+(R()-0.5)*160,baseY=H-10;
+      g.fillStyle=body;
+      g.beginPath();g.moveTo(x-mw/2,baseY);
+      // jagged crest instead of a clean triangle
+      const steps=9;
+      for(let s=1;s<steps;s++){
+        const t=s/steps,px=x-mw/2+mw*t;
+        const prof=1-Math.abs(t-0.5)*2;
+        g.lineTo(px,baseY-mh*prof-(R()-0.5)*mh*0.12);
+      }
+      g.lineTo(x+mw/2,baseY);g.closePath();g.fill();
+      // lit face down the left flank
+      g.fillStyle=shade(col,0.16);
+      g.beginPath();g.moveTo(x,baseY-mh);g.lineTo(x-mw*0.34,baseY);g.lineTo(x-mw*0.05,baseY);g.closePath();g.fill();
+      // snow cap
+      g.fillStyle='rgba(226,236,255,.30)';
+      g.beginPath();g.moveTo(x-mw*0.13,baseY-mh*0.78);g.lineTo(x,baseY-mh);g.lineTo(x+mw*0.13,baseY-mh*0.78);
+      g.lineTo(x+mw*0.05,baseY-mh*0.82);g.lineTo(x-mw*0.02,baseY-mh*0.74);g.closePath();g.fill();
+    }
+    const hz=g.createLinearGradient(0,H*0.5,0,H);
+    hz.addColorStop(0,'rgba(0,0,0,0)');hz.addColorStop(1,rgbaC(pal.far,tier===0?0.55:0.35));
+    g.fillStyle=hz;g.fillRect(0,0,W,H);
+    if(tier)  {g.fillStyle='rgba(0,0,0,'+(tier===1?0.10:0.20)+')';g.fillRect(0,0,W,H);}
+    pal[key]=c;
+  }
+  const img=pal[key];let off=(camX*par)%img.width;if(off<0)off+=img.width;
+  for(let sx=-off;sx<VW;sx+=img.width)ctx.drawImage(img,Math.round(sx),Math.round(floor-img.height-camY*par*0.3));
 }
 function drawFerris(par,col,floor){
   const off=camX*par;
@@ -1950,22 +2349,41 @@ function drawFerris(par,col,floor){
   ctx.strokeStyle='rgba(255,74,214,0.32)';
   ctx.beginPath();ctx.moveTo(x-46,floor);ctx.lineTo(x,cy);ctx.lineTo(x+46,floor);ctx.stroke();
 }
-function drawSkyline(par,col,base,floor,winCol){const off=camX*par;const span=16*150;
-  ctx.fillStyle=col;
-  for(let i=0;i<16;i++){const s=i*131%1000;const bw=60+(s%70),bh=base-(s%200);let x=(i*150-(off%span));if(x<-span/2)x+=span;
-    ctx.fillRect(x,floor-bh,bw,bh);
-    if(winCol){ctx.fillStyle=winCol;for(let wy=floor-bh+12;wy<floor-10;wy+=16){if((s+wy)%3===0)ctx.fillRect(x+6,wy,bw-12,4);}ctx.fillStyle=col;}}
+// Baked skyline layers — tier is derived from the parallax factor so the three
+// render() calls each get their own depth (far / mid / near).
+function drawSkyline(par,col,base,floor,winCol){
+  const pal=level?level.pal:PALS.downtown;
+  const tier=par<0.25?0:(par<0.5?1:2);
+  const img=skyLayer(pal,tier);
+  const y=floor-img.height;
+  let off=(camX*par)%img.width;if(off<0)off+=img.width;
+  for(let sx=-off;sx<VW;sx+=img.width)ctx.drawImage(img,Math.round(sx),Math.round(y-camY*par*0.3));
 }
 function drawPlatform(pl,pal){const x=pl.x-camX,y=pl.y-camY;
+  if(pl.gone)return;
   if(x+pl.w<-20||x>VW+20)return;
   if(pl.crush){ctx.fillStyle='#4a3a50';ctx.fillRect(x,y,pl.w,pl.h);ctx.fillStyle='#2a2030';ctx.fillRect(x+6,y+6,pl.w-12,pl.h-12);
     ctx.strokeStyle='#777';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(x+pl.w/2,0);ctx.lineTo(x+pl.w/2,y);ctx.stroke();
     ctx.fillStyle='#f5c542';for(let i=0;i<pl.w;i+=16){ctx.beginPath();ctx.moveTo(x+i,y+pl.h);ctx.lineTo(x+i+8,y+pl.h+10);ctx.lineTo(x+i+16,y+pl.h);ctx.fill();}return;}
   const shaking=pl.fall&&pl.armed&&!pl.falling;
   const jx=shaking?(Math.random()-0.5)*3:0;
-  ctx.fillStyle=pal.ground;ctx.fillRect(x+jx,y,pl.w,pl.h);
-  ctx.fillStyle=pal.gtop;ctx.fillRect(x+jx,y,pl.w,6);
-  ctx.fillStyle='rgba(255,255,255,.14)';ctx.fillRect(x+jx,y,pl.w,2);
+  const px=x+jx,w=pl.w,h=pl.h,solid=h>60;
+  // floating slabs cast a shadow so they read as being in front of the world
+  if(!solid){ctx.fillStyle='rgba(0,0,0,.25)';ctx.fillRect(px+6,y+h,w-6,6);}
+  // textured body, locked to world coordinates so it scrolls with the level
+  ctx.save();ctx.beginPath();ctx.rect(px,y,w,h);ctx.clip();
+  ctx.translate(px-((pl.x%64)+64)%64,y-((pl.y%64)+64)%64);
+  ctx.fillStyle=matPat(pal);ctx.fillRect(0,0,w+128,h+128);
+  ctx.restore();
+  // depth shading down the face + a lit lip along the top
+  ctx.save();ctx.translate(px,y);
+  ctx.fillStyle=vGrad(solid?'pls':'plf',h,[[0,'rgba(0,0,0,0)'],[solid?0.5:0.7,'rgba(0,0,0,.18)'],[1,'rgba(0,0,0,.5)']]);
+  ctx.fillRect(0,0,w,h);ctx.restore();
+  ctx.fillStyle='rgba(0,0,0,.3)';ctx.fillRect(px,y,2,h);ctx.fillRect(px+w-2,y,2,h);
+  ctx.fillStyle=pal.gtop;ctx.fillRect(px,y,w,6);
+  ctx.fillStyle='rgba(255,255,255,.22)';ctx.fillRect(px,y,w,2);
+  ctx.fillStyle=rgbaC(pal.acc,0.28);ctx.fillRect(px,y+6,w,1);
+  if(solid)drawGroundDeco(pl,px,y,pal);
   if(pl.belt){ctx.fillStyle='#1a1422';ctx.fillRect(x,y,pl.w,12);
     ctx.fillStyle='#f5c542';const sp=24,off2=((gt*pl.belt)%sp+sp)%sp;
     // Arrow direction must match belt direction. Positive belt → arrow tip points right; negative → tip points left.
@@ -1979,6 +2397,52 @@ function drawPlatform(pl,pal){const x=pl.x-camX,y=pl.y-camY;
     }}}
   if(pl.mv){ctx.fillStyle='rgba(162,89,255,.5)';ctx.fillRect(x+pl.w/2-8,y+pl.h-4,16,3);}
 }
+// Props scattered along thick ground segments — grime streaks, vents, pipes and
+// edge growth. Generated once per segment from a stable seed so they never dance.
+function drawGroundDeco(pl,px,y,pal){
+  if(!pl._deco){
+    const R=rng(hashStr('deco'+pl.bx+'_'+pl.by+'_'+pl.w)),d=[];
+    for(let i=0;i<Math.floor(pl.w/110);i++)d.push({x:20+R()*(pl.w-40),k:R(),s:0.7+R()*0.7});
+    pl._deco=d;
+  }
+  const mat=pal.mat||'brick';
+  const natural=(mat==='sand'||mat==='earth'||mat==='ice'); // no city plumbing out here
+  for(const d of pl._deco){
+    const dx=px+d.x;
+    if(dx<-40||dx>VW+40)continue;
+    if(natural){
+      if(d.k<0.5){ // rocks / rubble resting on the surface
+        const rc=mat==='ice'?'rgba(210,238,250,.85)':shade(pal.ground,mat==='sand'?-0.22:-0.3);
+        ctx.fillStyle=rc;ctx.beginPath();ctx.ellipse(dx,y-3*d.s,8*d.s,5*d.s,0,0,7);ctx.fill();
+        ctx.fillStyle='rgba(255,255,255,.16)';ctx.beginPath();ctx.ellipse(dx-2*d.s,y-5*d.s,3.4*d.s,2*d.s,0,0,7);ctx.fill();
+      }else if(d.k<0.8){ // wind-drift / snow bank hugging the lip
+        ctx.fillStyle=mat==='ice'?'rgba(255,255,255,.35)':rgbaC(pal.gtop,0.4);
+        ctx.beginPath();ctx.moveTo(dx-24*d.s,y+4);ctx.quadraticCurveTo(dx,y-7*d.s,dx+24*d.s,y+4);ctx.closePath();ctx.fill();
+      }else{ // dry growth / frozen reeds
+        ctx.strokeStyle=mat==='ice'?'rgba(190,225,240,.6)':rgbaC(pal.acc,0.45);ctx.lineWidth=1.6;
+        for(let i=0;i<4;i++){const tx=dx+i*5;ctx.beginPath();ctx.moveTo(tx,y);ctx.quadraticCurveTo(tx+3,y-9*d.s,tx+7,y-13*d.s);ctx.stroke();}
+      }
+      continue;
+    }
+    if(d.k<0.34){ // grime streak weeping down from the lip
+      for(let i=0;i<3;i++){ctx.fillStyle='rgba(0,0,0,'+(0.16-i*0.05).toFixed(2)+')';ctx.fillRect(dx,y+6+i*17*d.s,7*d.s,17*d.s);}
+    }else if(d.k<0.58){ // recessed vent / grate
+      const w=26*d.s,h=18*d.s,vy=y+22;
+      ctx.fillStyle='rgba(0,0,0,.42)';ctx.fillRect(dx,vy,w,h);
+      ctx.fillStyle=rgbaC(pal.gtop,0.5);
+      for(let i=2;i<h-2;i+=4)ctx.fillRect(dx+2,vy+i,w-4,1.6);
+      ctx.fillStyle='rgba(255,255,255,.10)';ctx.fillRect(dx,vy,w,1);
+    }else if(d.k<0.74){ // wall pipe running down the face
+      ctx.fillStyle=shade(pal.ground,-0.45);ctx.fillRect(dx,y+8,6*d.s,80*d.s);
+      ctx.fillStyle=shade(pal.ground,0.12);ctx.fillRect(dx+1,y+8,2,80*d.s);
+      ctx.fillStyle=shade(pal.ground,-0.6);ctx.fillRect(dx-2,y+30*d.s,10*d.s,5);
+    }else if(d.k<0.9){ // growth / drift along the lit lip
+      const tuft=(mat==='earth'||mat==='wood')?rgbaC(pal.acc,0.5):(mat==='sand'?'rgba(255,235,190,.5)':rgbaC(pal.gtop,0.75));
+      ctx.fillStyle=tuft;
+      for(let i=0;i<5;i++){const tx=dx+i*4,th=3+((i*7+d.x)%5);ctx.fillRect(tx,y-th,2,th);}
+    }
+  }
+}
 function drawJet(j,pal){const x=j.x-camX;if(x<-60||x>VW+60)return;
   ctx.fillStyle='#143830';ctx.fillRect(x-22,j.y1-camY,44,12);
   if(j.on){const top=j.y2-camY,bot=j.y1-camY;
@@ -1987,10 +2451,24 @@ function drawJet(j,pal){const x=j.x-camX;if(x<-60||x>VW+60)return;
     for(let i=0;i<6;i++){const yy=bot-((gt*340+i*60)%(bot-top));ctx.beginPath();ctx.arc(x+Math.sin(gt*6+i)*8,yy,4,0,7);ctx.fill();}}
 }
 function drawGoal(goal){const x=goal.x-camX,y=goal.y-camY,t=gt*2.4;
-  ctx.fillStyle='rgba(245,197,66,'+(0.12+Math.sin(t)*0.06)+')';ctx.fillRect(x-22,y-300,44,300);
-  ctx.fillStyle='#d4a431';ctx.beginPath();ctx.moveTo(x-34,y-40);ctx.lineTo(x+34,y-40);ctx.lineTo(x+22,y-8);ctx.lineTo(x-22,y-8);ctx.closePath();ctx.fill();
+  // beam of light with a soft edge instead of a flat yellow rectangle
+  const bg=ctx.createLinearGradient(x-30,0,x+30,0);
+  bg.addColorStop(0,'rgba(245,197,66,0)');bg.addColorStop(0.5,'rgba(245,197,66,'+(0.20+Math.sin(t)*0.07)+')');bg.addColorStop(1,'rgba(245,197,66,0)');
+  ctx.fillStyle=bg;ctx.fillRect(x-30,y-320,60,320);
+  // rising motes inside the beam
+  for(let i=0;i<7;i++){const py=y-((gt*70+i*46)%300),px=x+Math.sin(gt*1.6+i)*14;
+    ctx.fillStyle='rgba(255,231,150,'+(0.5*(py-(y-300))/300).toFixed(2)+')';ctx.fillRect(px,py,3,3);}
+  // orbiting rings around the bowl
+  for(let i=0;i<2;i++){const rr=30+i*12,sq=Math.abs(Math.sin(t*0.8+i*1.2));
+    ctx.strokeStyle='rgba(47,214,196,'+(0.25+sq*0.35)+')';ctx.lineWidth=2;
+    ctx.beginPath();ctx.ellipse(x,y-40,rr,6+sq*7,0,0,7);ctx.stroke();}
+  const pg=ctx.createLinearGradient(0,y-44,0,y-4);
+  pg.addColorStop(0,'#f8d874');pg.addColorStop(1,'#a87d1e');
+  ctx.fillStyle=pg;ctx.beginPath();ctx.moveTo(x-34,y-40);ctx.lineTo(x+34,y-40);ctx.lineTo(x+22,y-8);ctx.lineTo(x-22,y-8);ctx.closePath();ctx.fill();
   ctx.fillStyle='#f5c542';ctx.beginPath();ctx.ellipse(x,y-40,34,10,0,0,7);ctx.fill();
-  ctx.fillStyle='#2fd6c4';ctx.beginPath();ctx.ellipse(x,y-40,26,7,0,0,7);ctx.fill();
+  ctx.fillStyle='#1d8c81';ctx.beginPath();ctx.ellipse(x,y-40,26,7,0,0,7);ctx.fill();
+  ctx.fillStyle='rgba(120,255,238,'+(0.55+Math.sin(t*1.6)*0.25)+')';ctx.beginPath();ctx.ellipse(x,y-41,22,5,0,0,7);ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,.5)';ctx.beginPath();ctx.ellipse(x-10,y-42,7,2,0,0,7);ctx.fill();
   ctx.fillStyle='#3a3048';ctx.fillRect(x-8,y-8,16,8);}
 function drawBowl(b){const x=b.x-camX,y=b.y-camY;
   ctx.fillStyle='rgba(245,197,66,.18)';ctx.fillRect(x-30,0,60,y);
@@ -2031,7 +2509,17 @@ function drawPlayer(){
     ctx.strokeStyle='rgba(255,217,102,'+(0.4+Math.sin(gt*10)*0.2)+')';ctx.lineWidth=3;
     ctx.beginPath();ctx.arc(p.x-camX,p.y-camY-14,50,0,7);ctx.stroke();
   }
-  blit(img,p.x,p.y,72*growScale,p.face,0,p.sx,p.sy);
+  // Procedural animation rig — the art is a single still per state, so the run
+  // bounce, forward lean, air tilt, idle breathing and skid pivot are all
+  // driven here. Costs nothing and makes Drippy read as alive.
+  let bob=0,rot=0,sx=p.sx,sy=p.sy;
+  if(p._skid>0){rot=-p.face*0.20;sx*=1.10;sy*=0.93;}
+  else if(!p.onGround){rot=p.face*Math.max(-0.07,Math.min(0.13,-p.vy*0.00016));}
+  else if(p.state==='run'){const ph=p.anim*15;bob=-Math.abs(Math.sin(ph))*3.5;
+    rot=p.face*(0.045+Math.min(0.04,Math.abs(p.vx)/RUN*0.04));
+    sy*=1+Math.sin(ph*2)*0.035;sx*=1-Math.sin(ph*2)*0.02;}
+  else if(p.state==='idle'){const br=Math.sin(gt*2.3);sy*=1+br*0.022;sx*=1-br*0.016;bob=br*-1.2;}
+  blit(img,p.x,p.y+bob,72*growScale,p.face,0,sx,sy,rot);
   if(p.shield&&!(isFinite(p.shield)&&p.shield<1.5&&Math.floor(gt*8)%2)){ctx.strokeStyle='rgba(162,89,255,.8)';ctx.lineWidth=2.5;ctx.beginPath();ctx.arc(p.x-camX,p.y-36-camY,40+Math.sin(gt*5)*3,0,7);ctx.stroke();}
   if(p.pound>0){ctx.fillStyle='rgba(245,197,66,.4)';ctx.fillRect(p.x-camX-16,p.y-camY-70,32,60);}
   if(Math.abs(p.vx)>380&&p.onGround){ctx.strokeStyle='rgba(255,255,255,.25)';ctx.lineWidth=2;
@@ -2067,23 +2555,38 @@ function drawBillboard(b,pal){const x=b.x-camX*0.5,y=b.y-camY*0.4,t=gt;
   ctx.fillStyle='rgba(0,0,0,.18)';for(let yy=0;yy<b.h;yy+=4)ctx.fillRect(x,y+yy,b.w,2);
   ctx.restore();
 }
+// Shared bodywork for background cars and street traffic: rounded shell, tinted
+// glass, rimmed wheels, headlight cone and a wet-road light smear.
+function carBody(w,h,col,s,glow){
+  ctx.fillStyle='rgba(0,0,0,.34)';ctx.beginPath();ctx.ellipse(0,h*0.62,w*0.52,5*s,0,0,7);ctx.fill();
+  // carBody always runs inside a translate to the car's centre, so this
+  // gradient's coordinates are stable and it can be cached by colour + size.
+  ctx.fillStyle=vGradAt('car'+col+h,-h*0.6,h*0.6,[[0,shade(col,0.3)],[0.5,col],[1,shade(col,-0.4)]]);
+  roundRect(-w/2,-h*0.18,w,h*0.62,5*s);ctx.fill();                       // lower body
+  roundRect(-w*0.3,-h*0.62,w*0.62,h*0.52,5*s);ctx.fill();                // cabin
+  ctx.fillStyle='rgba(150,220,255,.30)';roundRect(-w*0.25,-h*0.55,w*0.52,h*0.36,3*s);ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,.20)';ctx.fillRect(-w*0.25,-h*0.55,w*0.52,2*s);
+  ctx.fillStyle='rgba(255,255,255,.16)';ctx.fillRect(-w/2+3*s,-h*0.14,w-6*s,1.6*s); // beltline
+  for(const wx of [-w*0.28,w*0.28]){
+    ctx.fillStyle='#0b0b12';ctx.beginPath();ctx.arc(wx,h*0.44,6.6*s,0,7);ctx.fill();
+    ctx.fillStyle=shade(col,0.42);ctx.beginPath();ctx.arc(wx,h*0.44,2.9*s,0,7);ctx.fill();
+  }
+  ctx.fillStyle='rgba(255,244,200,.95)';roundRect(w/2-4*s,-h*0.06,4.5*s,5*s,1.5*s);ctx.fill();
+  ctx.fillStyle='rgba(255,90,80,.9)';ctx.fillRect(-w/2-1*s,-h*0.06,3*s,4.5*s);
+  if(glow){
+    const cone=ctx.createLinearGradient(w/2,0,w/2+40*s,0);
+    cone.addColorStop(0,'rgba(255,240,180,.32)');cone.addColorStop(1,'rgba(255,240,180,0)');
+    ctx.fillStyle=cone;ctx.beginPath();ctx.moveTo(w/2,-h*0.06);ctx.lineTo(w/2+40*s,-h*0.34);ctx.lineTo(w/2+40*s,h*0.44);ctx.closePath();ctx.fill();
+    ctx.fillStyle='rgba(255,120,90,.16)';ctx.beginPath();ctx.ellipse(-w*0.2,h*0.66,w*0.4,4*s,0,0,7);ctx.fill();
+  }
+}
 function drawCar(car){const x=car.x-camX*(0.4+car.l*0.5),y=car.y-camY*0.5,s=0.8+car.l*0.6;
-  if(x<-160||x>VW+60)return;const w=70*s,h=26*s;
-  ctx.fillStyle='rgba(0,0,0,.3)';ctx.beginPath();ctx.ellipse(x+w/2,y+h+4,w*0.5,5,0,0,7);ctx.fill();
-  ctx.fillStyle=car.c;ctx.fillRect(x,y+h*0.4,w,h*0.6);ctx.fillRect(x+w*0.18,y,w*0.6,h*0.55);
-  ctx.fillStyle='#0a0a14';ctx.fillRect(x+w*0.22,y+3,w*0.5,h*0.35);
-  ctx.fillStyle='#111';ctx.beginPath();ctx.arc(x+w*0.22,y+h,6*s,0,7);ctx.arc(x+w*0.78,y+h,6*s,0,7);ctx.fill();
-  ctx.fillStyle='rgba(255,240,180,.8)';ctx.fillRect(x+w-3,y+h*0.5,4,5);
-  ctx.fillStyle='rgba(255,240,180,.25)';ctx.beginPath();ctx.moveTo(x+w,y+h*0.5);ctx.lineTo(x+w+26,y+h*0.2);ctx.lineTo(x+w+26,y+h);ctx.closePath();ctx.fill();}
-function drawTraffic(car){const x=car.x-camX,y=462-camY,w=76,h=30,fl=car.spd<0;
+  if(x<-160||x>VW+60)return;const w=70*s,h=30*s;
+  ctx.save();ctx.translate(x+w/2,y+h*0.4);carBody(w,h,car.c,s,true);ctx.restore();}
+function drawTraffic(car){const x=car.x-camX,y=462-camY,w=76,h=32,fl=car.spd<0;
   if(x<-120||x>VW+120)return;
   ctx.save();ctx.translate(x,y);if(fl)ctx.scale(-1,1);
-  ctx.fillStyle='rgba(0,0,0,.35)';ctx.beginPath();ctx.ellipse(0,h-2,w*0.5,6,0,0,7);ctx.fill();
-  ctx.fillStyle=car.c;ctx.fillRect(-w/2,-h*0.2,w,h*0.62);ctx.fillRect(-w*0.3,-h*0.55,w*0.58,h*0.5);
-  ctx.fillStyle='#0a0a14';ctx.fillRect(-w*0.24,-h*0.48,w*0.46,h*0.34);
-  ctx.fillStyle='#111';ctx.beginPath();ctx.arc(-w*0.28,h*0.42,7,0,7);ctx.arc(w*0.28,h*0.42,7,0,7);ctx.fill();
-  ctx.fillStyle='rgba(255,240,180,.9)';ctx.fillRect(w/2-4,-h*0.05,5,6);
-  ctx.fillStyle='rgba(255,240,180,.22)';ctx.beginPath();ctx.moveTo(w/2,-h*0.05);ctx.lineTo(w/2+34,-h*0.35);ctx.lineTo(w/2+34,h*0.4);ctx.closePath();ctx.fill();
+  carBody(w,h,car.c,1.05,true);
   ctx.restore();}
 function drawWeather(pal){
   if(pal.rain){if(!rainDrops){rainDrops=[];for(let i=0;i<90;i++)rainDrops.push({x:Math.random()*VW,y:Math.random()*VH,s:0.5+Math.random()});}
@@ -2855,24 +3358,36 @@ function drawMenuBg(t){
     ctx.fillStyle='rgba(246,233,196,'+(a*(0.4+s.s*0.6)).toFixed(2)+')';
     ctx.fillRect((s.x+t*4*(0.3+s.s))%VW,s.y,s.s>0.85?2.5:1.5,s.s>0.85?2.5:1.5);
   }
-  // big soft moon
-  ctx.fillStyle='rgba(245,230,200,0.10)';ctx.beginPath();ctx.arc(VW*0.82,VH*0.22,90,0,7);ctx.fill();
-  ctx.fillStyle='rgba(245,230,200,0.16)';ctx.beginPath();ctx.arc(VW*0.82,VH*0.22,64,0,7);ctx.fill();
-  // parallax skyline, two layers drifting at different speeds
-  for(let l=0;l<2;l++){
-    const spd=(l?22:10),hgt=(l?160:230),col=l?'rgba(26,14,42,0.9)':'rgba(16,9,28,0.85)';
-    ctx.fillStyle=col;
-    const off=(t*spd)%160;
-    for(let x=-160;x<VW+160;x+=160){
-      const seed=Math.floor((x+off*0+(l*999))/160);
-      const bh=hgt*(0.55+0.45*Math.abs(Math.sin(seed*4.7+l*2)));
-      ctx.fillRect(x-off,VH-bh,110,bh);
-      // lit windows
-      ctx.fillStyle='rgba(245,197,66,'+(0.05+0.05*Math.abs(Math.sin(t+seed)))+')';
-      for(let wy=VH-bh+18;wy<VH-22;wy+=34)ctx.fillRect(x-off+18,wy,10,8);
-      ctx.fillStyle=col;
-    }
+  // big soft moon with a halo and craters
+  const mx=VW*0.82,my=VH*0.22;
+  const halo=ctx.createRadialGradient(mx,my,20,mx,my,150);
+  halo.addColorStop(0,'rgba(245,230,200,.18)');halo.addColorStop(1,'rgba(245,230,200,0)');
+  ctx.fillStyle=halo;ctx.beginPath();ctx.arc(mx,my,150,0,7);ctx.fill();
+  ctx.fillStyle='rgba(245,232,204,.30)';ctx.beginPath();ctx.arc(mx,my,64,0,7);ctx.fill();
+  ctx.fillStyle='rgba(214,198,168,.22)';
+  for(const cr of [[-20,-14,12],[18,10,9],[4,30,7],[26,-22,5]]){ctx.beginPath();ctx.arc(mx+cr[0],my+cr[1],cr[2],0,7);ctx.fill();}
+  // the same baked city the levels use, drifting on its own instead of a camera
+  const mpal=PALS.downtown;
+  for(let tier=0;tier<3;tier++){
+    const img=skyLayer(mpal,tier),spd=[7,16,30][tier];
+    let off=(t*spd)%img.width;if(off<0)off+=img.width;
+    // every layer stands on the street, just set back a little with distance
+    const yy=VH-52-img.height+[26,12,0][tier];
+    ctx.globalAlpha=[0.8,0.92,1][tier];
+    for(let sx=-off;sx<VW;sx+=img.width)ctx.drawImage(img,Math.round(sx),Math.round(yy));
+    ctx.globalAlpha=1;
   }
+  // street the buttons sit on, in the same brick the first level uses
+  const gy=VH-52;
+  ctx.save();ctx.beginPath();ctx.rect(0,gy,VW,52);ctx.clip();
+  ctx.translate(-((t*40)%64),gy);
+  ctx.fillStyle=matPat(mpal);ctx.fillRect(0,0,VW+128,64);
+  ctx.restore();
+  ctx.fillStyle=vGrad('menuGround',52,[[0,'rgba(0,0,0,0)'],[1,'rgba(0,0,0,.55)']]);
+  ctx.save();ctx.translate(0,gy);ctx.fillRect(0,0,VW,52);ctx.restore();
+  ctx.fillStyle=mpal.gtop;ctx.fillRect(0,gy,VW,5);
+  ctx.fillStyle='rgba(255,255,255,.2)';ctx.fillRect(0,gy,VW,2);
+  ctx.fillStyle='rgba(245,197,66,.28)';ctx.fillRect(0,gy+5,VW,1);
   // floating Drippy with gold aura
   const hero=SPR(window.currentSkin?(window.currentSkin+'_idle'):'hero');
   if(hero&&hero.width){
@@ -2892,6 +3407,10 @@ function drawMenuBg(t){
     ctx.fillStyle='rgba(245,197,66,0.5)';
     ctx.beginPath();ctx.ellipse(dx,dy,3,7,0,0,7);ctx.fill();
   }
+  // vignette to frame the title
+  const mv=ctx.createRadialGradient(VW/2,VH*0.5,220,VW/2,VH*0.5,640);
+  mv.addColorStop(0,'rgba(0,0,0,0)');mv.addColorStop(1,'rgba(0,0,0,.45)');
+  ctx.fillStyle=mv;ctx.fillRect(0,0,VW,VH);
 }
 requestAnimationFrame(loop);
 
