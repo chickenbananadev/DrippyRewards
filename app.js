@@ -894,19 +894,14 @@ async function drawRankCard(d){
 })();
 
 /* Burn meter — pours gold into the DRIPPY bone.
-   The bone spans x 22..378 in the SVG viewBox, so 0% leaves the fill rect
-   short of the left lobe and 100% clears the right one. The word DRIPPY is
-   drawn twice (pale over the track, dark clipped to the fill) so it stays
-   readable however full the bone is. */
+   The bone spans x 18..382 in the SVG viewBox, so 0% leaves the fill rect
+   short of the left lobe and 100% clears the right one. */
 function setBurnBone(pct){
-  const fill = $('burnBoneFill'), textClip = $('burnBoneTextClip'), label = $('burnBonePct');
+  const fill = $('burnBoneFill'), label = $('burnBonePct');
   if(!fill) return;
   const n = (pct == null || isNaN(Number(pct))) ? null : Math.max(0, Math.min(100, Number(pct)));
-  const w = n == null ? 0 : 22 + (356 * n / 100);
+  const w = n == null ? 0 : 18 + (364 * n / 100);
   fill.setAttribute('width', w.toFixed(2));
-  if(textClip) textClip.setAttribute('width', w.toFixed(2));
-  const lead = $('burnBoneLead');
-  if(lead) lead.setAttribute('x', (n == null || n <= 0) ? '-10' : (w - 4).toFixed(2));
   if(label) label.textContent = n == null ? '—' : n.toFixed(2) + '%';
   const svg = $('burnBoneSvg');
   if(svg) svg.setAttribute('aria-label', n == null ? 'Supply burned meter, loading' : n.toFixed(2) + '% of total supply burned forever');

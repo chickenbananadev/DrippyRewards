@@ -575,21 +575,17 @@ footer{border-top:1px solid var(--card-border);padding:50px 0 40px;text-align:ce
 .admin-file:hover span{border-color:var(--card-border-gold);color:var(--cream)}
 
 /* ---------- Burn meter: the DRIPPY bone ----------
-   A dog treat that fills with gold as supply is burned. Built from five
-   shapes (four lobes + shaft) stacked three times: a dark silhouette edge,
-   a gold rim, then the hollow track. The fill rect is clipped to the same
-   union, so the gold pours into the bone shape itself. */
-.burn-bone{margin:18px auto 0;max-width:430px}
+   A dog biscuit that fills with gold as supply burns. The body is raw
+   biscuit, the fill is gold clipped to the same path, and the lettering is
+   dark enough to read on either — so the word never washes out. */
+.burn-bone{margin:18px auto 0;max-width:400px}
 .burn-bone svg{display:block;width:100%;height:auto}
-.bone-edge{fill:#0b0612;stroke:#0b0612;stroke-width:9;stroke-linejoin:round}
-.bone-rim{fill:var(--gold-deep);stroke:var(--gold-deep);stroke-width:4;stroke-linejoin:round}
-.bone-track{fill:#241a33}
 .bone-fill{transition:width 1.2s cubic-bezier(.22,1,.36,1)}
-.bone-lead{fill:var(--gold-pale);opacity:.85;transition:x 1.2s cubic-bezier(.22,1,.36,1)}
-.bone-tick{stroke:rgba(246,233,196,.13);stroke-width:2;stroke-linecap:round}
-.bone-word{font-family:var(--display);font-size:33px;letter-spacing:4px;text-anchor:middle}
-.bone-word.base{fill:rgba(246,233,196,.40)}
-.bone-word.on{fill:#4a2f06}
-.bone-cap{margin:9px 0 0;text-align:center;font-size:13.5px;color:var(--cream-dim)}
+.bone-stroke{fill:none;stroke:#2a1c09;stroke-width:6;stroke-linejoin:round}
+/* Explicit heavy fallback chain: if Bowlby One hasn't loaded the word still
+   reads as a stamped block, never a thin serif. */
+.bone-word{font-family:'Bowlby One','Arial Black','Helvetica Neue',Impact,sans-serif;font-weight:900;font-size:28px;text-anchor:middle;fill:#33210a}
+.bone-word.shadow{fill:rgba(255,236,190,.22)}
+.bone-cap{margin:10px 0 0;text-align:center;font-size:13.5px;color:var(--cream-dim)}
 .bone-cap span{font-family:var(--mono);color:var(--gold-bright);font-size:15px}
-@media (max-width:480px){.bone-word{font-size:36px}.bone-cap{font-size:12.5px}}
+@media (max-width:480px){.bone-cap{font-size:12.5px}}

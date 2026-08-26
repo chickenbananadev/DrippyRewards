@@ -184,44 +184,29 @@
           <div class="statrow"><span class="k">Supply burned</span><span class="v purple" id="bsBurnPct">—</span></div>
         </div>
 
-        <!-- Burn meter: a dog treat that fills with gold as supply is burned forever.
-             Fill maps 0-100% of total supply across the bone (x 22 -> 378 in viewBox units). -->
+        <!-- Burn meter: a dog treat that fills with gold as supply is burned.
+             One solved path (lobes + concave waists) is reused for the body,
+             the fill clip and the outline. Fill maps 0-100% of supply across
+             x 18..382, the bone's actual visible span. -->
         <div class="burn-bone">
-          <svg viewBox="0 0 400 120" id="burnBoneSvg" role="img" aria-label="Supply burned meter">
+          <svg viewBox="0 0 400 140" id="burnBoneSvg" role="img" aria-label="Supply burned meter">
             <defs>
               <linearGradient id="boneGold" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0" stop-color="#ffe79a"/>
-                <stop offset=".42" stop-color="#f5c542"/>
-                <stop offset="1" stop-color="#a8761f"/>
+                <stop offset="0" stop-color="#ffeaa6"/><stop offset=".46" stop-color="#f5c542"/><stop offset="1" stop-color="#c1861a"/>
               </linearGradient>
-              <g id="boneShape">
-                <circle cx="54" cy="42" r="27"/><circle cx="54" cy="78" r="27"/>
-                <circle cx="346" cy="42" r="27"/><circle cx="346" cy="78" r="27"/>
-                <rect x="48" y="37" width="304" height="46" rx="23"/>
-              </g>
-              <clipPath id="boneClip">
-                <circle cx="54" cy="42" r="27"/><circle cx="54" cy="78" r="27"/>
-                <circle cx="346" cy="42" r="27"/><circle cx="346" cy="78" r="27"/>
-                <rect x="48" y="37" width="304" height="46" rx="23"/>
-              </clipPath>
-              <clipPath id="boneFillClip">
-                <rect id="burnBoneTextClip" x="0" y="0" width="0" height="120"/>
-              </clipPath>
+              <linearGradient id="boneRaw" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#7b6039"/><stop offset="1" stop-color="#4b3720"/>
+              </linearGradient>
+              <path id="bonePath" d="M 290.0,53.0 L 110.0,53.0 A 16.0,16.0 0 0 1 94.0,37.0 A 38.0,38.0 0 1 0 37.2,70.0 A 38.0,38.0 0 1 0 94.0,103.0 A 16.0,16.0 0 0 1 110.0,87.0 L 290.0,87.0 A 16.0,16.0 0 0 1 306.0,103.0 A 38.0,38.0 0 1 0 362.8,70.0 A 38.0,38.0 0 1 0 306.0,37.0 A 16.0,16.0 0 0 1 290.0,53.0 Z"/>
+              <clipPath id="boneClip"><path d="M 290.0,53.0 L 110.0,53.0 A 16.0,16.0 0 0 1 94.0,37.0 A 38.0,38.0 0 1 0 37.2,70.0 A 38.0,38.0 0 1 0 94.0,103.0 A 16.0,16.0 0 0 1 110.0,87.0 L 290.0,87.0 A 16.0,16.0 0 0 1 306.0,103.0 A 38.0,38.0 0 1 0 362.8,70.0 A 38.0,38.0 0 1 0 306.0,37.0 A 16.0,16.0 0 0 1 290.0,53.0 Z"/></clipPath>
             </defs>
-            <use href="#boneShape" class="bone-edge"/>
-            <use href="#boneShape" class="bone-rim"/>
-            <use href="#boneShape" class="bone-track"/>
-            <rect id="burnBoneFill" class="bone-fill" x="0" y="0" width="0" height="120" clip-path="url(#boneClip)" fill="url(#boneGold)"/>
-            <rect id="burnBoneLead" class="bone-lead" x="-10" y="0" width="4" height="120" clip-path="url(#boneClip)"/>
-            <g clip-path="url(#boneClip)">
-              <line class="bone-tick" x1="111" y1="40" x2="111" y2="80"/>
-              <line class="bone-tick" x1="200" y1="38" x2="200" y2="82"/>
-              <line class="bone-tick" x1="289" y1="40" x2="289" y2="80"/>
-            </g>
-            <text x="200" y="62" class="bone-word base">DRIPPY</text>
-            <g clip-path="url(#boneFillClip)"><text x="200" y="62" class="bone-word on">DRIPPY</text></g>
+            <use href="#bonePath" fill="url(#boneRaw)"/>
+            <rect id="burnBoneFill" class="bone-fill" x="0" y="0" width="0" height="140" clip-path="url(#boneClip)" fill="url(#boneGold)"/>
+            <use href="#bonePath" class="bone-stroke"/>
+            <text x="200" y="81" class="bone-word shadow" textLength="204" lengthAdjust="spacingAndGlyphs">DRIPPY</text>
+            <text x="200" y="79.5" class="bone-word" textLength="204" lengthAdjust="spacingAndGlyphs">DRIPPY</text>
           </svg>
-          <p class="bone-cap"><span id="burnBonePct">—</span> of total supply burned forever</p>
+          <p class="bone-cap"><span id="burnBonePct">&mdash;</span> of total supply burned forever</p>
         </div>
       </div>
       <div class="card">
