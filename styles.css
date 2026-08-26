@@ -575,21 +575,21 @@ footer{border-top:1px solid var(--card-border);padding:50px 0 40px;text-align:ce
 .admin-file:hover span{border-color:var(--card-border-gold);color:var(--cream)}
 
 /* ---------- Burn meter: the DRIPPY bone ----------
-   A dog treat that fills with gold as supply is burned. Built from five
-   shapes (four lobes + shaft) stacked three times: a dark silhouette edge,
-   a gold rim, then the hollow track. The fill rect is clipped to the same
-   union, so the gold pours into the bone shape itself. */
+   Rendered bone artwork in a black plaque. The channel is empty in the base
+   image; .bone-fire paints the molten fill over it with a 3-slice strip
+   (rounded start / tileable swirl / bright leading cap), so any percentage
+   renders with proper ends instead of a stretched texture.
+   Geometry (percent of the base image): channel starts 8.2% in, spans 79.19%
+   of the width, sits 34.8% down and is 27.62% tall. */
 .burn-bone{margin:18px auto 0;max-width:430px}
-.burn-bone svg{display:block;width:100%;height:auto}
-.bone-edge{fill:#0b0612;stroke:#0b0612;stroke-width:9;stroke-linejoin:round}
-.bone-rim{fill:var(--gold-deep);stroke:var(--gold-deep);stroke-width:4;stroke-linejoin:round}
-.bone-track{fill:#241a33}
-.bone-fill{transition:width 1.2s cubic-bezier(.22,1,.36,1)}
-.bone-lead{fill:var(--gold-pale);opacity:.85;transition:x 1.2s cubic-bezier(.22,1,.36,1)}
-.bone-tick{stroke:rgba(246,233,196,.13);stroke-width:2;stroke-linecap:round}
-.bone-word{font-family:var(--display);font-size:33px;letter-spacing:4px;text-anchor:middle}
-.bone-word.base{fill:rgba(246,233,196,.40)}
-.bone-word.on{fill:#4a2f06}
-.bone-cap{margin:9px 0 0;text-align:center;font-size:13.5px;color:var(--cream-dim)}
+.bone-shell{position:relative;background:#000;border:1px solid rgba(212,164,49,.28);border-radius:16px;overflow:hidden}
+.bone-base{display:block;width:100%;height:auto}
+.bone-fire{position:absolute;left:8.2%;top:34.8%;height:27.62%;width:0;
+  background-image:url(assets/bone-fire-l.png),url(assets/bone-fire-r.png),url(assets/bone-fire-mid.png);
+  background-position:left center,right center,left center;
+  background-repeat:no-repeat,no-repeat,repeat-x;
+  background-size:auto 100%,auto 100%,auto 100%;
+  transition:width 1.2s cubic-bezier(.22,1,.36,1)}
+.bone-cap{margin:10px 0 0;text-align:center;font-size:13.5px;color:var(--cream-dim)}
 .bone-cap span{font-family:var(--mono);color:var(--gold-bright);font-size:15px}
-@media (max-width:480px){.bone-word{font-size:36px}.bone-cap{font-size:12.5px}}
+@media (max-width:480px){.bone-cap{font-size:12.5px}}

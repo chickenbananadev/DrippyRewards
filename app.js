@@ -893,21 +893,18 @@ async function drawRankCard(d){
   document.addEventListener('keydown', e => { if(e.key === 'Escape') close(); });
 })();
 
-/* Burn meter — pours gold into the DRIPPY bone.
-   The bone spans x 22..378 in the SVG viewBox, so 0% leaves the fill rect
-   short of the left lobe and 100% clears the right one. The word DRIPPY is
-   drawn twice (pale over the track, dark clipped to the fill) so it stays
-   readable however full the bone is. */
+/* Burn meter — lights the fire inside the DRIPPY bone.
+   The channel spans 79.19% of the base image starting 8.2% in; the fire strip
+   is given that fraction of the shell's width. The two end caps together are
+   ~17.4% of the image width, so any nonzero burn shows at least a complete
+   rounded flame. Full bone = 100% of total supply burned. */
 function setBurnBone(pct){
-  const fill = $('burnBoneFill'), textClip = $('burnBoneTextClip'), label = $('burnBonePct');
-  if(!fill) return;
+  const fire = $('burnBoneFire'), label = $('burnBonePct'), shell = $('burnBoneShell');
+  if(!fire) return;
   const n = (pct == null || isNaN(Number(pct))) ? null : Math.max(0, Math.min(100, Number(pct)));
-  const w = n == null ? 0 : 22 + (356 * n / 100);
-  fill.setAttribute('width', w.toFixed(2));
-  if(textClip) textClip.setAttribute('width', w.toFixed(2));
-  const lead = $('burnBoneLead');
-  if(lead) lead.setAttribute('x', (n == null || n <= 0) ? '-10' : (w - 4).toFixed(2));
-  if(label) label.textContent = n == null ? '—' : n.toFixed(2) + '%';
-  const svg = $('burnBoneSvg');
-  if(svg) svg.setAttribute('aria-label', n == null ? 'Supply burned meter, loading' : n.toFixed(2) + '% of total supply burned forever');
+  const SPAN = 79.19, CAPS = 17.4;
+  const w = (n == null || n <= 0) ? 0 : Math.max(CAPS, SPAN * n / 100);
+  fire.style.width = w.toFixed(2) + '%';
+  if(label) label.textContent = n == null ? '\u2014' : n.toFixed(2) + '%';
+  if(shell) shell.setAttribute('aria-label', n == null ? 'Supply burned meter, loading' : n.toFixed(2) + '% of total supply burned forever');
 }
