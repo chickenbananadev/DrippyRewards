@@ -145,8 +145,9 @@ const SIG_MAX_PAGES = 10;      // up to 10,000 sigs ≈ 6+ months at 48 drips/da
                                // cursor and the window bottom would be skipped
                                // forever once the cursor advances into it.
 const FALLBACK_BATCH = 50;       // per-tx fallback: txs fetched per parallel batch
-const FALLBACK_TX_MAX = 400;     // hard cap per check
-const FALLBACK_TIME_MS = 8000;   // time budget per check for fallback parsing
+const FALLBACK_TX_MAX = 800;     // hard cap per check (~17 days of drips per check)
+const FALLBACK_TIME_MS = 12000;  // time budget per check — fits the 20s handler
+                                 // timeout with sig paging + burn writes to spare
 
 // Record scan-detected burns through the SAME idempotent path the Helius
 // webhook uses (permanent per-signature SET NX guard) — so a burn the webhook

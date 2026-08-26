@@ -136,6 +136,20 @@ async function loadStats(){
       const st = $('distStatus'); if(st) st.textContent = (dist.status || 'unknown').toUpperCase();
       const rp = $('distRecipients'); if(rp) rp.textContent = (dist.lastRunRecipients || 0).toLocaleString();
     }
+    // Forge volume boost: live above $500K market cap — +5% of Forge's daily
+    // platform volume flows into the rewards pool on top of the trading tax.
+    {
+      const b = $('distBoost');
+      if(b){
+        if(d.forgeBoost && d.forgeBoost.active){
+          b.textContent = 'ACTIVE \u00b7 +5% of Forge daily volume';
+          b.classList.add('green');
+        } else if(d.forgeBoost){
+          b.textContent = 'Unlocks at $500K MC \u00b7 ' + Math.floor(d.forgeBoost.progressPct) + '% there';
+          b.classList.remove('green');
+        } // no market data -> leave the em dash
+      }
+    }
     if(d.burns){
       const be = $('bsBurnEvents'); if(be) be.textContent = (d.burns.burnEvents || 0).toLocaleString();
       const tb = $('bsTokensBurned'); if(tb) tb.textContent = fmtTokensFull(d.burns.tokensBurned);
