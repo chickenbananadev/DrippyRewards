@@ -184,28 +184,16 @@
           <div class="statrow"><span class="k">Supply burned</span><span class="v purple" id="bsBurnPct">—</span></div>
         </div>
 
-        <!-- Burn meter: a dog treat that fills with gold as supply is burned.
-             One solved path (lobes + concave waists) is reused for the body,
-             the fill clip and the outline. Fill maps 0-100% of supply across
-             x 18..382, the bone's actual visible span. -->
+        <!-- Burn meter: the DRIPPY bone. The base image is the bone with an
+             empty channel; the fire is rebuilt dynamically as a 3-slice strip
+             (rounded start, tileable swirl, bright leading cap) laid over the
+             channel, so it tracks supplyBurnedPct exactly as burns grow.
+             Full bone = 100% of total supply burned. -->
         <div class="burn-bone">
-          <svg viewBox="0 0 400 140" id="burnBoneSvg" role="img" aria-label="Supply burned meter">
-            <defs>
-              <linearGradient id="boneGold" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0" stop-color="#ffeaa6"/><stop offset=".46" stop-color="#f5c542"/><stop offset="1" stop-color="#c1861a"/>
-              </linearGradient>
-              <linearGradient id="boneRaw" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0" stop-color="#7b6039"/><stop offset="1" stop-color="#4b3720"/>
-              </linearGradient>
-              <path id="bonePath" d="M 290.0,53.0 L 110.0,53.0 A 16.0,16.0 0 0 1 94.0,37.0 A 38.0,38.0 0 1 0 37.2,70.0 A 38.0,38.0 0 1 0 94.0,103.0 A 16.0,16.0 0 0 1 110.0,87.0 L 290.0,87.0 A 16.0,16.0 0 0 1 306.0,103.0 A 38.0,38.0 0 1 0 362.8,70.0 A 38.0,38.0 0 1 0 306.0,37.0 A 16.0,16.0 0 0 1 290.0,53.0 Z"/>
-              <clipPath id="boneClip"><path d="M 290.0,53.0 L 110.0,53.0 A 16.0,16.0 0 0 1 94.0,37.0 A 38.0,38.0 0 1 0 37.2,70.0 A 38.0,38.0 0 1 0 94.0,103.0 A 16.0,16.0 0 0 1 110.0,87.0 L 290.0,87.0 A 16.0,16.0 0 0 1 306.0,103.0 A 38.0,38.0 0 1 0 362.8,70.0 A 38.0,38.0 0 1 0 306.0,37.0 A 16.0,16.0 0 0 1 290.0,53.0 Z"/></clipPath>
-            </defs>
-            <use href="#bonePath" fill="url(#boneRaw)"/>
-            <rect id="burnBoneFill" class="bone-fill" x="0" y="0" width="0" height="140" clip-path="url(#boneClip)" fill="url(#boneGold)"/>
-            <use href="#bonePath" class="bone-stroke"/>
-            <text x="200" y="81" class="bone-word shadow" textLength="204" lengthAdjust="spacingAndGlyphs">DRIPPY</text>
-            <text x="200" y="79.5" class="bone-word" textLength="204" lengthAdjust="spacingAndGlyphs">DRIPPY</text>
-          </svg>
+          <div class="bone-shell" id="burnBoneShell" role="img" aria-label="Supply burned meter">
+            <img class="bone-base" src="assets/bone-empty.jpg" alt="" width="1200" height="400" loading="lazy" decoding="async">
+            <div class="bone-fire" id="burnBoneFire"></div>
+          </div>
           <p class="bone-cap"><span id="burnBonePct">&mdash;</span> of total supply burned forever</p>
         </div>
       </div>
