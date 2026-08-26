@@ -345,12 +345,31 @@ module.exports = async (req, res) => {
 
   let marketCap = null;
   if(market?.priceUsd && supply?.circulating) marketCap = market.priceUsd * supply.circulating;
+  // Note: supply comes from getTokenSupply, i.e. the mint's FULL on-chain
+  // supply. DRIPPY burns are transfers to the burn wallet, not mint burns,
+  // so burned tokens still count here — burns tighten tradable supply and
+  // support price, which raises this market cap. That is intentional: it is
+  // the same MC that gates the Forge volume boost below.
+
+  // Forge volume boost: while market cap holds above $500K, the project
+  // receives 5% of Forge's daily platform volume into the rewards pool on
+  // top of the 5% trading tax. Surface the live status so the site can
+  // show it the moment MC crosses the line (stats refresh every 45s).
+  const BOOST_MC_USD = 500_000;
+  const forgeBoost = (marketCap != null) ? {
+    active: marketCap >= BOOST_MC_USD,
+    thresholdUsd: BOOST_MC_USD,
+    marketCapUsd: marketCap,
+    progressPct: Math.min(100, (marketCap / BOOST_MC_USD) * 100),
+    sharePct: 5
+  } : null;
 
   const payload = {
     market: market ? Object.assign({ marketCap }, market) : null,
     supply,
     distribution,
     burns,
+    forgeBoost,
     holders,
     recentDrips: recentDrips || [],
     fetchedAt: new Date().toISOString()
