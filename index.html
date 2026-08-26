@@ -183,6 +183,46 @@
           <div class="statrow"><span class="k">Burn events</span><span class="v purple" id="bsBurnEvents">—</span></div>
           <div class="statrow"><span class="k">Supply burned</span><span class="v purple" id="bsBurnPct">—</span></div>
         </div>
+
+        <!-- Burn meter: a dog treat that fills with gold as supply is burned forever.
+             Fill maps 0-100% of total supply across the bone (x 22 -> 378 in viewBox units). -->
+        <div class="burn-bone">
+          <svg viewBox="0 0 400 120" id="burnBoneSvg" role="img" aria-label="Supply burned meter">
+            <defs>
+              <linearGradient id="boneGold" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#ffe79a"/>
+                <stop offset=".42" stop-color="#f5c542"/>
+                <stop offset="1" stop-color="#a8761f"/>
+              </linearGradient>
+              <g id="boneShape">
+                <circle cx="54" cy="42" r="27"/><circle cx="54" cy="78" r="27"/>
+                <circle cx="346" cy="42" r="27"/><circle cx="346" cy="78" r="27"/>
+                <rect x="48" y="37" width="304" height="46" rx="23"/>
+              </g>
+              <clipPath id="boneClip">
+                <circle cx="54" cy="42" r="27"/><circle cx="54" cy="78" r="27"/>
+                <circle cx="346" cy="42" r="27"/><circle cx="346" cy="78" r="27"/>
+                <rect x="48" y="37" width="304" height="46" rx="23"/>
+              </clipPath>
+              <clipPath id="boneFillClip">
+                <rect id="burnBoneTextClip" x="0" y="0" width="0" height="120"/>
+              </clipPath>
+            </defs>
+            <use href="#boneShape" class="bone-edge"/>
+            <use href="#boneShape" class="bone-rim"/>
+            <use href="#boneShape" class="bone-track"/>
+            <rect id="burnBoneFill" class="bone-fill" x="0" y="0" width="0" height="120" clip-path="url(#boneClip)" fill="url(#boneGold)"/>
+            <rect id="burnBoneLead" class="bone-lead" x="-10" y="0" width="4" height="120" clip-path="url(#boneClip)"/>
+            <g clip-path="url(#boneClip)">
+              <line class="bone-tick" x1="111" y1="40" x2="111" y2="80"/>
+              <line class="bone-tick" x1="200" y1="38" x2="200" y2="82"/>
+              <line class="bone-tick" x1="289" y1="40" x2="289" y2="80"/>
+            </g>
+            <text x="200" y="62" class="bone-word base">DRIPPY</text>
+            <g clip-path="url(#boneFillClip)"><text x="200" y="62" class="bone-word on">DRIPPY</text></g>
+          </svg>
+          <p class="bone-cap"><span id="burnBonePct">—</span> of total supply burned forever</p>
+        </div>
       </div>
       <div class="card">
         <div class="card-h">
