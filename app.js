@@ -136,13 +136,14 @@ async function loadStats(){
       const st = $('distStatus'); if(st) st.textContent = (dist.status || 'unknown').toUpperCase();
       const rp = $('distRecipients'); if(rp) rp.textContent = (dist.lastRunRecipients || 0).toLocaleString();
     }
-    // Forge volume boost: live above $500K market cap — +5% of Forge's daily
-    // platform volume flows into the rewards pool on top of the trading tax.
+    // Forge fee boost: live above $500K market cap — 5% of the fees Forge
+    // collects across its platform flows into the rewards pool on top of
+    // the trading tax.
     {
       const b = $('distBoost');
       if(b){
         if(d.forgeBoost && d.forgeBoost.active){
-          b.textContent = 'ACTIVE \u00b7 +5% of Forge daily volume';
+          b.textContent = 'ACTIVE \u00b7 +5% of Forge platform fees';
           b.classList.add('green');
         } else if(d.forgeBoost){
           b.textContent = 'Unlocks at $500K MC \u00b7 ' + Math.floor(d.forgeBoost.progressPct) + '% there';

@@ -358,9 +358,9 @@ module.exports = async (req, res) => {
     marketCap = market.priceUsd * (supply.circulating + burnedUi);
   }
 
-  // Forge volume boost: while market cap holds above $500K, the project
-  // receives 5% of Forge's daily platform volume into the rewards pool on
-  // top of the 5% trading tax. Surface the live status so the site can
+  // Forge fee boost: while market cap holds above $500K, Drippy receives
+  // 5% of the fees Forge collects across its platform (not 5% of raw
+  // volume), and that SOL joins the rewards pool on top of the trading tax. Surface the live status so the site can
   // show it the moment MC crosses the line (stats refresh every 45s).
   const BOOST_MC_USD = 500_000;
   const forgeBoost = (marketCap != null) ? {
