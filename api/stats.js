@@ -343,13 +343,20 @@ module.exports = async (req, res) => {
     pctSource: 'webhook-fallback'
   };
 
+  // Market cap counts BURNED supply. The on-chain supply from getTokenSupply
+  // shrinks as burns are destroyed (DexScreener's MC uses that shrunken
+  // number), but burned tokens keep earning 2x forever — they are still
+  // economically active — so Drippy's MC is price x (circulating + burned),
+  // i.e. the original total supply. Burns tighten tradable supply and push
+  // price, which RAISES this MC; it can never be lowered by a burn. This is
+  // the number shown in the ticker and the one that gates the Forge boost.
+  // (Live check 2026-08-26: price $0.0005274, DexScreener MC $408K on 773M
+  // post-burn supply; with ~227M burned added back -> $527.4K.)
   let marketCap = null;
-  if(market?.priceUsd && supply?.circulating) marketCap = market.priceUsd * supply.circulating;
-  // Note: supply comes from getTokenSupply, i.e. the mint's FULL on-chain
-  // supply. DRIPPY burns are transfers to the burn wallet, not mint burns,
-  // so burned tokens still count here — burns tighten tradable supply and
-  // support price, which raises this market cap. That is intentional: it is
-  // the same MC that gates the Forge volume boost below.
+  if(market?.priceUsd && supply?.circulating){
+    const burnedUi = Number(burns?.tokensBurned) || 0; // Forge-fed above; 0 only if every source is down
+    marketCap = market.priceUsd * (supply.circulating + burnedUi);
+  }
 
   // Forge volume boost: while market cap holds above $500K, the project
   // receives 5% of Forge's daily platform volume into the rewards pool on
