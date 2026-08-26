@@ -59,6 +59,16 @@
       </div>
     </div>
 
+    <!-- THE DRIPPY BONE — burn meter, front and center. Same live meter as
+         the stats card; fire = % of total supply burned forever. -->
+    <div class="burn-bone burn-bone--hero">
+      <div class="bone-shell" role="img" aria-label="Supply burned meter">
+        <img class="bone-base" src="assets/bone-empty.jpg" alt="" width="1200" height="400" fetchpriority="high" decoding="async">
+        <div class="bone-fire"></div>
+      </div>
+      <p class="bone-cap">&#128293; <span class="bone-pct">&mdash;</span> of total supply burned forever &middot; burned tokens earn 2x for life</p>
+    </div>
+
     <!-- LIVE TICKER -->
     <div class="ticker">
       <div class="ticker-head">
@@ -191,11 +201,11 @@
              channel, so it tracks supplyBurnedPct exactly as burns grow.
              Full bone = 100% of total supply burned. -->
         <div class="burn-bone">
-          <div class="bone-shell" id="burnBoneShell" role="img" aria-label="Supply burned meter">
+          <div class="bone-shell" role="img" aria-label="Supply burned meter">
             <img class="bone-base" src="assets/bone-empty.jpg" alt="" width="1200" height="400" loading="lazy" decoding="async">
-            <div class="bone-fire" id="burnBoneFire"></div>
+            <div class="bone-fire"></div>
           </div>
-          <p class="bone-cap"><span id="burnBonePct">&mdash;</span> of total supply burned forever</p>
+          <p class="bone-cap"><span class="bone-pct">&mdash;</span> of total supply burned forever</p>
         </div>
       </div>
       <div class="card">
