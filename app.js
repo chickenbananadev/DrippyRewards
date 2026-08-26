@@ -914,12 +914,18 @@ async function drawRankCard(d){
    ~17.4% of the image width, so any nonzero burn shows at least a complete
    rounded flame. Full bone = 100% of total supply burned. */
 function setBurnBone(pct){
-  const fire = $('burnBoneFire'), label = $('burnBonePct'), shell = $('burnBoneShell');
-  if(!fire) return;
+  const bones = document.querySelectorAll('.burn-bone');
+  if(!bones.length) return;
   const n = (pct == null || isNaN(Number(pct))) ? null : Math.max(0, Math.min(100, Number(pct)));
   const SPAN = 79.19, CAPS = 17.4;
   const w = (n == null || n <= 0) ? 0 : Math.max(CAPS, SPAN * n / 100);
-  fire.style.width = w.toFixed(2) + '%';
-  if(label) label.textContent = n == null ? '\u2014' : n.toFixed(2) + '%';
-  if(shell) shell.setAttribute('aria-label', n == null ? 'Supply burned meter, loading' : n.toFixed(2) + '% of total supply burned forever');
+  bones.forEach(el => {
+    const fire = el.querySelector('.bone-fire');
+    if(fire) fire.style.width = w.toFixed(2) + '%';
+    const label = el.querySelector('.bone-pct');
+    if(label) label.textContent = n == null ? '\u2014' : n.toFixed(2) + '%';
+    const shell = el.querySelector('.bone-shell');
+    if(shell) shell.setAttribute('aria-label', n == null ? 'Supply burned meter, loading' : n.toFixed(2) + '% of total supply burned forever');
+  });
 }
+

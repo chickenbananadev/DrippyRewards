@@ -596,3 +596,9 @@ footer{border-top:1px solid var(--card-border);padding:50px 0 40px;text-align:ce
 
 /* Forge volume boost status in the Distribution Engine card */
 .statrow .v.green{color:var(--green)}
+
+/* Hero bone: the burn meter front and center under the drip timer */
+.burn-bone--hero{max-width:660px;margin:26px auto 0}
+.burn-bone--hero .bone-cap{font-size:15px;margin-top:12px}
+.burn-bone--hero .bone-cap span{font-size:17px}
+@media (max-width:480px){.burn-bone--hero .bone-cap{font-size:13px}.burn-bone--hero .bone-cap span{font-size:15px}}
