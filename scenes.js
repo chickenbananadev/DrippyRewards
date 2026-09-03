@@ -128,38 +128,31 @@
     var bone = vault && vault.querySelector('.vault-bone');
     if (!vault || !stage || !bone) return;
 
-    var fire = bone.querySelector('.bone-fire');
     var halo = vault.querySelector('.vault-halo');
     var pTop = vault.querySelector('.vpanel.top');
     var pBot = vault.querySelector('.vpanel.bot');
     var pLate = vault.querySelector('.vpanel.late');
-    var SPAN = 79.19, CAPS = 17.4;
 
     // The stage is held by CSS sticky. This only reads progress across the
     // section and layers the choreography on top, so a failure here costs
     // decoration, never layout.
+    if (innerWidth <= 700) return; // compact static composition on phones
+
     var tl = gsap.timeline({
       scrollTrigger: { trigger: vault, start: 'top top', end: 'bottom bottom', scrub: .7 }
     });
 
+    // The fire is NOT driven by scroll. It is a live reading of how much supply
+    // is gone, so tying it to scroll position would show a number that
+    // contradicts the caption directly beneath it. app.js owns it, and its CSS
+    // transition animates the fill once when the real figure arrives.
     tl.fromTo(halo, { opacity: .3, scale: .92 }, { opacity: 1, scale: 1.04, ease: 'none' }, 0)
-      .fromTo(bone, { scale: .97 }, { scale: 1.14, ease: 'none' }, 0)
-      .to({ p: 0 }, {
-        p: 1, ease: 'none',
-        onUpdate: function () {
-          if (!fire) return;
-          var live = Number(window.__burnPct);
-          if (!isFinite(live) || live <= 0) return;
-          var v = live * this.targets()[0].p;
-          fire.style.transition = 'none';
-          fire.style.width = (v <= 0 ? 0 : Math.max(CAPS, SPAN * v / 100)).toFixed(2) + '%';
-        }
-      }, 0);
+      .fromTo(bone, { scale: .97 }, { scale: 1.08, ease: 'none' }, 0);
 
     // the two live figures drift apart as you descend, then hand off to the promise
     if (pTop) tl.fromTo(pTop, { y: 0 }, { y: '-6vh', ease: 'none' }, 0);
     if (pBot) tl.fromTo(pBot, { y: 0 }, { y: '6vh', ease: 'none' }, 0);
-    if (pLate) {
+    if (pLate && innerWidth > 700) {
       tl.to([pTop, pBot], { opacity: 0, duration: .18, ease: 'none' }, .68)
         .to(pLate, { opacity: 1, duration: .18, ease: 'none' }, .72);
     }

@@ -73,7 +73,7 @@ html.fx .mask > span{display:block;will-change:transform}
 /* Sticky, not JS-pinned: the stage holds itself with pure CSS, so the scene
    is a complete composition even with every script blocked. GSAP only adds
    the fire, the bloom and the third statement on top of a working layout. */
-#vault{position:relative;padding:0;height:300vh}
+#vault{position:relative;padding:0;height:230vh}
 #vault .vault-pin{
   position:sticky;top:0;height:100vh;display:grid;place-items:center;overflow:hidden;
 }
@@ -104,10 +104,29 @@ html.fx #vault .vpanel.late{opacity:0}
 #vault .vault-bone{width:min(760px,88vw);position:relative;z-index:2}
 /* the static fallback: without the engine this is just a handsome centred bone */
 #vault .vault-bone .bone-cap{margin-top:16px;font-size:15px}
+/* Phones: a 300vh sticky hold is three screens of near-empty dark on a tall
+   narrow display. The vault collapses to a compact block that reads in one
+   glance — figure, bone, percentage — with no wasted space. */
 @media(max-width:700px){
-  #vault .vpanel.top{top:6vh}
-  #vault .vpanel.bot{bottom:6vh}
-  #vault .vpanel.late{bottom:6vh}
+  #vault{height:auto;overflow:hidden}
+  /* display:contents lets the two figures join the same flex column as the
+     bone, so the block reads figure -> bone -> percentage in one glance */
+  #vault .vault-pin{
+    position:relative;height:auto;padding:26px 0 24px;
+    display:flex;flex-direction:column;align-items:center;gap:6px;
+  }
+  #vault .vault-panels{display:contents}
+  #vault .vpanel{position:static;width:auto;max-width:none;margin:0}
+  #vault .vpanel.top{order:1;top:auto}
+  #vault .vault-bone{order:2;width:min(760px,90vw);margin:2px 0 0}
+  #vault .vpanel.bot{order:3;bottom:auto;margin-top:10px}
+  #vault .vpanel.late{display:none}
+  #vault .vpanel .vnum{font-size:clamp(38px,13vw,62px)}
+  #vault .vpanel .vsub{margin-top:6px;letter-spacing:3.5px;font-size:11px}
+  /* the halo has no insets — it centres via the desktop grid, so on this
+     layout it would escape and widen the page */
+  #vault .vault-halo{display:none}
+  #vault .vault-bone .bone-cap{margin-top:10px;font-size:13px}
 }
 
 /* ---------- 06. INFINITE LEDGER: the drip never stops ---------- */
