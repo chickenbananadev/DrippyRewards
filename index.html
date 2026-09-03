@@ -14,9 +14,21 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bowlby+One&family=Anton&family=Permanent+Marker&family=Fraunces:opsz,wght@9..144,400;9..144,600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="scenes.css">
 <script src="https://plugin.jup.ag/plugin-v1.js" data-preload defer></script>
 </head>
 <body>
+
+<!-- vault loader: removes itself, hard-capped at 3.2s -->
+<div id="vaultLoad" aria-hidden="true">
+  <div class="half t"></div><div class="half b"></div>
+  <span class="vmark">Opening the vault</span>
+  <div class="seam"></div>
+  <span class="pct">000</span>
+</div>
+<div id="cur" aria-hidden="true"><span class="lab">Go</span></div>
+<div id="curDot" aria-hidden="true"></div>
+<div id="sceneTag" aria-hidden="true"><b>The Vault</b><span class="bar"><i></i></span></div>
 
 <!-- NAV -->
 <nav class="nav">
@@ -59,16 +71,6 @@
       </div>
     </div>
 
-    <!-- THE DRIPPY BONE — burn meter, front and center. Same live meter as
-         the stats card; fire = % of total supply burned forever. -->
-    <div class="burn-bone burn-bone--hero">
-      <div class="bone-shell" role="img" aria-label="Supply burned meter">
-        <img class="bone-base" src="assets/bone-empty.jpg" alt="" width="1200" height="400" fetchpriority="high" decoding="async">
-        <div class="bone-fire"></div>
-      </div>
-      <p class="bone-cap">&#128293; <span class="bone-pct">&mdash;</span> of total supply burned forever &middot; burned tokens earn 2x for life</p>
-    </div>
-
     <!-- LIVE TICKER -->
     <div class="ticker">
       <div class="ticker-head">
@@ -90,6 +92,29 @@
     </div>
   </div>
 </header>
+
+<!-- SCENE: THE ETERNAL BONE — the signature object holds while the story moves -->
+<section id="vault" aria-label="Supply burned forever">
+  <div class="vault-pin">
+    <div class="vault-halo" aria-hidden="true"></div>
+    <div class="burn-bone burn-bone--hero vault-bone">
+      <div class="bone-shell" role="img" aria-label="Supply burned meter">
+        <img class="bone-base" src="assets/bone-empty.jpg" alt="" width="1200" height="400" fetchpriority="high" decoding="async">
+        <div class="bone-fire"></div>
+      </div>
+      <p class="bone-cap">&#128293; <span class="bone-pct">&mdash;</span> of total supply burned forever &middot; burned tokens earn 2x for life</p>
+    </div>
+    <div class="vault-panels">
+      <div class="vpanel top"><span class="vnum" id="vaultBurned">&mdash;</span><span class="vsub">$DRIPPY burned forever</span></div>
+      <div class="vpanel bot"><span class="vnum" id="vaultPct">&mdash;</span><span class="vsub">of all supply &middot; never coming back</span></div>
+      <div class="vpanel late"><span class="vnum">2&times;</span><span class="vsub">every burned token earns, for life</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- THE LEDGER — it does not end -->
+<div class="ledger" aria-hidden="true"><div class="ledger-track"></div></div>
+
 
 <!-- TRADE -->
 <section id="trade">
@@ -364,6 +389,43 @@
       <button class="story-toggle" id="storyToggle">Read the full legend</button>
     </div>
   </div>
+
+    <div class="chapters">
+      <div class="lg-pin">
+        <div class="lg-track">
+          <div class="lg-img"><img src="assets/drippy-hangar.jpg" alt="Drippy at the hangar" width="1024" height="1280" loading="lazy"></div>
+          <div class="lg-card">
+            <span class="ch">Chapter One &middot; The Street</span>
+            <h3>A dog who refused to chase tails</h3>
+            <p>In the glittering underbelly of Solana, where blocks fly faster than fire hydrants and every wallet dreams of getting rich, there lived a dog named <strong>Drippy</strong>.</p>
+            <p>He wasn&rsquo;t born special. Just a scruffy street dog with one floppy ear and a coat that somehow always looked fresh out the wash &mdash; but with a nose for something the rest of the pack missed: the hidden rhythm inside the blockchain itself.</p>
+          </div>
+          <div class="lg-card">
+            <span class="ch">Chapter Two &middot; The Pool</span>
+            <h3>Liquid code, and a paw on the contract</h3>
+            <p>One moonlit night, during the wildest memecoin frenzy Solana had ever seen, Drippy slipped past the guards of a forgotten liquidity pool and stuck his snout straight into the smart contract.</p>
+            <p>What he found wasn&rsquo;t bones or treats. It was a <strong>5% tax mechanism</strong> so elegant it made the chain itself hum. He dug deeper. Then, with a joyful bark, he rewrote it with his paw.</p>
+          </div>
+          <div class="lg-card quote-card">
+            <span class="ch">Chapter Three &middot; The Decree</span>
+            <p>&ldquo;Every time someone buys or sells, 5% drips back into the pool. Every 30 minutes, that pool rains SOL straight into the wallets of the loyal pack. And for those who prove their loyalty by burning their tokens, the drip becomes twice as strong. Forever.&rdquo;</p>
+          </div>
+          <div class="lg-card">
+            <span class="ch">Chapter Four &middot; The Chosen</span>
+            <h3>Burning became sacred</h3>
+            <p>When a holder burns $DRIPPY, those tokens don&rsquo;t just vanish &mdash; they become eternal fuel for the drip. The burner receives <strong>2x rewards on the burned amount for the rest of time</strong>, even holding zero afterward.</p>
+            <p>Holders aren&rsquo;t just investors. They&rsquo;re the pack. And the ones who burn? They become <strong>Drippy&rsquo;s Chosen</strong>.</p>
+          </div>
+          <div class="lg-card">
+            <span class="ch">Now</span>
+            <h3>He roams the chain</h3>
+            <p>Every buy and sell feeds the drip. Every burn makes it stronger. He doesn&rsquo;t care if the market is green or red &mdash; the rewards keep flowing like water from a hydrant that never runs dry.</p>
+            <p class="lg-hint">Scroll to keep reading &rarr;</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </section>
 
 <!-- GAME -->
@@ -500,6 +562,15 @@
 </section>
 
 <!-- FOOTER -->
+<!-- THE LOOP — the end feeds the beginning -->
+<div class="loop">
+  <div class="container">
+    <div class="thread" aria-hidden="true"></div>
+    <a class="loop-back" href="#top">The drip never stops.</a>
+    <div class="loop-sub">Back to the top of the vault</div>
+  </div>
+</div>
+
 <footer>
   <div class="container">
     <div class="foot-woof">WOOF.</div>
@@ -515,6 +586,10 @@
       </div>
 </footer>
 
+<script src="vendor/gsap.min.js" defer></script>
+<script src="vendor/ScrollTrigger.min.js" defer></script>
+<script src="vendor/lenis.min.js" defer></script>
 <script src="app.js" defer></script>
+<script src="scenes.js" defer></script>
 </body>
 </html>
