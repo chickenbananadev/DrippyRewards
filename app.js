@@ -151,9 +151,12 @@ async function loadStats(){
         } // no market data -> leave the em dash
       }
     }
+    window.__stats = d; // read by the scene engine (ledger rows)
     if(d.burns){
       const be = $('bsBurnEvents'); if(be) be.textContent = (d.burns.burnEvents || 0).toLocaleString();
       const tb = $('bsTokensBurned'); if(tb) tb.textContent = fmtTokensFull(d.burns.tokensBurned);
+      const vb = $('vaultBurned'); if(vb && d.burns.tokensBurned) vb.textContent = fmtTokens(d.burns.tokensBurned);
+      const vp = $('vaultPct'); if(vp && d.burns.supplyBurnedPct != null) vp.textContent = Number(d.burns.supplyBurnedPct).toFixed(2) + '%';
       const bp = $('bsBurnPct'); if(bp) bp.textContent = d.burns.supplyBurnedPct != null ? Number(d.burns.supplyBurnedPct).toFixed(2) + '%' : '—';
       setBurnBone(d.burns.supplyBurnedPct);
     }
@@ -714,7 +717,12 @@ loadLeaderboard();
   const io = new IntersectionObserver((entries) => {
     entries.forEach(en => { if(en.isIntersecting){ en.target.classList.add('in'); io.unobserve(en.target); } });
   }, { threshold: 0.08 });
-  sections.forEach(s => { s.classList.add('reveal'); io.observe(s); });
+  // Scene sections manage their own choreography (and a transformed ancestor
+  // interferes with position:sticky), so they opt out of the blanket reveal.
+  sections.forEach(s => {
+    if (s.id === 'vault' || s.id === 'legend') return;
+    s.classList.add('reveal'); io.observe(s);
+  });
 })();
 
 /* ---------------- rank card: real shareable image ---------------- */
@@ -919,6 +927,7 @@ function setBurnBone(pct){
   const n = (pct == null || isNaN(Number(pct))) ? null : Math.max(0, Math.min(100, Number(pct)));
   const SPAN = 79.19, CAPS = 17.4;
   const w = (n == null || n <= 0) ? 0 : Math.max(CAPS, SPAN * n / 100);
+  window.__burnPct = n; // the vault scene fills its fire to this
   bones.forEach(el => {
     const fire = el.querySelector('.bone-fire');
     if(fire) fire.style.width = w.toFixed(2) + '%';

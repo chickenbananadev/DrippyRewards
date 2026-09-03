@@ -1,0 +1,199 @@
+/* ============================================================
+   DRIPPY — SCENE LAYER
+   The midnight vault, built as scenes rather than sections.
+   Everything here is additive and degrades to the static site:
+   nothing is hidden unless scenes.js confirms the engine loaded
+   (html.fx), so a failed script or reduced-motion visit renders
+   the full page exactly as before.
+   ============================================================ */
+
+/* ---------- 01. LOADER: the vault seam ---------- */
+#vaultLoad{
+  position:fixed;inset:0;z-index:9999;background:var(--black);
+  display:grid;place-items:center;overflow:hidden;
+}
+#vaultLoad .seam{
+  width:min(420px,62vw);height:1px;position:relative;
+  background:linear-gradient(90deg,transparent,var(--gold-bright),transparent);
+  box-shadow:0 0 26px rgba(245,197,66,.7);transform:scaleX(0);transform-origin:50% 50%;
+}
+#vaultLoad .vmark{
+  position:absolute;left:50%;top:calc(50% - 44px);transform:translateX(-50%);
+  font-family:var(--tag);text-transform:uppercase;letter-spacing:9px;font-size:12px;
+  color:var(--gold-deep);opacity:0;white-space:nowrap;
+}
+#vaultLoad .pct{
+  position:absolute;left:50%;top:calc(50% + 30px);transform:translateX(-50%);
+  font-family:var(--mono);font-size:11px;color:var(--cream-faint);letter-spacing:2px;opacity:0;
+}
+#vaultLoad .half{position:absolute;left:0;width:100%;height:50%;background:var(--black)}
+#vaultLoad .half.t{top:0}
+#vaultLoad .half.b{bottom:0}
+html.loaded #vaultLoad{pointer-events:none}
+
+/* ---------- 02. CURSOR: desktop only ---------- */
+#cur,#curDot{position:fixed;top:0;left:0;z-index:9998;pointer-events:none;will-change:transform}
+#cur{
+  width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;
+  border:1px solid rgba(245,197,66,.55);
+  display:grid;place-items:center;
+  transition:width .32s var(--ease),height .32s var(--ease),margin .32s var(--ease),
+             background-color .32s var(--ease),border-color .32s var(--ease);
+}
+#cur .lab{
+  font-family:var(--tag);text-transform:uppercase;letter-spacing:2px;font-size:9.5px;
+  color:#120c04;opacity:0;transition:opacity .2s var(--ease);white-space:nowrap;
+}
+#curDot{width:5px;height:5px;margin:-2.5px 0 0 -2.5px;border-radius:50%;background:var(--gold-bright)}
+html.cur-on #cur.hot{width:74px;height:74px;margin:-37px 0 0 -37px;background:var(--gold-bright);border-color:var(--gold-bright)}
+html.cur-on #cur.hot .lab{opacity:1}
+html.cur-on #curDot.hide{opacity:0}
+@media (pointer:coarse){#cur,#curDot{display:none}}
+
+/* ---------- 03. NAV: progress + live scene name ---------- */
+.nav{transition:background-color .5s var(--ease),border-color .5s var(--ease)}
+html.fx .nav.solid{background:rgba(10,6,16,.82);backdrop-filter:blur(14px);border-bottom:1px solid rgba(212,164,49,.16)}
+#sceneTag{
+  position:fixed;left:22px;bottom:20px;z-index:60;
+  font-family:var(--mono);font-size:10.5px;letter-spacing:2.5px;text-transform:uppercase;
+  color:var(--cream-faint);pointer-events:none;display:flex;gap:9px;align-items:center;
+}
+#sceneTag b{color:var(--gold-deep);font-weight:400}
+#sceneTag .bar{width:34px;height:1px;background:rgba(246,233,196,.25);position:relative;overflow:hidden}
+#sceneTag .bar i{position:absolute;inset:0;background:var(--gold-bright);transform:scaleX(0);transform-origin:0 50%}
+@media(max-width:900px){#sceneTag{display:none}}
+
+/* ---------- 04. MASK REVEALS (type behaves like film titles) ---------- */
+html.fx .mask{overflow:hidden;display:block}
+html.fx .mask > span{display:block;will-change:transform}
+
+/* ---------- 05. SCENE: THE ETERNAL BONE ----------
+   The site's signature object pins to the centre of the screen while
+   the burn story moves past it and its fire fills with scroll progress. */
+/* Sticky, not JS-pinned: the stage holds itself with pure CSS, so the scene
+   is a complete composition even with every script blocked. GSAP only adds
+   the fire, the bloom and the third statement on top of a working layout. */
+#vault{position:relative;padding:0;height:300vh}
+#vault .vault-pin{
+  position:sticky;top:0;height:100vh;display:grid;place-items:center;overflow:hidden;
+}
+#vault .vault-halo{
+  position:absolute;width:min(1100px,150vw);height:min(1100px,150vw);border-radius:50%;
+  background:radial-gradient(circle,rgba(245,197,66,.16) 0%,rgba(245,197,66,.05) 38%,transparent 66%);
+  opacity:0;pointer-events:none;
+}
+#vault .vault-panels{position:absolute;inset:0;pointer-events:none;z-index:3}
+/* Placed with insets and auto margins, never transforms: the engine animates
+   `y` on these, and a transform here would be overwritten the moment it did —
+   collapsing all three onto the bone. */
+#vault .vpanel{
+  position:absolute;left:0;right:0;margin:0 auto;width:min(640px,86vw);text-align:center;
+}
+#vault .vpanel .vnum{
+  display:block;font-family:var(--display);font-size:clamp(40px,8.5vw,104px);line-height:.96;
+  color:var(--gold-bright);text-shadow:0 0 60px rgba(245,197,66,.4);font-variant-numeric:tabular-nums;
+}
+#vault .vpanel .vsub{
+  display:block;margin-top:14px;font-family:var(--tag);text-transform:uppercase;
+  letter-spacing:5px;font-size:clamp(11px,1.5vw,14px);color:var(--cream-dim);
+}
+#vault .vpanel.top{top:9vh}
+#vault .vpanel.bot{bottom:9vh}
+#vault .vpanel.late{bottom:9vh}
+html.fx #vault .vpanel.late{opacity:0}
+#vault .vault-bone{width:min(760px,88vw);position:relative;z-index:2}
+/* the static fallback: without the engine this is just a handsome centred bone */
+#vault .vault-bone .bone-cap{margin-top:16px;font-size:15px}
+@media(max-width:700px){
+  #vault .vpanel.top{top:6vh}
+  #vault .vpanel.bot{bottom:6vh}
+  #vault .vpanel.late{bottom:6vh}
+}
+
+/* ---------- 06. INFINITE LEDGER: the drip never stops ---------- */
+.ledger{
+  position:relative;overflow:hidden;padding:18px 0;margin:0;
+  border-top:1px solid rgba(212,164,49,.16);border-bottom:1px solid rgba(212,164,49,.16);
+  background:linear-gradient(180deg,rgba(21,16,33,.5),rgba(10,6,16,.5));
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 9%,#000 91%,transparent);
+          mask-image:linear-gradient(90deg,transparent,#000 9%,#000 91%,transparent);
+}
+.ledger-track{display:flex;width:max-content;will-change:transform}
+.ledger-item{
+  display:flex;align-items:center;gap:12px;padding:0 30px;white-space:nowrap;
+  font-family:var(--mono);font-size:13px;color:var(--cream-dim);
+}
+.ledger-item b{color:var(--gold-bright);font-weight:600;font-variant-numeric:tabular-nums}
+.ledger-item .dot{width:4px;height:4px;border-radius:50%;background:var(--gold-deep);flex:0 0 auto}
+.ledger-item .who{color:var(--purple-glow)}
+
+/* ---------- 07. HORIZONTAL LEGEND: vertical scroll, lateral story ---------- */
+html.fx #legend .story-card{display:none}
+html.fx #legend .chapters{display:block}
+#legend .chapters{display:none}
+html.fx #legend .lg-track{
+  display:flex;gap:34px;width:max-content;padding:10px 0 6px;will-change:transform;
+}
+/* The chapters are a real horizontal scroller by default — swipeable on any
+   device, with or without JS. On desktop the engine converts that into a
+   sticky lateral pan driven by vertical scroll. */
+#legend .lg-pin{overflow-x:auto;overflow-y:hidden;padding-bottom:10px;-webkit-overflow-scrolling:touch}
+html.fx #legend.lg-scene{position:relative;padding:0}
+html.fx #legend.lg-scene .lg-pin{
+  position:sticky;top:0;height:100vh;display:flex;align-items:center;overflow:hidden;padding-bottom:0;
+}
+.lg-card{
+  width:min(560px,84vw);flex:0 0 auto;background:var(--card-bg);
+  border:1px solid var(--card-border-gold);border-radius:var(--radius);padding:30px 32px;
+  position:relative;
+}
+.lg-card .ch{
+  font-family:var(--mono);font-size:11px;letter-spacing:3px;color:var(--gold-deep);
+  text-transform:uppercase;display:block;margin-bottom:12px;
+}
+.lg-card h3{font-family:var(--display);font-size:clamp(21px,2.6vw,30px);color:var(--cream);margin:0 0 12px;line-height:1.2}
+.lg-card p{font-size:16px;color:var(--cream-dim);margin:0 0 12px}
+.lg-card p:last-child{margin-bottom:0}
+.lg-card strong{color:var(--gold-glow)}
+.lg-card.quote-card{background:linear-gradient(140deg,rgba(107,45,201,.16),rgba(21,16,33,.7));border-color:rgba(162,89,255,.4)}
+.lg-card.quote-card p{font-family:var(--serif);font-size:19px;color:var(--cream);font-style:italic;line-height:1.5}
+.lg-img{width:min(430px,80vw);flex:0 0 auto;border-radius:var(--radius);overflow:hidden;border:1px solid var(--card-border-gold)}
+.lg-img img{width:100%;height:100%;object-fit:cover;display:block}
+.lg-hint{
+  font-family:var(--mono);font-size:11px;letter-spacing:2px;color:var(--cream-faint);
+  text-transform:uppercase;margin-top:14px;
+}
+
+/* ---------- 08. THE LOOP: the footer returns to the beginning ---------- */
+.loop{
+  position:relative;text-align:center;padding:74px 0 10px;overflow:hidden;
+}
+.loop .thread{
+  width:1px;height:80px;margin:0 auto 26px;
+  background:linear-gradient(180deg,transparent,var(--gold-bright));
+  box-shadow:0 0 14px rgba(245,197,66,.6);transform-origin:50% 100%;
+}
+.loop a.loop-back{
+  display:inline-block;text-decoration:none;font-family:var(--display);
+  font-size:clamp(26px,4.4vw,46px);color:var(--gold-bright);line-height:1.05;
+  text-shadow:0 0 50px rgba(245,197,66,.3);
+}
+.loop .loop-sub{
+  font-family:var(--tag);text-transform:uppercase;letter-spacing:5px;font-size:12px;
+  color:var(--cream-faint);margin-top:14px;
+}
+
+/* ---------- 09. reduced motion / no-engine safety ----------
+   Without html.fx nothing above hides content; these rules make the
+   pinned scenes collapse into plain, well-composed static blocks. */
+html:not(.fx) #vault .vault-pin{height:auto;padding:40px 0}
+html:not(.fx) #vault .vault-panels{position:static;display:flex;flex-wrap:wrap;justify-content:center;gap:28px;margin-top:26px}
+html:not(.fx) #vault .vpanel{position:static;opacity:1;transform:none!important}
+html:not(.fx) #vault .vault-bone{width:min(720px,86vw);position:relative;z-index:2}
+#vault .vault-halo{opacity:.5}
+html:not(.fx) .ledger-track{animation:ledgerSlide 42s linear infinite}
+@keyframes ledgerSlide{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@media(prefers-reduced-motion:reduce){
+  .ledger-track{animation:none!important}
+  #vaultLoad{display:none}
+}

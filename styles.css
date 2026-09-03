@@ -617,7 +617,6 @@ footer{border-top:1px solid var(--card-border);padding:50px 0 40px;text-align:ce
 .hero-mission{animation:riseIn .9s var(--ease) .25s both}
 .hero-ctas{animation:riseIn .9s var(--ease) .4s both}
 .dripmeter{animation:riseIn .9s var(--ease) .52s both}
-.burn-bone--hero{animation:riseIn 1s var(--ease) .64s both}
 .ticker{animation:riseIn 1s var(--ease) .78s both}
 
 /* --- deeper section reveals + staggered children --- */
