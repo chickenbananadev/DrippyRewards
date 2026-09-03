@@ -929,3 +929,27 @@ function setBurnBone(pct){
   });
 }
 
+
+/* ---------------- cinematic motion: progress thread + hero parallax ----------------
+   Both are additive and guarded: no element exists until JS runs, and the
+   parallax respects prefers-reduced-motion. Transform/opacity only. */
+(function(){
+  const bar = document.createElement('div');
+  bar.id = 'scrollProgress';
+  document.body.appendChild(bar);
+  const heroImg = document.querySelector('.hero-shot'); // wrapper, so the entrance animation on the img never fights the inline transform
+  const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let ticking = false;
+  function paint(){
+    ticking = false;
+    const doc = document.documentElement;
+    const max = doc.scrollHeight - innerHeight;
+    bar.style.width = (max > 0 ? (scrollY / max) * 100 : 0) + '%';
+    if(heroImg && !still){
+      // gentle molten drift — the hero art sinks slightly as you leave it
+      heroImg.style.transform = 'translateY(' + Math.min(26, scrollY * 0.055).toFixed(1) + 'px)';
+    }
+  }
+  addEventListener('scroll', () => { if(!ticking){ ticking = true; requestAnimationFrame(paint); } }, { passive: true });
+  paint();
+})();
