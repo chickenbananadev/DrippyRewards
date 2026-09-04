@@ -210,6 +210,30 @@ var BIOMES = [
    fetched, so the run starts on ~400KB instead of every backdrop at once. */
 var SCENES = 6;
 function sceneKey(b, n) { return 'bg_' + b + '_' + n; }
+
+/* The single biggest reason the first builds read as "two scenes": the engine
+   faded distant geometry toward a hand-picked palette colour while the painted
+   backdrop ended on a completely different one, so the join was a visible
+   line. Instead, sample the painting's own lower edge once it loads and fade
+   everything — path, terrain, props, obstacles — into exactly that colour.
+   Foreground and background then share a horizon and read as one place. */
+var FOGC = { r: 30, g: 40, b: 30 };
+function sampleFog(im) {
+  try {
+    var c = document.createElement('canvas'); c.width = 24; c.height = 12;
+    var x = c.getContext('2d', { willReadFrequently: true });
+    x.drawImage(im, 0, im.height * 0.40, im.width, im.height * 0.14, 0, 0, 24, 12);
+    var d = x.getImageData(0, 0, 24, 12).data, r = 0, g = 0, bl = 0, n = 0;
+    for (var i = 0; i < d.length; i += 4) { r += d[i]; g += d[i + 1]; bl += d[i + 2]; n++; }
+    return { r: r / n | 0, g: g / n | 0, b: bl / n | 0 };
+  } catch (e) { return null; }
+}
+function fogRGBA(a) { return 'rgba(' + FOGC.r + ',' + FOGC.g + ',' + FOGC.b + ',' + a + ')'; }
+function fogFor(z, far) {           // 0 near -> ~0.85 lost in the haze
+  // Never a full 1: distant geometry that fogs to solid colour turns the
+  // middle of the frame into a flat band with nothing to read.
+  return Math.max(0, Math.min(0.85, (z - 1100) / (far || 7600)));
+}
 function loadBiome(i) {
   var b = BIOMES[(i % BIOMES.length + BIOMES.length) % BIOMES.length];
   if (b._req) return; b._req = 1;
@@ -613,7 +637,10 @@ function updateHud() {
 }
 
 /* ---------- render ---------- */
-function drawSprite(im, sx, sy, targetH, alpha, rot) {
+/* fog: 0 = untouched, 1 = fully dissolved into the horizon colour. Distant
+   sprites that stay crisp are what makes a foreground look pasted onto a
+   painting, so everything the engine draws gets the same treatment. */
+function drawSprite(im, sx, sy, targetH, alpha, rot, fog) {
   if (!im || !im.width) return;
   var w = im.width * (targetH / im.height);
   ctx.save();
@@ -621,6 +648,13 @@ function drawSprite(im, sx, sy, targetH, alpha, rot) {
   ctx.translate(sx, sy);
   if (rot) ctx.rotate(rot);
   ctx.drawImage(im, -w / 2, -targetH, w, targetH);
+  if (fog > 0.02) {
+    // tint only the sprite's own pixels, never the box around it
+    ctx.globalCompositeOperation = 'source-atop';
+    ctx.globalAlpha = Math.min(0.92, fog) * (alpha == null ? 1 : alpha);
+    ctx.fillStyle = 'rgb(' + FOGC.r + ',' + FOGC.g + ',' + FOGC.b + ')';
+    ctx.fillRect(-w / 2 - 2, -targetH - 2, w + 4, targetH + 4);
+  }
   ctx.restore();
 }
 
@@ -642,32 +676,40 @@ function render() {
   var sIdx = Math.min(SCENES, 1 + Math.floor(prog * SCENES));
   var sNext = Math.min(SCENES, sIdx + 1);
   var blend = (prog * SCENES) % 1;
+  /* Only the part of the painting ABOVE its own vanishing point is used.
+     These are full scenes — they contain a painted path and ground of their
+     own — so drawing one whole behind a rendered path puts two floors in the
+     frame at different angles, which is exactly why it read as two scenes.
+     Cropped here, the backdrop supplies sky, canopy and far silhouette, and
+     every surface at ground level belongs to the engine. */
+  var SKY = 0.64;                                   // fraction above the painted horizon
   function paintScene(im, alpha) {
     if (!im || !im.width || alpha <= 0.01) return;
-    var bh = hz + 70, bw = bh * (im.width / im.height);
-    if (bw < W * 1.5) { bw = W * 1.5; bh = bw * (im.height / im.width); }
-    var drift = -((S.dist * 0.9) % (bw - W)) - (bw - W) * 0;
+    var srcH = im.height * SKY;
+    var dh = hz + H * 0.05, dw = dh * (im.width / srcH);
+    if (dw < W * 1.4) { dw = W * 1.4; dh = dw * (srcH / im.width); }
+    var span = Math.max(1, dw - W);
+    var drift = -((S.dist * 0.7) % span);
     ctx.globalAlpha = alpha;
-    ctx.drawImage(im, Math.max(-(bw - W), drift), hz - bh + H * 0.13, bw, bh);
+    ctx.drawImage(im, 0, 0, im.width, srcH, drift, hz + H * 0.05 - dh, dw, dh);
     ctx.globalAlpha = 1;
   }
-  paintScene(A[sceneKey(b.key, sIdx)], 1);
+  var cur = A[sceneKey(b.key, sIdx)];
+  paintScene(cur, 1);
   if (sNext !== sIdx) paintScene(A[sceneKey(b.key, sNext)], blend);
-  // haze where the path meets the painting, so they belong to one world
-  var hg = ctx.createLinearGradient(0, hz - 120, 0, hz + 90);
-  hg.addColorStop(0, 'rgba(5,3,10,0)');
-  hg.addColorStop(0.62, hexA(b.tint, 0.34));
-  hg.addColorStop(1, hexA(b.tint, 0));
-  ctx.fillStyle = hg; ctx.fillRect(0, hz - 120, W, 210);
-
+  if (cur && cur.width && cur._fogKey !== sIdx) {
+    var f = sampleFog(cur);
+    if (f) { FOGC = f; cur._fogKey = sIdx; }
+  }
   /* ground either side of the path — without this the walkway floats in a
      black void and the props beside it look pasted on */
-  var gg2 = ctx.createLinearGradient(0, hz, 0, H);
-  gg2.addColorStop(0, hexA(b.tint, 0));          // painting still showing through
-  gg2.addColorStop(0.20, hexA(b.tint, 0.82));
-  gg2.addColorStop(0.45, shade(b.tint, -0.52, 1));
-  gg2.addColorStop(1, shade(b.tint, -0.74, 1));
-  ctx.fillStyle = gg2; ctx.fillRect(0, hz - 1, W, H - hz + 2);
+  var gg2 = ctx.createLinearGradient(0, hz - H * 0.05, 0, H);
+  gg2.addColorStop(0, fogRGBA(0));               // painting still fully visible
+  gg2.addColorStop(0.13, fogRGBA(0.78));         // dissolve into its own colour
+  gg2.addColorStop(0.34, 'rgb(' + FOGC.r + ',' + FOGC.g + ',' + FOGC.b + ')');
+  gg2.addColorStop(0.66, shade(b.tint, -0.46, 1));
+  gg2.addColorStop(1, shade(b.tint, -0.72, 1));
+  ctx.fillStyle = gg2; ctx.fillRect(0, hz - H * 0.05 - 1, W, H - hz + H * 0.05 + 2);
 
   /* ---------- the path ----------
      Textured and perspective-correct: the screen is walked in horizontal
@@ -697,7 +739,8 @@ function render() {
       ctx.globalAlpha = fade;
       ctx.drawImage(tile, 0, vs, tile.width, vh, lx, sy, rx - lx, bandH + 1);
       ctx.globalAlpha = 1;
-      if (fade < 1) { ctx.fillStyle = hexA(b.tint, (1 - fade) * 0.9); ctx.fillRect(lx, sy, rx - lx, bandH + 1); }
+      var fg = fogFor(z0);
+      if (fg > 0.01) { ctx.fillStyle = fogRGBA(fg); ctx.fillRect(lx, sy, rx - lx, bandH + 1); }
     } else {
       ctx.fillStyle = shade(b.tint, 0.1, fade);
       ctx.fillRect(lx, sy, rx - lx, bandH + 1);
@@ -749,7 +792,7 @@ function render() {
       if (la && la.width) {
         var lxp = (side ? 1 : -1) * (EDGEP + 40 + (seed % 60));
         var lp = project(lxp, 0, pz);
-        if (lp.s > 0) drawSprite(la, lp.x, lp.y, 190 * lp.s, Math.min(1, lp.s * 30));
+        if (lp.s > 0) drawSprite(la, lp.x, lp.y, 190 * lp.s, Math.min(1, lp.s * 30), 0, fogFor(pz, 5200));
       }
       // tall pieces set further back, only every other slot so they stay grand
       if ((seed % 3) === 0) {
@@ -757,7 +800,7 @@ function render() {
         if (ta && ta.width) {
           var txp = (side ? 1 : -1) * (EDGEP + 210 + (seed % 190));
           var tp = project(txp, 0, pz);
-          if (tp.s > 0) drawSprite(ta, tp.x, tp.y, 500 * tp.s, Math.min(1, tp.s * 30));
+          if (tp.s > 0) drawSprite(ta, tp.x, tp.y, 500 * tp.s, Math.min(1, tp.s * 30), 0, fogFor(pz, 5200));
         }
       }
     }
@@ -775,13 +818,13 @@ function render() {
     if (it.t === 'ob') {
       var o = it.d, pr = project(LANES[o.lane], o.o.yOff, o.z);
       if (pr.s <= 0 || pr.y < -200) return;
-      drawSprite(A[o.o.key], pr.x, pr.y, o.o.h * pr.s, Math.min(1, pr.s * 22));
+      drawSprite(A[o.o.key], pr.x, pr.y, o.o.h * pr.s, Math.min(1, pr.s * 22), 0, fogFor(o.z, 5200));
     } else if (it.t === 'pk') {
       var p = it.d, lx = typeof p.lane === 'number' ? (p.lane % 1 === 0 ? LANES[p.lane] : lerpLane(p.lane)) : 0;
       var pp = project(lx, p.y, p.z);
       if (pp.s <= 0) return;
       var bob = Math.sin(S.t * 4 + p.z * 0.004) * 6 * pp.s;
-      drawSprite(A[p.key], pp.x, pp.y + bob, (p.kind === 'power' ? 105 : 78) * pp.s, Math.min(1, pp.s * 24));
+      drawSprite(A[p.key], pp.x, pp.y + bob, (p.kind === 'power' ? 105 : 78) * pp.s, Math.min(1, pp.s * 24), 0, fogFor(p.z, 6400));
     } else if (it.t === 'pf') {
       var f = it.d, fp = project(f.x, f.y || 0, f.z), k = 1 - f.life / f.max;
       if (fp.s <= 0) return;
@@ -823,6 +866,16 @@ function render() {
   }
 
   ctx.restore();
+
+  /* one grade across the whole frame: a touch of the horizon colour plus a
+     vignette, so the painting and the rendered world are lit the same way */
+  var grade = ctx.createRadialGradient(W / 2, H * 0.55, H * 0.22, W / 2, H * 0.55, H * 0.95);
+  grade.addColorStop(0, fogRGBA(0));
+  grade.addColorStop(1, fogRGBA(0.22));
+  ctx.fillStyle = grade; ctx.fillRect(0, 0, W, H);
+  var vig = ctx.createRadialGradient(W / 2, H * 0.5, H * 0.34, W / 2, H * 0.5, H * 0.9);
+  vig.addColorStop(0, 'rgba(0,0,0,0)'); vig.addColorStop(1, 'rgba(0,0,0,.34)');
+  ctx.fillStyle = vig; ctx.fillRect(0, 0, W, H);
 
   /* near-miss flash and stumble vignette */
   if (S.nearMiss > 0) {
