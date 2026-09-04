@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>The Doghouse — Drippy Arcade</title>
+<meta name="description" content="The Doghouse: Drippy's arcade. Two cabinets, one pack. Play Drippy Run and Drippy Bone Rush free in your browser.">
+<meta name="theme-color" content="#0a0610">
+<meta property="og:title" content="The Doghouse — Drippy Arcade">
+<meta property="og:description" content="Good games. Big drips. Step up to the cabinets and run it back.">
+<meta property="og:image" content="https://drippyrewards.com/assets/arcade/room.jpg">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bowlby+One&family=Anton&family=Fraunces:opsz,wght@9..144,400;9..144,600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<style>
+/* ============================================================
+   THE DOGHOUSE — the arcade room.
+   Its own page-level treatment: the room photograph is the ground,
+   the cabinets are the content, and everything glows like neon on
+   a wet floor. Shares the site's tokens from styles.css. */
+
+.dh-hero{
+  position:relative;min-height:min(78vh,720px);display:grid;place-items:center;
+  text-align:center;overflow:hidden;padding:80px 20px 60px;
+}
+/* Framed on the cabinets and the floor, deliberately below the room's own
+   neon sign — two titles competing in one frame reads as a mistake. */
+.dh-hero .room{
+  position:absolute;inset:0;
+  background:url(assets/arcade/room.jpg) 50% 86%/158% no-repeat;
+}
+@media(max-width:700px){ .dh-hero .room{background-size:280%;background-position:50% 88%} }
+.dh-hero .room::after{
+  content:'';position:absolute;inset:0;
+  background:
+    radial-gradient(ellipse 70% 55% at 50% 42%, rgba(10,6,16,.25), rgba(10,6,16,.86) 72%),
+    linear-gradient(180deg, rgba(10,6,16,.78) 0%, rgba(10,6,16,.28) 38%, rgba(10,6,16,1) 100%);
+}
+.dh-hero .inner{position:relative;z-index:2;max-width:760px}
+.dh-kicker{
+  font-family:var(--tag);text-transform:uppercase;letter-spacing:8px;font-size:12px;
+  color:var(--gold-deep);margin-bottom:14px;
+}
+.dh-title{
+  font-family:var(--display);font-size:clamp(42px,11vw,104px);line-height:.94;margin:0;
+  color:#fff;text-shadow:
+    0 0 8px rgba(255,255,255,.5), 0 0 26px rgba(162,89,255,.9),
+    0 0 60px rgba(162,89,255,.6), 0 0 110px rgba(107,45,201,.5);
+}
+.dh-title em{
+  font-style:normal;display:block;color:var(--gold-bright);
+  text-shadow:0 0 8px rgba(255,240,200,.5), 0 0 30px rgba(245,197,66,.85), 0 0 80px rgba(245,197,66,.45);
+}
+.dh-tag{
+  margin-top:18px;font-family:var(--tag);text-transform:uppercase;letter-spacing:6px;
+  font-size:clamp(11px,2.4vw,15px);color:var(--cream-dim);
+}
+.dh-tag b{color:var(--gold-bright);font-weight:400}
+.dh-scroll{
+  margin-top:34px;display:inline-flex;align-items:center;gap:10px;
+  font-family:var(--mono);font-size:11.5px;letter-spacing:2px;color:var(--cream-faint);
+  text-transform:uppercase;
+}
+.dh-scroll i{display:block;width:1px;height:26px;background:linear-gradient(180deg,var(--gold-bright),transparent)}
+
+/* ---------- the floor ---------- */
+.dh-floor{
+  background:
+    radial-gradient(ellipse 60% 40% at 20% 0%, rgba(107,45,201,.14), transparent 60%),
+    radial-gradient(ellipse 60% 40% at 85% 30%, rgba(212,164,49,.10), transparent 60%),
+    var(--black);
+  padding:56px 0 80px;
+}
+.dh-lead{max-width:60ch;margin:0 auto 42px;text-align:center;color:var(--cream-dim);font-size:17px}
+
+.cabs{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));
+  gap:46px;align-items:start;max-width:1000px;margin:0 auto;
+}
+.cab{position:relative;text-align:center}
+.cab-stage{
+  position:relative;display:block;text-decoration:none;
+  filter:drop-shadow(0 26px 40px rgba(0,0,0,.65));
+  transition:transform .45s cubic-bezier(.22,1,.36,1), filter .45s cubic-bezier(.22,1,.36,1);
+}
+.cab-stage::before{ /* the glow the cabinet throws on the floor */
+  content:'';position:absolute;left:50%;bottom:-4%;transform:translateX(-50%);
+  width:86%;height:16%;border-radius:50%;
+  background:radial-gradient(ellipse,rgba(162,89,255,.5),transparent 70%);
+  filter:blur(18px);opacity:.7;transition:opacity .45s ease;
+}
+.cab.gold .cab-stage::before{background:radial-gradient(ellipse,rgba(245,197,66,.5),transparent 70%)}
+.cab-stage img{width:100%;height:auto;display:block;position:relative;z-index:1}
+.cab-stage:hover{transform:translateY(-10px) scale(1.015)}
+.cab-stage:hover::before{opacity:1}
+.cab-play{
+  position:absolute;left:50%;top:33%;transform:translate(-50%,-50%);z-index:3;
+  font-family:var(--tag);text-transform:uppercase;letter-spacing:3px;font-size:16px;
+  padding:13px 30px;border-radius:12px;color:#1a1005;white-space:nowrap;
+  background:linear-gradient(135deg,var(--gold) 0%,var(--gold-glow) 100%);
+  box-shadow:0 6px 26px rgba(0,0,0,.6), 0 0 30px rgba(245,197,66,.45);
+  transition:transform .3s cubic-bezier(.22,1,.36,1), box-shadow .3s ease;
+}
+.cab-stage:hover .cab-play{transform:translate(-50%,-50%) scale(1.07);box-shadow:0 8px 34px rgba(0,0,0,.7),0 0 44px rgba(245,197,66,.7)}
+@media(max-width:520px){ .cab-play{font-size:14px;padding:11px 22px} }
+
+.cab-name{
+  font-family:var(--display);font-size:clamp(20px,4.4vw,27px);margin:22px 0 6px;color:var(--cream);
+}
+.cab-name span{color:var(--gold-bright)}
+.cab.purple .cab-name span{color:var(--purple-glow)}
+.cab-blurb{color:var(--cream-dim);font-size:15px;max-width:38ch;margin:0 auto 16px;line-height:1.6}
+.chips{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;margin-bottom:16px}
+.chip{
+  font-family:var(--mono);font-size:10.5px;letter-spacing:1.2px;text-transform:uppercase;
+  padding:6px 11px;border-radius:8px;color:var(--cream-dim);
+  background:rgba(28,20,40,.7);border:1px solid rgba(246,233,196,.14);
+}
+.cab-best{
+  display:inline-flex;align-items:center;gap:10px;padding:9px 16px;border-radius:99px;
+  background:rgba(20,14,28,.8);border:1px solid rgba(245,197,66,.3);
+  font-family:var(--mono);font-size:12.5px;color:var(--gold-glow);
+  font-variant-numeric:tabular-nums;
+}
+.cab-best em{font-style:normal;color:var(--cream-faint)}
+
+/* ---------- the wall of fame ---------- */
+.dh-strip{
+  max-width:1000px;margin:64px auto 0;padding:26px 24px;border-radius:var(--radius);
+  background:linear-gradient(180deg,rgba(27,18,40,.78),rgba(12,8,18,.78));
+  border:1px solid var(--card-border-gold);text-align:center;
+}
+.dh-strip h3{
+  font-family:var(--tag);text-transform:uppercase;letter-spacing:4px;font-size:14px;
+  color:var(--gold-deep);margin-bottom:16px;font-weight:400;
+}
+.dh-strip p{color:var(--cream-dim);font-size:15px;max-width:56ch;margin:0 auto 18px}
+.dh-back{display:block;text-align:center;margin-top:46px;font-family:var(--mono);font-size:12.5px;color:var(--cream-faint);text-decoration:none}
+.dh-back:hover{color:var(--gold-bright)}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a class="nav-logo" href="/">$DRIP<span>PY</span></a>
+    <div class="nav-links">
+      <a href="/#trade">Buy &amp; Chart</a>
+      <a href="/#proof">Proof</a>
+      <a href="/#checker">My Drips</a>
+      <a href="/#burn">Burn</a>
+      <a href="/news">Daily Drip</a>
+      <a href="/community">Pack</a>
+      <a class="nav-game" href="/arcade">🕹️ Arcade</a>
+    </div>
+    <a class="nav-cta" href="/#trade">Buy $DRIPPY</a>
+  </div>
+</nav>
+
+<header class="dh-hero">
+  <div class="room" aria-hidden="true"></div>
+  <div class="inner">
+    <div class="dh-kicker">Drippy Arcade</div>
+    <h1 class="dh-title">THE<em>DOGHOUSE</em></h1>
+    <div class="dh-tag">Good games &middot; <b>Big drips</b> &middot; No quarters</div>
+    <div class="dh-scroll"><i></i> Two cabinets. Step up.</div>
+  </div>
+</header>
+
+<section class="dh-floor">
+  <div class="container">
+    <p class="dh-lead">Every dog needs somewhere to be. This is ours — the back room where the pack
+      hangs out between drips. Both cabinets are free, run in your browser, and keep your best runs
+      on your own device. No wallet, no sign-up, no quarters.</p>
+
+    <div class="cabs">
+      <div class="cab purple">
+        <a class="cab-stage" href="/game" aria-label="Play Drippy Run">
+          <img src="assets/arcade/cab-run.png" alt="Drippy Run arcade cabinet" width="601" height="900" fetchpriority="high" decoding="async">
+          <span class="cab-play">▶ Insert Bone</span>
+        </a>
+        <h2 class="cab-name">DRIPPY <span>RUN</span></h2>
+        <p class="cab-blurb">The Bowl ran dry and the rival packs took the city. Eighteen levels,
+          boss fights, power-ups and combos. Run it back.</p>
+        <div class="chips">
+          <span class="chip">Platformer</span><span class="chip">18 Levels</span>
+          <span class="chip">Boss Fights</span><span class="chip">Arrows / WASD</span>
+          <span class="chip">Space = Jump</span><span class="chip">Mobile Ready</span>
+        </div>
+        <div class="cab-best" id="bestRun"><em>Loading…</em></div>
+      </div>
+
+      <div class="cab gold">
+        <a class="cab-stage" href="/runner" aria-label="Play Drippy Bone Rush">
+          <img src="assets/arcade/cab-rush.png" alt="Drippy Bone Rush arcade cabinet" width="585" height="900" loading="lazy" decoding="async">
+          <span class="cab-play">▶ Insert Bone</span>
+        </a>
+        <h2 class="cab-name">DRIPPY <span>BONE RUSH</span></h2>
+        <p class="cab-blurb">Three lanes through seven temple worlds. Collect bones, dodge the ruins
+          and stay ahead of the Stone Guardian — every stumble brings it closer.</p>
+        <div class="chips">
+          <span class="chip">Endless Runner</span><span class="chip">7 Worlds</span>
+          <span class="chip">Swipe / Arrows</span><span class="chip">Up = Jump</span>
+          <span class="chip">Down = Slide</span><span class="chip">Mobile Ready</span>
+        </div>
+        <div class="cab-best" id="bestRush"><em>Loading…</em></div>
+      </div>
+    </div>
+
+    <div class="dh-strip">
+      <h3>House Rules</h3>
+      <p>Scores live on the device you played on — clear your browser and the board resets.
+        Drippy Run also posts to the global high-score board, so if you want your name on the wall,
+        that's the cabinet to beat.</p>
+      <a class="btn btn-gold" href="/game">Climb the board →</a>
+    </div>
+
+    <a class="dh-back" href="/">← Back to drippyrewards.com</a>
+  </div>
+</section>
+
+<script>
+/* Personal bests, read from whatever each cabinet already saved locally.
+   Drippy Bone Rush still writes the `drippyDash` key it shipped with — renaming
+   the key would wipe anyone's existing best, so only the display name changed. */
+(function () {
+  function el(id) { return document.getElementById(id); }
+  try {
+    var s = JSON.parse(localStorage.getItem('drippySave') || 'null');
+    if (s && (s.u > 1 || (s.best && Object.keys(s.best).length))) {
+      var lv = Math.min(18, s.u || 1);
+      var drips = 0;
+      if (s.best) for (var k in s.best) drips += (s.best[k] && s.best[k].d) || 0;
+      el('bestRun').innerHTML = '🏆 Level <b>' + lv + '</b>/18 &nbsp;<em>·</em>&nbsp; ' +
+        drips.toLocaleString() + ' drips';
+    } else {
+      el('bestRun').innerHTML = '<em>No runs yet — the city is waiting</em>';
+    }
+  } catch (e) { el('bestRun').innerHTML = '<em>No runs yet</em>'; }
+  try {
+    var d = JSON.parse(localStorage.getItem('drippyDash') || 'null');
+    if (d && (d.dist || d.bones)) {
+      el('bestRush').innerHTML = '🏆 <b>' + (d.dist || 0).toLocaleString() + 'm</b> &nbsp;<em>·</em>&nbsp; ' +
+        (d.bones || 0).toLocaleString() + ' bones';
+    } else {
+      el('bestRush').innerHTML = '<em>No runs yet — the Guardian sleeps</em>';
+    }
+  } catch (e) { el('bestRush').innerHTML = '<em>No runs yet</em>'; }
+})();
+</script>
+</body>
+</html>
