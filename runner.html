@@ -76,6 +76,16 @@
   .sc .v{font-family:var(--display);font-size:27px;color:var(--gold-glow);margin-top:5px;font-variant-numeric:tabular-nums}
   .best{font-size:13px;color:var(--dim);margin-top:-8px;margin-bottom:16px}
   .best b{color:var(--gold)}
+  .submit-row{display:flex;gap:8px;justify-content:center;margin:0 0 12px}
+  .submit-row input{
+    flex:0 1 190px;padding:12px 14px;border-radius:12px;text-align:center;
+    background:rgba(12,8,18,.9);border:1.5px solid rgba(245,197,66,.35);color:var(--gold-glow);
+    font-family:var(--mono);font-size:15px;letter-spacing:2px;text-transform:uppercase;
+  }
+  .submit-row input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(245,197,66,.16)}
+  .btn.btn-sm{font-size:14px;padding:12px 18px;letter-spacing:2px}
+  .submit-note{min-height:18px;font-size:12.5px;color:var(--dim);margin-bottom:14px}
+  .submit-note b{color:var(--gold-glow)}
   #biomeName{
     position:absolute;left:50%;top:22%;transform:translateX(-50%);pointer-events:none;
     font-family:var(--display);font-size:clamp(15px,4.2vw,34px);color:var(--gold-glow);
@@ -133,6 +143,11 @@
     <div class="sc"><div class="k">Bones</div><div class="v" id="ovBones">0</div></div>
   </div>
   <div class="best">Best: <b><span id="ovBest">0</span>m</b> &middot; <b><span id="ovBestBones">0</span></b> bones</div>
+  <div class="submit-row" id="submitRow">
+    <input id="nameIn" maxlength="12" placeholder="YOUR NAME" autocomplete="off" spellcheck="false" aria-label="Name for the leaderboard">
+    <button class="btn btn-sm" id="btnSubmit">Log Score</button>
+  </div>
+  <div class="submit-note" id="submitNote"></div>
   <button class="btn" id="btnAgain">Run Again</button>
   <div style="margin-top:14px"><a class="btn ghost" href="/arcade">Back to the Doghouse</a></div>
   <a class="backlink" href="/">&larr; drippyrewards.com</a>
@@ -427,6 +442,31 @@ function caught() {
   S.mode = 'caught'; S.caught = 0; sfx('roar');
   try { AUDIO.stopMusic(); } catch (e) {}
 }
+/* The board score is one number that has to reward both halves of the game:
+   distance keeps you running, bones reward the risk of changing lane for them. */
+function runScore() { return Math.floor(S.dist) + S.bones * 10; }
+
+function submitScore() {
+  var note = $('submitNote'), btn = $('btnSubmit'), input = $('nameIn');
+  var name = (input.value || '').trim();
+  if (name.length < 2) { note.innerHTML = 'Enter a name (2-12 characters)'; input.focus(); return; }
+  try { localStorage.setItem('drippyDashName', name); } catch (e) {}
+  btn.disabled = true; note.textContent = 'Sending…';
+  fetch('/api/leaderboard?board=arcade&game=bone-rush', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: name, score: runScore(),
+      meta: { dist: Math.floor(S.dist), bones: S.bones } })
+  }).then(function (r) { return r.json(); }).then(function (j) {
+    if (j && j.ok) {
+      note.innerHTML = j.rank ? 'On the board at <b>#' + j.rank + '</b>' : 'Score logged';
+      $('submitRow').style.display = 'none';
+    } else {
+      note.textContent = (j && j.error) || 'Could not log that one';
+      btn.disabled = false;
+    }
+  }).catch(function () { note.textContent = 'Network error — try again'; btn.disabled = false; });
+}
+
 function endRun() {
   S.mode = 'over';
   var d = Math.floor(S.dist);
@@ -441,6 +481,13 @@ function endRun() {
   $('overTitle').textContent = rec ? 'NEW BEST' : 'CAUGHT';
   $('overSub').textContent = rec ? 'The pack will hear about this' : 'The Guardian got you';
   if (rec) sfx('levelup'); else sfx('over');
+  var row = $('submitRow'), note = $('submitNote'), btn = $('btnSubmit');
+  note.textContent = ''; btn.disabled = false;
+  row.style.display = (d > 0 || S.bones > 0) ? 'flex' : 'none';
+  try {
+    var saved = localStorage.getItem('drippyDashName');
+    if (saved && !$('nameIn').value) $('nameIn').value = saved;
+  } catch (e) {}
   $('scOver').classList.add('on');
 }
 
@@ -892,6 +939,8 @@ function togglePause() {
 }
 $('btnPlay').onclick = start;
 $('btnAgain').onclick = start;
+$('btnSubmit').onclick = submitScore;
+$('nameIn').addEventListener('keydown', function (e) { if (e.key === 'Enter') submitScore(); });
 $('btnResume').onclick = togglePause;
 $('btnPause').onclick = togglePause;
 $('btnQuit').onclick = function () { $('scPause').classList.remove('on'); endRun(); };

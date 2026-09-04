@@ -202,6 +202,69 @@ module.exports = async (req, res) => {
   // Vercel Hobby's 12-serverless-function limit.
   //   GET  ?board=game            -> { scores: [{ n, s, beat }] }  (top 25)
   //   POST ?board=game {name,score,beat} -> { ok, rank }
+  // ----- ARCADE boards (permanent, per cabinet) -----
+  //   GET  ?board=arcade&game=bone-rush&limit=10  -> { game, scores:[{n,s,meta}] }
+  //   POST ?board=arcade&game=bone-rush {name, score, meta}
+  // These never expire and never reset — the point is a board people climb.
+  // drippy-run deliberately aliases the original key so its existing history
+  // carries over rather than starting the cabinet from zero.
+  if ((req.query.board || '') === 'arcade') {
+    const GAMES = {
+      'drippy-run': { key: 'drippy:game:leaderboard', meta: 'drippy:game:meta', max: 2000000 },
+      'bone-rush':  { key: 'drippy:arcade:bone-rush', meta: 'drippy:arcade:bone-rush:meta', max: 5000000 }
+    };
+    const g = GAMES[String(req.query.game || '')];
+    if (!g) { res.status(400).json({ error: 'unknown game' }); return; }
+    const clean = n => String(n || '').toUpperCase().replace(/[^A-Z0-9 _.\-]/g, '').trim().slice(0, 12) || 'DRIPPY';
+
+    if (req.method === 'DELETE') {
+      if ((req.headers['x-admin-secret'] || '') !== process.env.DRIPPY_EVENTS_SECRET) { res.status(401).json({ error: 'unauthorized' }); return; }
+      const nm = String(req.query.name || '');
+      if (nm) { await redis(['ZREM', g.key, nm]); await redis(['HDEL', g.meta, nm]); }
+      res.status(200).json({ removed: nm });
+      return;
+    }
+    if (req.method === 'POST') {
+      let b = req.body; if (typeof b === 'string') { try { b = JSON.parse(b); } catch (_) { b = null; } }
+      if (!b) { res.status(400).json({ error: 'bad body' }); return; }
+      const name = clean(b.name), score = Math.round(Number(b.score) || 0);
+      if (!(score > 0) || score > g.max) { res.status(400).json({ error: 'score out of range' }); return; }
+      // Scores come from the client and cannot be verified server-side, so the
+      // defences are a hard cap and a per-IP rate limit. Admin DELETE removes
+      // anything obviously bogus.
+      const ip = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() || 'unknown';
+      // INCR, not SET NX: a failed NX and an unreachable Redis both come back as
+      // null through the helper, so an NX guard silently never fires. INCR
+      // returns a count, which separates "second attempt" from "Redis is down"
+      // — the latter still fails open rather than locking players out.
+      const rlKey = 'drippy:arcade:rl:' + req.query.game + ':' + ip;
+      const hits = await redis(['INCR', rlKey]);
+      if (hits === 1) await redis(['EXPIRE', rlKey, '15']);
+      if (hits !== null && Number(hits) > 1) { res.status(429).json({ error: 'one submission per 15s' }); return; }
+      await redis(['ZADD', g.key, 'GT', 'CH', String(score), name]);
+      // stamp the run's detail only when this submission is that name's best
+      const top = await redis(['ZSCORE', g.key, name]);
+      if (Math.round(Number(top) || 0) === score && b.meta) {
+        await redis(['HSET', g.meta, name, JSON.stringify(b.meta).slice(0, 300)]);
+      }
+      const rank = await redis(['ZREVRANK', g.key, name]);
+      res.status(200).json({ ok: true, name, score, rank: rank != null ? Number(rank) + 1 : null });
+      return;
+    }
+    const lim = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 10));
+    const raw = await redis(['ZREVRANGE', g.key, '0', String(lim - 1), 'WITHSCORES']);
+    const metaRaw = await redis(['HGETALL', g.meta]);
+    const metas = {}; if (Array.isArray(metaRaw)) for (let i = 0; i < metaRaw.length; i += 2) {
+      try { metas[metaRaw[i]] = JSON.parse(metaRaw[i + 1]); } catch (_) {}
+    }
+    const out = [];
+    if (Array.isArray(raw)) for (let i = 0; i < raw.length; i += 2) {
+      out.push({ n: raw[i], s: Math.round(Number(raw[i + 1]) || 0), meta: metas[raw[i]] || null });
+    }
+    res.status(200).json({ game: req.query.game, scores: out });
+    return;
+  }
+
   if ((req.query.board || '') === 'game') {
     const ZKEY = 'drippy:game:leaderboard', FLAGS = 'drippy:game:beat', RL = 'drippy:game:rl:', MAX = 2000000;
     const clean = n => String(n || '').toUpperCase().replace(/[^A-Z0-9 _.\-]/g, '').trim().slice(0, 12) || 'DRIPPY';
