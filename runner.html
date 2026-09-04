@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Drippy Dash — Temple Run</title>
+<meta name="description" content="Run the temple, dodge the ruins and collect bones before the Stone Guardian catches you. A $DRIPPY endless runner.">
+<meta name="theme-color" content="#0a0610">
+<meta property="og:title" content="Drippy Dash — collect the bones, outrun the Guardian">
+<meta property="og:description" content="An endless temple run for $DRIPPY. Swipe to dodge, jump and slide.">
+<meta property="og:image" content="https://drippyrewards.com/assets/banner.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bowlby+One&family=Anton&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --gold:#f5c542; --gold-glow:#ffd966; --gold-deep:#a8761f;
+    --cream:#f6e9c4; --dim:rgba(246,233,196,.62);
+    --purple:#a259ff; --black:#0a0610;
+    --display:'Bowlby One',cursive; --tag:'Anton',sans-serif; --mono:'JetBrains Mono',monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;background:#05030a;overflow:hidden;font-family:var(--mono);color:var(--cream);
+    overscroll-behavior:none;touch-action:none;user-select:none;-webkit-user-select:none}
+  #wrap{position:fixed;inset:0;display:grid;place-items:center}
+  canvas{display:block;width:100%;height:100%;object-fit:cover}
+
+  /* ---------- HUD ---------- */
+  #hud{position:absolute;inset:0;pointer-events:none;padding:calc(env(safe-area-inset-top,0) + 12px) 14px 14px}
+  .pill{
+    display:inline-flex;align-items:center;gap:8px;padding:7px 14px;border-radius:99px;
+    background:linear-gradient(180deg,rgba(28,20,10,.92),rgba(12,8,4,.92));
+    border:1.5px solid rgba(245,197,66,.45);box-shadow:0 3px 14px rgba(0,0,0,.5);
+    font-weight:600;font-size:15px;color:var(--gold-glow);font-variant-numeric:tabular-nums;
+  }
+  .pill img{width:20px;height:20px;object-fit:contain}
+  #hudTop{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+  #hudLeft{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+  #hudRight{display:flex;flex-direction:column;gap:8px;align-items:flex-end}
+  #mult{color:var(--purple);border-color:rgba(162,89,255,.5)}
+  #mult.hide{display:none}
+  #powers{display:flex;gap:7px;margin-top:9px}
+  .pw{position:relative;width:42px;height:42px;border-radius:50%;
+    background:rgba(10,6,16,.85);border:2px solid rgba(245,197,66,.5);display:grid;place-items:center}
+  .pw img{width:26px;height:26px;object-fit:contain}
+  .pw svg{position:absolute;inset:-2px;transform:rotate(-90deg)}
+  .pw circle{fill:none;stroke:var(--gold);stroke-width:3}
+  #btnPause{pointer-events:auto;cursor:pointer}
+
+  /* ---------- overlays ---------- */
+  .screen{
+    position:absolute;inset:0;display:none;place-items:center;text-align:center;
+    background:radial-gradient(ellipse at 50% 45%,rgba(20,10,30,.82),rgba(4,2,8,.96));
+    backdrop-filter:blur(3px);pointer-events:auto;padding:24px;
+  }
+  .screen.on{display:grid}
+  .screen .inner{max-width:460px;width:100%}
+  h1{font-family:var(--display);font-size:clamp(34px,10vw,62px);line-height:1;color:var(--gold);
+    text-shadow:0 0 44px rgba(245,197,66,.45);margin-bottom:6px}
+  h1 span{color:var(--purple)}
+  .sub{font-family:var(--tag);text-transform:uppercase;letter-spacing:5px;font-size:13px;color:var(--dim);margin-bottom:22px}
+  .btn{
+    display:inline-block;font-family:var(--tag);text-transform:uppercase;letter-spacing:3px;font-size:19px;
+    padding:15px 40px;border-radius:14px;border:0;cursor:pointer;color:#1a1005;
+    background:linear-gradient(135deg,var(--gold-deep),var(--gold-glow));
+    box-shadow:0 6px 26px rgba(245,197,66,.4);transition:transform .18s cubic-bezier(.22,1,.36,1)
+  }
+  .btn:active{transform:scale(.96)}
+  .btn.ghost{background:transparent;color:var(--dim);border:1px solid rgba(246,233,196,.25);
+    box-shadow:none;font-size:14px;padding:11px 24px}
+  .keys{margin-top:22px;font-size:12.5px;color:var(--dim);line-height:1.9}
+  .keys b{color:var(--gold);font-weight:600}
+  .scoreGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:18px 0 22px}
+  .sc{background:rgba(20,14,28,.7);border:1px solid rgba(245,197,66,.25);border-radius:14px;padding:14px 10px}
+  .sc .k{font-family:var(--tag);text-transform:uppercase;letter-spacing:2px;font-size:10.5px;color:var(--dim)}
+  .sc .v{font-family:var(--display);font-size:27px;color:var(--gold-glow);margin-top:5px;font-variant-numeric:tabular-nums}
+  .best{font-size:13px;color:var(--dim);margin-top:-8px;margin-bottom:16px}
+  .best b{color:var(--gold)}
+  #biomeName{
+    position:absolute;left:50%;top:22%;transform:translateX(-50%);pointer-events:none;
+    font-family:var(--display);font-size:clamp(17px,5vw,38px);color:var(--gold-glow);
+    text-shadow:0 0 40px rgba(245,197,66,.6);opacity:0;letter-spacing:1px;
+    width:92vw;max-width:640px;text-align:center;line-height:1.15;
+  }
+  #toast{
+    position:absolute;left:50%;top:38%;transform:translateX(-50%);pointer-events:none;
+    font-family:var(--tag);text-transform:uppercase;letter-spacing:3px;font-size:clamp(15px,4.5vw,22px);
+    color:var(--gold-glow);text-shadow:0 2px 18px rgba(0,0,0,.8);opacity:0;white-space:nowrap;
+  }
+  .backlink{position:absolute;left:14px;bottom:calc(env(safe-area-inset-bottom,0) + 12px);
+    font-size:12px;color:var(--dim);text-decoration:none;pointer-events:auto}
+  .backlink:hover{color:var(--gold)}
+  @media(max-width:420px){ .pill{font-size:13.5px;padding:6px 11px} .pw{width:37px;height:37px} }
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="cv"></canvas></div>
+
+<div id="hud">
+  <div id="hudTop">
+    <div id="hudLeft">
+      <div class="pill"><img src="assets/runner/bone_gold.png" alt=""><span id="uiBones">0</span></div>
+      <div class="pill" id="mult">×<span id="uiMult">1</span></div>
+      <div id="powers"></div>
+    </div>
+    <div id="hudRight">
+      <div class="pill"><span id="uiDist">0</span>m</div>
+      <div class="pill" id="btnPause">❚❚</div>
+    </div>
+  </div>
+  <div id="biomeName"></div>
+  <div id="toast"></div>
+</div>
+
+<div class="screen on" id="scStart"><div class="inner">
+  <h1>DRIPPY <span>DASH</span></h1>
+  <div class="sub">Outrun the Stone Guardian</div>
+  <button class="btn" id="btnPlay">Run</button>
+  <div class="keys">
+    <b>Swipe</b> or <b>arrow keys</b> to change lane<br>
+    <b>Swipe up</b> / <b>Space</b> to jump &middot; <b>Swipe down</b> to slide<br>
+    Collect bones. Every stumble brings the Guardian closer.
+  </div>
+  <a class="backlink" href="/">&larr; drippyrewards.com</a>
+</div></div>
+
+<div class="screen" id="scOver"><div class="inner">
+  <h1 id="overTitle">CAUGHT</h1>
+  <div class="sub" id="overSub">The Guardian got you</div>
+  <div class="scoreGrid">
+    <div class="sc"><div class="k">Distance</div><div class="v"><span id="ovDist">0</span>m</div></div>
+    <div class="sc"><div class="k">Bones</div><div class="v" id="ovBones">0</div></div>
+  </div>
+  <div class="best">Best: <b><span id="ovBest">0</span>m</b> &middot; <b><span id="ovBestBones">0</span></b> bones</div>
+  <button class="btn" id="btnAgain">Run Again</button>
+  <div style="margin-top:14px"><a class="btn ghost" href="/game">Try Drippy Run</a></div>
+  <a class="backlink" href="/">&larr; drippyrewards.com</a>
+</div></div>
+
+<div class="screen" id="scPause"><div class="inner">
+  <h1>PAUSED</h1>
+  <div class="sub">Catch your breath</div>
+  <button class="btn" id="btnResume">Resume</button>
+  <div style="margin-top:14px"><button class="btn ghost" id="btnQuit">End run</button></div>
+</div></div>
+
+<script src="tails-end-audio.js?v=2"></script>
+<script>
+/* ============================================================
+   DRIPPY DASH — a three-lane temple runner.
+
+   Rendering is pseudo-3D: the world is a set of objects with a depth (z),
+   projected onto a 2D canvas with scale = FOCAL / z and painted far-to-near.
+   No WebGL, no 3D models — the art is billboarded sprites, which keeps it
+   fast on phones and lets the hand-drawn assets read exactly as designed.
+   ============================================================ */
+(function () {
+'use strict';
+
+/* ---------- canvas ---------- */
+var cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+var W = 0, H = 0, DPR = 1;
+function resize() {
+  DPR = Math.min(2, window.devicePixelRatio || 1);
+  W = cv.clientWidth; H = cv.clientHeight;
+  cv.width = Math.floor(W * DPR); cv.height = Math.floor(H * DPR);
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+}
+addEventListener('resize', resize); addEventListener('orientationchange', resize);
+
+/* ---------- assets ---------- */
+var A = {}, toLoad = 0, loaded = 0;
+function img(name, file) {
+  var i = new Image(); i.src = 'assets/runner/' + (file || name + '.png');
+  toLoad++; i.onload = i.onerror = function () { loaded++; }; A[name] = i; return i;
+}
+for (var r = 1; r <= 7; r++) img('run' + r);
+['jump','slide','stumble','shielded','idle_back',
+ 'bone','bone_gold','bone_blue','bone_rainbow','bone_black','biscuit',
+ 'coin','x2','magnet','wingbone','shield','shoe',
+ 'ob_log','ob_boulder','ob_crate','ob_fire','ob_spikewall','ob_rope','ob_block','ob_spikes','ob_wall','ob_branch',
+ 'guard1','guard2','guard3','guard_roar','fx_dust','fx_speed','fx_stars'].forEach(function (n) { img(n); });
+var BIOMES = [
+  { key:'jungle',      name:'JUNGLE RUINS',      tint:'#2c4a22', rail:'#6b8f3a' },
+  { key:'fire',        name:'TEMPLE OF FIRE',    tint:'#4a1608', rail:'#c2521a' },
+  { key:'frozen',      name:'FROZEN CANYON',     tint:'#20415c', rail:'#7fc4e8' },
+  { key:'sky',         name:'SKY TEMPLE',        tint:'#3d4a66', rail:'#d8c48a' },
+  { key:'desert',      name:'DESERT CANYON',     tint:'#5c3a1c', rail:'#c9924a' },
+  { key:'haunted',     name:'HAUNTED FOREST',    tint:'#33184a', rail:'#a05fd0' },
+  { key:'underground', name:'UNDERGROUND RUINS', tint:'#12303a', rail:'#3fc9b0' }
+];
+BIOMES.forEach(function (b) { img('bg_' + b.key, 'bg_' + b.key + '.jpg'); });
+
+/* ---------- world constants ---------- */
+/* Camera tuning. PLAYER_Z is chosen so the player's ground contact projects
+   to roughly 78% down the screen: horizon + CAM_Y*focal/PLAYER_Z. Getting this
+   wrong puts the player's feet below the viewport and scales them enormously. */
+var LANE = 250;                 // lateral spacing between lane centres
+var LANES = [-LANE, 0, LANE];
+var CAM_Y = 250;                // camera height above the path
+var PLAYER_Z = 900;             // player's fixed distance in front of the camera
+var Z_FAR = 7200, Z_CULL = 330;
+var GRAV = 3400;
+var SPEED_MIN = 1500, SPEED_MAX = 3200;
+
+function focal() { return Math.max(W, 560) * 0.92; }
+function horizon() { return H * 0.40; }
+function project(x, y, z) {
+  var s = focal() / Math.max(1, z);
+  return { x: W / 2 + x * s, y: horizon() + (CAM_Y - y) * s, s: s };
+}
+
+/* ---------- obstacle catalogue ----------
+   `act` is the action that clears it: jump, slide, or dodge (change lane).
+   `w` is its lateral half-width in world units — a dodge obstacle fills the
+   lane, a jumpable one is low, a slide one hangs overhead. */
+var OBSTACLES = [
+  { key:'ob_log',       act:'jump',  h:150, yOff:0,   w:150 },
+  { key:'ob_crate',     act:'jump',  h:165, yOff:0,   w:140 },
+  { key:'ob_spikes',    act:'jump',  h:120, yOff:0,   w:150 },
+  { key:'ob_branch',    act:'slide', h:150, yOff:210, w:170 },
+  { key:'ob_rope',      act:'slide', h:170, yOff:190, w:150 },
+  { key:'ob_boulder',   act:'dodge', h:250, yOff:0,   w:150 },
+  { key:'ob_block',     act:'dodge', h:250, yOff:0,   w:130 },
+  { key:'ob_fire',      act:'dodge', h:235, yOff:0,   w:120 },
+  { key:'ob_spikewall', act:'dodge', h:230, yOff:0,   w:150 },
+  { key:'ob_wall',      act:'dodge', h:245, yOff:0,   w:150 }
+];
+var POWERS = {
+  magnet:   { icon:'magnet',   dur:5, label:'BONE MAGNET' },
+  shield:   { icon:'shield',   dur:5, label:'DRIP SHIELD' },
+  zoomies:  { icon:'shoe',     dur:5, label:'ZOOMIES!' },
+  x2:       { icon:'x2',       dur:5, label:'2X TREATS' },
+  superjump:{ icon:'wingbone', dur:5, label:'SUPER JUMP' }
+};
+var BONE_KINDS = [
+  { key:'bone',         val:1,  p:0.68 },
+  { key:'bone_gold',    val:3,  p:0.16 },
+  { key:'bone_blue',    val:5,  p:0.09 },
+  { key:'bone_rainbow', val:10, p:0.05 },
+  { key:'bone_black',   val:25, p:0.02 }
+];
+
+/* ---------- state ---------- */
+var S = null;
+function newGame() {
+  return {
+    mode:'play', t:0, dist:0, speed:SPEED_MIN, bones:0, mult:1,
+    lane:1, laneX:0, targetX:0,
+    y:0, vy:0, air:false, slide:0, stumble:0, iframe:0,
+    anim:0, spawnZ:2200, biome:0, biomeFade:1,
+    obstacles:[], pickups:[], puffs:[], floats:[],
+    powers:{}, guard:0.12, guardShake:0, shake:0, caught:0,
+    lastAct:'', nearMiss:0
+  };
+}
+var best = { dist:0, bones:0 };
+try {
+  var raw = localStorage.getItem('drippyDash');
+  if (raw) best = JSON.parse(raw);
+} catch (e) {}
+
+/* ---------- helpers ---------- */
+var $ = function (id) { return document.getElementById(id); };
+function toast(msg, col) {
+  var el = $('toast'); el.textContent = msg;
+  el.style.color = col || 'var(--gold-glow)';
+  el.style.transition = 'none'; el.style.opacity = '1'; el.style.transform = 'translateX(-50%) translateY(0)';
+  requestAnimationFrame(function () {
+    el.style.transition = 'opacity .8s ease, transform .8s cubic-bezier(.22,1,.36,1)';
+    el.style.opacity = '0'; el.style.transform = 'translateX(-50%) translateY(-26px)';
+  });
+}
+function showBiome(name) {
+  var el = $('biomeName'); el.textContent = name;
+  el.style.transition = 'none'; el.style.opacity = '0';
+  requestAnimationFrame(function () {
+    el.style.transition = 'opacity .5s ease';
+    el.style.opacity = '1';
+    setTimeout(function () { el.style.opacity = '0'; }, 1500);
+  });
+}
+function sfx(n) { try { if (window.AUDIO && AUDIO.sfx && AUDIO.sfx[n]) AUDIO.sfx[n](); } catch (e) {} }
+
+/* ---------- input ---------- */
+function moveLane(d) {
+  if (!S || S.mode !== 'play') return;
+  var n = Math.max(0, Math.min(2, S.lane + d));
+  if (n !== S.lane) { S.lane = n; S.targetX = LANES[n]; sfx('click'); }
+}
+function doJump() {
+  if (!S || S.mode !== 'play' || S.air || S.slide > 0) return;
+  S.vy = S.powers.superjump ? 1750 : 1330;
+  S.air = true; sfx('jump');
+}
+function doSlide() {
+  if (!S || S.mode !== 'play' || S.slide > 0) return;
+  if (S.air) { S.vy = -1500; }        // slam down, then slide on landing
+  S.slide = 0.62; sfx('dash');
+}
+addEventListener('keydown', function (e) {
+  var k = e.key.toLowerCase();
+  if (['arrowleft','a'].indexOf(k) >= 0) { moveLane(-1); e.preventDefault(); }
+  else if (['arrowright','d'].indexOf(k) >= 0) { moveLane(1); e.preventDefault(); }
+  else if (['arrowup','w',' '].indexOf(k) >= 0) { doJump(); e.preventDefault(); }
+  else if (['arrowdown','s'].indexOf(k) >= 0) { doSlide(); e.preventDefault(); }
+  else if (k === 'escape' || k === 'p') { togglePause(); }
+});
+var tsx = 0, tsy = 0, tsMoved = false;
+cv.addEventListener('touchstart', function (e) {
+  var t = e.changedTouches[0]; tsx = t.clientX; tsy = t.clientY; tsMoved = false;
+}, { passive: true });
+cv.addEventListener('touchmove', function (e) {
+  if (tsMoved) return;
+  var t = e.changedTouches[0], dx = t.clientX - tsx, dy = t.clientY - tsy;
+  if (Math.abs(dx) < 26 && Math.abs(dy) < 26) return;
+  tsMoved = true;
+  if (Math.abs(dx) > Math.abs(dy)) moveLane(dx > 0 ? 1 : -1);
+  else if (dy < 0) doJump(); else doSlide();
+}, { passive: true });
+cv.addEventListener('touchend', function (e) {
+  if (tsMoved) return;                       // a tap, not a swipe
+  var t = e.changedTouches[0];
+  if (t.clientY < H * 0.55) doJump(); else doSlide();
+}, { passive: true });
+
+/* ---------- spawning ----------
+   Patterns guarantee at least one clear lane, so every arrangement is
+   survivable with the right move. Difficulty raises the chance of the
+   busier patterns rather than ever sealing the track. */
+function pickBone() {
+  var r = Math.random(), acc = 0;
+  for (var i = 0; i < BONE_KINDS.length; i++) { acc += BONE_KINDS[i].p; if (r < acc) return BONE_KINDS[i]; }
+  return BONE_KINDS[0];
+}
+function addBoneRun(lane, z, n, arc) {
+  for (var i = 0; i < n; i++) {
+    var k = pickBone();
+    S.pickups.push({ kind:'bone', key:k.key, val:k.val, lane:lane, z:z + i * 190,
+                     y: arc ? Math.sin(i / (n - 1 || 1) * Math.PI) * 230 : 40, got:false, spin: Math.random() * 6 });
+  }
+}
+function addPower(lane, z) {
+  var keys = Object.keys(POWERS), k = keys[(Math.random() * keys.length) | 0];
+  S.pickups.push({ kind:'power', power:k, key:POWERS[k].icon, lane:lane, z:z, y:110, got:false, spin:0 });
+}
+function spawnChunk(z) {
+  var diff = Math.min(1, S.dist / 2600);           // 0 -> 1 across the first ~2.6km
+  var free = (Math.random() * 3) | 0;               // guaranteed clear lane
+  var roll = Math.random();
+
+  if (roll < 0.16 - diff * 0.06) {
+    // breather: a long bone run, sometimes arcing over nothing
+    addBoneRun((Math.random() * 3) | 0, z, 6 + ((Math.random() * 4) | 0), Math.random() < 0.35);
+  } else if (roll < 0.5) {
+    // single obstacle, bones arcing over it if it is jumpable
+    var lane = (Math.random() * 3) | 0;
+    var ob = OBSTACLES[(Math.random() * OBSTACLES.length) | 0];
+    S.obstacles.push({ o:ob, lane:lane, z:z, hit:false });
+    if (ob.act === 'jump') addBoneRun(lane, z - 380, 5, true);
+    else addBoneRun((lane + 1 + ((Math.random() * 2) | 0)) % 3, z, 4, false);
+  } else if (roll < 0.82) {
+    // two lanes blocked, one guaranteed open
+    for (var l = 0; l < 3; l++) {
+      if (l === free) continue;
+      var o2 = OBSTACLES[(Math.random() * OBSTACLES.length) | 0];
+      S.obstacles.push({ o:o2, lane:l, z:z + (Math.random() * 220 - 110), hit:false });
+    }
+    addBoneRun(free, z - 200, 5, false);
+  } else {
+    // a full-width slide or jump wall — same action clears every lane
+    var kind = Math.random() < 0.5 ? 'slide' : 'jump';
+    var pool = OBSTACLES.filter(function (o) { return o.act === kind; });
+    var pick = pool[(Math.random() * pool.length) | 0];
+    for (var l2 = 0; l2 < 3; l2++) S.obstacles.push({ o:pick, lane:l2, z:z, hit:false });
+    addBoneRun((Math.random() * 3) | 0, z + 520, 5, kind === 'jump');
+  }
+  if (Math.random() < 0.14) addPower((Math.random() * 3) | 0, z + 900);
+  return 2400 + Math.random() * 1100 - diff * 700;
+}
+
+/* ---------- power-ups ---------- */
+function givePower(k) {
+  S.powers[k] = POWERS[k].dur;
+  toast(POWERS[k].label, k === 'shield' ? '#7fd4ff' : 'var(--gold-glow)');
+  sfx('powerup');
+  if (k === 'x2') S.mult = 2;
+}
+function powerTick(dt) {
+  for (var k in S.powers) {
+    S.powers[k] -= dt;
+    if (S.powers[k] <= 0) { delete S.powers[k]; if (k === 'x2') S.mult = 1; }
+  }
+}
+
+/* ---------- stumble & the Guardian ---------- */
+function stumble() {
+  if (S.iframe > 0) return;
+  if (S.powers.shield) {
+    delete S.powers.shield; S.iframe = 1.0; sfx('shieldbreak');
+    toast('SHIELD BROKE', '#7fd4ff'); return;
+  }
+  S.stumble = 0.75; S.iframe = 1.25;
+  S.speed = Math.max(SPEED_MIN * 0.72, S.speed * 0.62);
+  S.guard = Math.min(1, S.guard + 0.34);
+  S.shake = 16; S.guardShake = 0.5;
+  sfx('hurt');
+  if (S.guard >= 1) caught();
+}
+function caught() {
+  if (S.mode !== 'play') return;
+  S.mode = 'caught'; S.caught = 0; sfx('roar');
+  try { AUDIO.stopMusic(); } catch (e) {}
+}
+function endRun() {
+  S.mode = 'over';
+  var d = Math.floor(S.dist);
+  $('ovDist').textContent = d.toLocaleString();
+  $('ovBones').textContent = S.bones.toLocaleString();
+  var rec = d > best.dist;
+  if (rec) best.dist = d;
+  if (S.bones > best.bones) best.bones = S.bones;
+  try { localStorage.setItem('drippyDash', JSON.stringify(best)); } catch (e) {}
+  $('ovBest').textContent = best.dist.toLocaleString();
+  $('ovBestBones').textContent = best.bones.toLocaleString();
+  $('overTitle').textContent = rec ? 'NEW BEST' : 'CAUGHT';
+  $('overSub').textContent = rec ? 'The pack will hear about this' : 'The Guardian got you';
+  if (rec) sfx('levelup'); else sfx('over');
+  $('scOver').classList.add('on');
+}
+
+/* ---------- update ---------- */
+function update(dt) {
+  if (S.mode === 'caught') {
+    S.caught += dt;
+    S.speed *= 0.90;
+    if (S.caught > 1.15) endRun();
+    return;
+  }
+  if (S.mode !== 'play') return;
+
+  S.t += dt;
+  var boost = S.powers.zoomies ? 1.38 : 1;
+  S.speed = Math.min(SPEED_MAX, S.speed + 34 * dt) * 1;
+  var vel = S.speed * boost;
+  S.dist += vel * dt / 100;
+  S.anim += vel * dt * 0.0016;
+
+  // biome every 700m
+  var bi = Math.floor(S.dist / 700) % BIOMES.length;
+  if (bi !== S.biome) { S.biome = bi; S.biomeFade = 0; showBiome(BIOMES[bi].name); sfx('checkpoint'); }
+  S.biomeFade = Math.min(1, S.biomeFade + dt * 1.1);
+
+  // lateral movement, jump arc, slide timer
+  S.laneX += (S.targetX - S.laneX) * Math.min(1, dt * 13);
+  if (S.air) {
+    S.vy -= GRAV * dt; S.y += S.vy * dt;
+    if (S.y <= 0) { S.y = 0; S.vy = 0; S.air = false; puff(); sfx('land'); }
+  }
+  if (S.slide > 0) S.slide -= dt;
+  if (S.stumble > 0) S.stumble -= dt;
+  if (S.iframe > 0) S.iframe -= dt;
+  if (S.shake > 0) S.shake = Math.max(0, S.shake - dt * 42);
+  if (S.guardShake > 0) S.guardShake -= dt;
+  powerTick(dt);
+
+  // the Guardian eases back while the run stays clean
+  S.guard = Math.max(0.05, S.guard - dt * 0.052);
+
+  // spawn ahead
+  S.spawnZ -= vel * dt;
+  if (S.spawnZ <= 0) S.spawnZ = spawnChunk(Z_FAR);
+
+  // move the world toward the camera
+  var i, o, p;
+  for (i = S.obstacles.length - 1; i >= 0; i--) {
+    o = S.obstacles[i]; o.z -= vel * dt;
+    if (o.z < Z_CULL) { S.obstacles.splice(i, 1); continue; }
+    if (!o.hit && Math.abs(o.z - PLAYER_Z) < 190 && o.lane === S.lane) {
+      var cleared =
+        (o.o.act === 'jump'  && S.y > 120) ||
+        (o.o.act === 'slide' && S.slide > 0) ||
+        (o.o.act === 'dodge' && false);
+      o.hit = true;
+      if (!cleared) stumble();
+      else { S.nearMiss = 0.5; addFloat('NEAR MISS', o.lane, '#7fd4ff'); }
+    }
+  }
+  for (i = S.pickups.length - 1; i >= 0; i--) {
+    p = S.pickups[i]; p.z -= vel * dt; p.spin += dt * 3;
+    if (p.z < Z_CULL) { S.pickups.splice(i, 1); continue; }
+    // magnet drags nearby bones into the player's lane
+    if (S.powers.magnet && p.kind === 'bone' && p.z < PLAYER_Z + 2200) {
+      p.lane += (S.lane - p.lane) * Math.min(1, dt * 4);
+      p.y += (60 - p.y) * Math.min(1, dt * 3);
+    }
+    var laneDx = Math.abs((typeof p.lane === 'number' ? p.lane : S.lane) - S.lane);
+    if (!p.got && Math.abs(p.z - PLAYER_Z) < 210 && laneDx < 0.55) {
+      var dy = Math.abs(p.y - (S.y + 90));
+      if (dy < 190 || S.powers.magnet) {
+        p.got = true;
+        if (p.kind === 'bone') {
+          var v = p.val * S.mult;
+          S.bones += v; addFloat('+' + v, S.lane, '#ffd966');
+          sfx(p.val >= 5 ? 'bigcoin' : 'coin');
+          burst(p);
+        } else { givePower(p.power); }
+        S.pickups.splice(i, 1);
+      }
+    }
+  }
+  for (i = S.puffs.length - 1; i >= 0; i--) {
+    var pf = S.puffs[i]; pf.life -= dt; pf.z -= vel * dt;
+    if (pf.life <= 0) S.puffs.splice(i, 1);
+  }
+  for (i = S.floats.length - 1; i >= 0; i--) {
+    var fl = S.floats[i]; fl.life -= dt; fl.y -= dt * 90;
+    if (fl.life <= 0) S.floats.splice(i, 1);
+  }
+  if (S.nearMiss > 0) S.nearMiss -= dt;
+
+  updateHud();
+}
+function puff() { S.puffs.push({ z: PLAYER_Z, x: S.laneX, life: 0.45, max: 0.45 }); }
+function burst(p) { S.puffs.push({ z: p.z, x: LANES[Math.round(p.lane)] || 0, life: 0.3, max: 0.3, gold: true, y: p.y }); }
+function addFloat(txt, lane, col) {
+  S.floats.push({ txt: txt, x: LANES[lane] || 0, y: 200, life: 0.9, col: col });
+}
+
+/* ---------- HUD ---------- */
+var lastHud = '';
+function updateHud() {
+  var d = Math.floor(S.dist);
+  var sig = d + '|' + S.bones + '|' + S.mult + '|' + Object.keys(S.powers).join(',');
+  if (sig === lastHud) return;
+  lastHud = sig;
+  $('uiDist').textContent = d.toLocaleString();
+  $('uiBones').textContent = S.bones.toLocaleString();
+  $('mult').classList.toggle('hide', S.mult <= 1);
+  $('uiMult').textContent = S.mult;
+  var box = $('powers'), keys = Object.keys(S.powers);
+  box.innerHTML = '';
+  keys.forEach(function (k) {
+    var pct = S.powers[k] / POWERS[k].dur;
+    var el = document.createElement('div'); el.className = 'pw';
+    el.innerHTML = '<svg viewBox="0 0 46 46"><circle cx="23" cy="23" r="21" stroke-dasharray="' +
+      (2 * Math.PI * 21).toFixed(1) + '" stroke-dashoffset="' + ((1 - pct) * 2 * Math.PI * 21).toFixed(1) +
+      '"/></svg><img src="assets/runner/' + POWERS[k].icon + '.png" alt="">';
+    box.appendChild(el);
+  });
+}
+
+/* ---------- render ---------- */
+function drawSprite(im, sx, sy, targetH, alpha, rot) {
+  if (!im || !im.width) return;
+  var w = im.width * (targetH / im.height);
+  ctx.save();
+  ctx.globalAlpha = alpha == null ? 1 : alpha;
+  ctx.translate(sx, sy);
+  if (rot) ctx.rotate(rot);
+  ctx.drawImage(im, -w / 2, -targetH, w, targetH);
+  ctx.restore();
+}
+
+function render() {
+  var b = BIOMES[S.biome];
+  var shakeX = S.shake ? (Math.random() - 0.5) * S.shake : 0;
+  var shakeY = S.shake ? (Math.random() - 0.5) * S.shake : 0;
+  ctx.save();
+  ctx.translate(shakeX, shakeY);
+
+  /* sky + backdrop */
+  var hz = horizon();
+  ctx.fillStyle = '#05030a'; ctx.fillRect(-20, -20, W + 40, H + 40);
+  var bg = A['bg_' + b.key];
+  if (bg && bg.width) {
+    // The backdrop must fill from the top of the screen down to the horizon,
+    // whatever the aspect: size it by height first, then widen if a tall
+    // portrait screen would leave the sides short.
+    var bh = hz + 60, bw = bh * (bg.width / bg.height);
+    if (bw < W * 1.3) { bw = W * 1.3; bh = bw * (bg.height / bg.width); }
+    var off = ((S.dist * 2.2) % bw);
+    ctx.globalAlpha = 0.55 + 0.45 * S.biomeFade;
+    ctx.drawImage(bg, -off, hz - bh, bw, bh);
+    ctx.drawImage(bg, -off + bw, hz - bh, bw, bh);
+    ctx.globalAlpha = 1;
+  }
+  // haze at the horizon so the track melts into the distance
+  var hg = ctx.createLinearGradient(0, hz - 90, 0, hz + 190);
+  hg.addColorStop(0, 'rgba(5,3,10,0)');
+  hg.addColorStop(0.45, hexA(b.tint, 0.55));
+  hg.addColorStop(1, 'rgba(5,3,10,0)');
+  ctx.fillStyle = hg; ctx.fillRect(0, hz - 90, W, 280);
+
+  /* the path: quads from far to near, banded for a sense of speed */
+  var segs = 30, zNear = Z_CULL, zFar = 7200;
+  var scroll = (S.dist * 100) % 600;
+  for (var i = segs; i >= 1; i--) {
+    var z0 = zNear + Math.pow(i / segs, 2.1) * (zFar - zNear);
+    var z1 = zNear + Math.pow((i - 1) / segs, 2.1) * (zFar - zNear);
+    var a0 = project(-LANE * 1.62, 0, z0), a1 = project(LANE * 1.62, 0, z0);
+    var c0 = project(-LANE * 1.62, 0, z1), c1 = project(LANE * 1.62, 0, z1);
+    var band = Math.floor((z0 + scroll) / 300) % 2;
+    var fade = Math.min(1, 1.35 - z0 / zFar);
+    ctx.fillStyle = band ? shade(b.tint, 0.20, fade) : shade(b.tint, 0.30, fade);
+    ctx.beginPath();
+    ctx.moveTo(a0.x, a0.y); ctx.lineTo(a1.x, a1.y); ctx.lineTo(c1.x, c1.y); ctx.lineTo(c0.x, c0.y);
+    ctx.closePath(); ctx.fill();
+    // lane seams
+    ctx.strokeStyle = hexA(b.rail, 0.16 * fade); ctx.lineWidth = 1.5;
+    [-LANE / 2, LANE / 2].forEach(function (lx) {
+      var p0 = project(lx, 0, z0), p1 = project(lx, 0, z1);
+      ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.stroke();
+    });
+    // side rails
+    ctx.strokeStyle = hexA(b.rail, 0.5 * fade); ctx.lineWidth = 2.5;
+    [-LANE * 1.62, LANE * 1.62].forEach(function (lx) {
+      var q0 = project(lx, 0, z0), q1 = project(lx, 0, z1);
+      ctx.beginPath(); ctx.moveTo(q0.x, q0.y); ctx.lineTo(q1.x, q1.y); ctx.stroke();
+    });
+  }
+
+  /* everything in the world, painted far to near */
+  var items = [];
+  S.obstacles.forEach(function (o) { items.push({ z:o.z, t:'ob', d:o }); });
+  S.pickups.forEach(function (p) { items.push({ z:p.z, t:'pk', d:p }); });
+  S.puffs.forEach(function (p) { items.push({ z:p.z, t:'pf', d:p }); });
+  items.push({ z: PLAYER_Z, t:'pl' });
+  items.sort(function (m, n) { return n.z - m.z; });
+
+  items.forEach(function (it) {
+    if (it.t === 'ob') {
+      var o = it.d, pr = project(LANES[o.lane], o.o.yOff, o.z);
+      if (pr.s <= 0 || pr.y < -200) return;
+      drawSprite(A[o.o.key], pr.x, pr.y, o.o.h * pr.s, Math.min(1, pr.s * 22));
+    } else if (it.t === 'pk') {
+      var p = it.d, lx = typeof p.lane === 'number' ? (p.lane % 1 === 0 ? LANES[p.lane] : lerpLane(p.lane)) : 0;
+      var pp = project(lx, p.y, p.z);
+      if (pp.s <= 0) return;
+      var bob = Math.sin(S.t * 4 + p.z * 0.004) * 6 * pp.s;
+      drawSprite(A[p.key], pp.x, pp.y + bob, (p.kind === 'power' ? 105 : 78) * pp.s, Math.min(1, pp.s * 24));
+    } else if (it.t === 'pf') {
+      var f = it.d, fp = project(f.x, f.y || 0, f.z), k = 1 - f.life / f.max;
+      if (fp.s <= 0) return;
+      drawSprite(f.gold ? A.fx_stars : A.fx_dust, fp.x, fp.y, (90 + k * 130) * fp.s, (1 - k) * 0.85);
+    } else {
+      drawPlayer();
+    }
+  });
+
+  /* speed streaks when the run is fast or boosted */
+  var fast = (S.speed - SPEED_MIN) / (SPEED_MAX - SPEED_MIN);
+  if (fast > 0.35 || S.powers.zoomies) {
+    var n = S.powers.zoomies ? 9 : 5;
+    for (var s2 = 0; s2 < n; s2++) {
+      var sy = hz + 40 + ((S.t * 900 + s2 * 190) % (H - hz));
+      var sxx = (s2 % 2 ? 1 : -1) * (W * (0.16 + (s2 % 3) * 0.11));
+      drawSprite(A.fx_speed, W / 2 + sxx, sy, 60 + fast * 60, 0.16 + fast * 0.3);
+    }
+  }
+
+  /* the Stone Guardian, looming from the bottom edge as it closes */
+  if (S.guard > 0.2 || S.mode === 'caught') {
+    var g = S.mode === 'caught' ? Math.min(1, 0.55 + S.caught * 1.5) : S.guard;
+    var gi = S.mode === 'caught' ? A.guard_roar
+           : (Math.floor(S.t * 7) % 3 === 0 ? A.guard2 : (Math.floor(S.t * 7) % 3 === 1 ? A.guard3 : A.guard1));
+    var gh = H * (0.30 + g * 0.72);
+    var gy = H + gh * (1 - g) * 0.62 + (S.guardShake > 0 ? (Math.random() - 0.5) * 12 : 0);
+    ctx.save();
+    var gl = ctx.createRadialGradient(W / 2, H, 40, W / 2, H, H * 0.9);
+    gl.addColorStop(0, 'rgba(150,60,220,' + (0.30 * g).toFixed(3) + ')');
+    gl.addColorStop(1, 'rgba(150,60,220,0)');
+    ctx.fillStyle = gl; ctx.fillRect(0, 0, W, H);
+    ctx.restore();
+    drawSprite(gi, W / 2, gy, gh, Math.min(1, 0.45 + g));
+  }
+
+  ctx.restore();
+
+  /* near-miss flash and stumble vignette */
+  if (S.nearMiss > 0) {
+    ctx.fillStyle = 'rgba(127,212,255,' + (S.nearMiss * 0.16).toFixed(3) + ')';
+    ctx.fillRect(0, 0, W, H);
+  }
+  if (S.stumble > 0) {
+    var vg = ctx.createRadialGradient(W / 2, H / 2, H * 0.24, W / 2, H / 2, H * 0.78);
+    vg.addColorStop(0, 'rgba(255,60,60,0)');
+    vg.addColorStop(1, 'rgba(255,40,40,' + (S.stumble * 0.4).toFixed(3) + ')');
+    ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+  }
+
+  /* floating score text */
+  ctx.textAlign = 'center';
+  S.floats.forEach(function (f) {
+    var fp = project(f.x, f.y, PLAYER_Z + 120);
+    ctx.globalAlpha = Math.max(0, f.life);
+    ctx.fillStyle = f.col;
+    ctx.font = '700 ' + Math.round(26 * Math.min(1.4, fp.s * 30)) + 'px "JetBrains Mono", monospace';
+    ctx.fillText(f.txt, fp.x, fp.y);
+  });
+  ctx.globalAlpha = 1; ctx.textAlign = 'left';
+}
+
+function lerpLane(l) {
+  var i0 = Math.floor(l), i1 = Math.min(2, i0 + 1), f = l - i0;
+  return (LANES[Math.max(0, i0)] || 0) * (1 - f) + (LANES[i1] || 0) * f;
+}
+
+function drawPlayer() {
+  var pr = project(S.laneX, S.y, PLAYER_Z);
+  var h = Math.max(150, H * 0.30);
+  // contact shadow
+  var sp = project(S.laneX, 0, PLAYER_Z);
+  ctx.save();
+  ctx.globalAlpha = Math.max(0.12, 0.4 - S.y / 700);
+  ctx.fillStyle = '#000';
+  ctx.beginPath();
+  ctx.ellipse(sp.x, sp.y, 74 * pr.s, 20 * pr.s, 0, 0, 7);
+  ctx.fill();
+  ctx.restore();
+
+  var im;
+  if (S.stumble > 0) im = A.stumble;
+  else if (S.slide > 0) im = A.slide;
+  else if (S.air) im = A.jump;
+  else im = A['run' + (1 + (Math.floor(S.anim) % 7))];
+  if (S.powers.shield) im = A.shielded;
+
+  var alpha = (S.iframe > 0 && S.stumble <= 0 && Math.floor(S.t * 14) % 2) ? 0.45 : 1;
+  var lean = (S.targetX - S.laneX) * -0.00055;
+  drawSprite(im, pr.x, pr.y, S.slide > 0 ? h * 0.72 : h, alpha, lean);
+
+  if (S.powers.magnet) {
+    ctx.save();
+    ctx.strokeStyle = 'rgba(127,200,255,' + (0.35 + Math.sin(S.t * 9) * 0.2).toFixed(2) + ')';
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.ellipse(pr.x, pr.y - h * 0.42, h * 0.55, h * 0.5, 0, 0, 7); ctx.stroke();
+    ctx.restore();
+  }
+}
+
+/* small colour helpers */
+function hx(c) { c = c.replace('#',''); var n = parseInt(c, 16); return [(n>>16)&255, (n>>8)&255, n&255]; }
+function hexA(c, a) { var p = hx(c); return 'rgba(' + p[0] + ',' + p[1] + ',' + p[2] + ',' + a + ')'; }
+function shade(c, amt, fade) {
+  var p = hx(c);
+  var f = function (v) { return Math.max(0, Math.min(255, Math.round(v * (1 + amt) * (0.35 + 0.65 * fade)))); };
+  return 'rgb(' + f(p[0]) + ',' + f(p[1]) + ',' + f(p[2]) + ')';
+}
+
+/* ---------- loop ---------- */
+var last = 0, raf = 0;
+function frame(ts) {
+  raf = requestAnimationFrame(frame);
+  if (!last) last = ts;
+  var dt = Math.min(0.05, (ts - last) / 1000); last = ts;
+  if (S) { update(dt); render(); }
+}
+
+/* ---------- flow ---------- */
+function start() {
+  resize();
+  S = newGame();
+  S.targetX = LANES[1];
+  $('scStart').classList.remove('on');
+  $('scOver').classList.remove('on');
+  $('scPause').classList.remove('on');
+  lastHud = ''; updateHud();
+  showBiome(BIOMES[0].name);
+  try { AUDIO.init(); AUDIO.playSong('neon'); } catch (e) {}
+  last = 0;
+}
+function togglePause() {
+  if (!S) return;
+  if (S.mode === 'play') { S.mode = 'pause'; $('scPause').classList.add('on'); }
+  else if (S.mode === 'pause') { S.mode = 'play'; $('scPause').classList.remove('on'); last = 0; }
+}
+$('btnPlay').onclick = start;
+$('btnAgain').onclick = start;
+$('btnResume').onclick = togglePause;
+$('btnPause').onclick = togglePause;
+$('btnQuit').onclick = function () { $('scPause').classList.remove('on'); endRun(); };
+addEventListener('blur', function () { if (S && S.mode === 'play') togglePause(); });
+
+resize();
+S = newGame();            // idle world behind the start screen
+S.mode = 'pause';
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

@@ -42,6 +42,14 @@
     {
       "source": "/news/img/:id",
       "destination": "/api/news?action=img&id=:id"
+    },
+    {
+      "source": "/runner",
+      "destination": "/runner.html"
+    },
+    {
+      "source": "/dash",
+      "destination": "/runner.html"
     }
   ],
   "headers": [
@@ -130,6 +138,24 @@
     },
     {
       "source": "/(tails-end-sprites|tails-end-audio|app)\\.js",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, must-revalidate, max-age=0"
+        }
+      ]
+    },
+    {
+      "source": "/runner",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, must-revalidate, max-age=0"
+        }
+      ]
+    },
+    {
+      "source": "/dash",
       "headers": [
         {
           "key": "Cache-Control",
