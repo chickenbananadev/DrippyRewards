@@ -206,16 +206,20 @@ loadBiome(0); loadBiome(1);
 /* Camera tuning. PLAYER_Z is chosen so the player's ground contact projects
    to roughly 78% down the screen: horizon + CAM_Y*focal/PLAYER_Z. Getting this
    wrong puts the player's feet below the viewport and scales them enormously. */
-var LANE = 246;                 // lateral spacing between lane centres
+/* Framing follows the genre: a NARROW road with a lot of world either side,
+   a high horizon so the sky is part of the picture, and a small runner. The
+   earlier build had the path filling the frame, which left nowhere for the
+   scenery that actually conveys travel. */
+var LANE = 200;                 // lateral spacing between lane centres
 var LANES = [-LANE, 0, LANE];
-var CAM_Y = 700;                // camera height above the path
+var CAM_Y = 510;                // camera height above the path
 var PLAYER_Z = 1150;            // player's fixed distance in front of the camera
 var Z_FAR = 7200, Z_CULL = 330;
 var GRAV = 2950;
 var SPEED_MIN = 1500, SPEED_MAX = 3200;
 
 function focal() { return Math.max(W, 560) * 0.92; }
-function horizon() { return H * 0.40; }
+function horizon() { return H * 0.52; }
 function project(x, y, z) {
   var s = focal() / Math.max(1, z);
   return { x: W / 2 + x * s, y: horizon() + (CAM_Y - y) * s, s: s };
@@ -625,7 +629,7 @@ function render() {
      makes the surface itself scroll, which is what actually sells speed —
      a flat coloured wedge cannot. */
   var tile = A.tile_path, tileOK = tile && tile.width;
-  var EDGE = LANE * 1.22;
+  var EDGE = LANE * 1.35;
   var TEXZ = 260;                                  // world units per texture repeat
   var travelled = S.dist * 100;
   var bandH = Math.max(2, Math.round(H / 190));
@@ -652,15 +656,21 @@ function render() {
       ctx.fillRect(lx, sy, rx - lx, bandH + 1);
     }
   }
-  // lane seams and the lit kerb down each side
-  for (var li = 0; li < 2; li++) {
-    var lxw = (li ? 0.5 : -0.5) * LANE;
-    ctx.strokeStyle = hexA(b.rail, 0.22); ctx.lineWidth = Math.max(1, W / 700);
-    var t0 = project(lxw, 0, 340), t1 = project(lxw, 0, 9000);
-    ctx.beginPath(); ctx.moveTo(t0.x, t0.y); ctx.lineTo(t1.x, t1.y); ctx.stroke();
+  // dashed lane markings, spaced in world units so they stream toward you
+  for (var mi = 0; mi < 2; mi++) {
+    var mx = (mi ? 0.5 : -0.5) * LANE;
+    for (var dz = 0; dz < 22; dz++) {
+      var mz0 = 400 + dz * 420 - ((travelled % 420));
+      if (mz0 < 360 || mz0 > 9000) continue;
+      var m0 = project(mx, 2, mz0), m1 = project(mx, 2, mz0 + 190);
+      ctx.strokeStyle = hexA(b.rail, Math.min(0.72, 0.72 * (1 - mz0 / 9000) + 0.1));
+      ctx.lineWidth = Math.max(1, (W / 260) * (focal() / mz0));
+      ctx.beginPath(); ctx.moveTo(m0.x, m0.y); ctx.lineTo(m1.x, m1.y); ctx.stroke();
+    }
   }
+
   for (var ei = 0; ei < 2; ei++) {
-    var ex = (ei ? 1 : -1) * LANE * 1.22;
+    var ex = (ei ? 1 : -1) * LANE * 1.35;
     var e0 = project(ex, 0, 340), e1 = project(ex, 0, 9000);
     var e0t = project(ex, 150, 340), e1t = project(ex, 150, 9000);
     ctx.fillStyle = hexA(b.wall, 0.9);
@@ -674,20 +684,35 @@ function render() {
 
   /* roadside dressing — props streaming past the edges are what the eye
      actually reads as speed, far more than the path texture alone */
-  var propArt = [A.prop_bush, A.prop_rocks, A.prop_bush2, A.prop_pillar, A.prop_wall, A.prop_torch];
-  var EDGEP = LANE * 1.22;
-  var SPACING = 760;
-  var firstI = Math.floor((travelled + 400) / SPACING);
-  for (var pi = firstI; pi < firstI + 12; pi++) {
-    var pz = pi * SPACING - travelled;
-    if (pz < 360 || pz > 9000) continue;
+  /* Roadside scenery. Two ranks: tall pieces set back and low dressing at the
+     verge. Big and close is the point — sparse small props read as an empty
+     plain, which is exactly how the first pass looked. */
+  var tallArt = [A.prop_pillar, A.prop_wall];
+  var lowArt  = [A.prop_bush, A.prop_rocks, A.prop_bush2];
+  var EDGEP = LANE * 1.35;
+  var SPACING = 520, travelled2 = S.dist * 100;
+  var firstI = Math.floor((travelled2 + 400) / SPACING);
+  for (var pi = firstI; pi < firstI + 22; pi++) {
+    var pz = pi * SPACING - travelled2;
+    if (pz < 300 || pz > 11000) continue;
     for (var side = 0; side < 2; side++) {
-      var art = propArt[(pi * 2 + side + (pi % 3)) % propArt.length];
-      if (!art || !art.width) continue;
-      var pxw = (side ? 1 : -1) * (EDGEP + 90 + ((pi * 37 + side * 61) % 120));
-      var pp = project(pxw, 0, pz);
-      if (pp.s <= 0) continue;
-      drawSprite(art, pp.x, pp.y, 210 * pp.s, Math.min(1, pp.s * 26));
+      var seed = (pi * 7 + side * 13);
+      // low dressing hugging the verge
+      var la = lowArt[seed % lowArt.length];
+      if (la && la.width) {
+        var lxp = (side ? 1 : -1) * (EDGEP + 40 + (seed % 60));
+        var lp = project(lxp, 0, pz);
+        if (lp.s > 0) drawSprite(la, lp.x, lp.y, 190 * lp.s, Math.min(1, lp.s * 30));
+      }
+      // tall pieces set further back, only every other slot so they stay grand
+      if ((seed % 3) === 0) {
+        var ta = tallArt[(seed / 3 | 0) % tallArt.length];
+        if (ta && ta.width) {
+          var txp = (side ? 1 : -1) * (EDGEP + 210 + (seed % 190));
+          var tp = project(txp, 0, pz);
+          if (tp.s > 0) drawSprite(ta, tp.x, tp.y, 500 * tp.s, Math.min(1, tp.s * 30));
+        }
+      }
     }
   }
 
@@ -783,7 +808,7 @@ function lerpLane(l) {
 
 function drawPlayer() {
   var pr = project(S.laneX, S.y, PLAYER_Z);
-  var h = Math.max(150, H * 0.30) * (1 + Math.min(0.14, S.y / 2600));
+  var h = Math.max(110, H * 0.215) * (1 + Math.min(0.16, S.y / 2400));
   // contact shadow
   var sp = project(S.laneX, 0, PLAYER_Z);
   ctx.save();
@@ -815,7 +840,7 @@ function drawPlayer() {
   // the screen, so clamp the resulting width and back the height off to match.
   var hh = S.slide > 0 ? h * 0.72 : h;
   if (im && im.width) {
-    var wNow = im.width * (hh / im.height), wMax = W * 0.52;
+    var wNow = im.width * (hh / im.height), wMax = W * 0.40;
     if (wNow > wMax) hh *= wMax / wNow;
   }
   drawSprite(im, pr.x, pr.y, hh, alpha, lean);
