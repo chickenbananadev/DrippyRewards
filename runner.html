@@ -78,9 +78,10 @@
   .best b{color:var(--gold)}
   #biomeName{
     position:absolute;left:50%;top:22%;transform:translateX(-50%);pointer-events:none;
-    font-family:var(--display);font-size:clamp(17px,5vw,38px);color:var(--gold-glow);
+    font-family:var(--display);font-size:clamp(15px,4.2vw,34px);color:var(--gold-glow);
     text-shadow:0 0 40px rgba(245,197,66,.6);opacity:0;letter-spacing:1px;
-    width:92vw;max-width:640px;text-align:center;line-height:1.15;
+    width:86vw;max-width:620px;text-align:center;line-height:1.15;
+    overflow:hidden;text-overflow:ellipsis;
   }
   #toast{
     position:absolute;left:50%;top:38%;transform:translateX(-50%);pointer-events:none;
@@ -175,32 +176,42 @@ function img(name, file) {
   toLoad++; i.onload = i.onerror = function () { loaded++; }; A[name] = i; return i;
 }
 for (var r = 1; r <= 7; r++) img('run' + r);
-['jump','slide','stumble','shielded','idle_back',
+['jump','slide','stumble','shielded','idle_back','jump_back','slide_back','lean_l','lean_r',
  'bone','bone_gold','bone_blue','bone_rainbow','bone_black','biscuit',
  'coin','x2','magnet','wingbone','shield','shoe',
  'ob_log','ob_boulder','ob_crate','ob_fire','ob_spikewall','ob_rope','ob_block','ob_spikes','ob_wall','ob_branch',
  'guard1','guard2','guard3','guard_roar','fx_dust','fx_speed','fx_stars'].forEach(function (n) { img(n); });
+['tile_path','prop_bush','prop_rocks','prop_bush2','prop_pillar','prop_wall','prop_torch'].forEach(function (n) { img(n); });
 var BIOMES = [
-  { key:'jungle',      name:'JUNGLE RUINS',      tint:'#2c4a22', rail:'#6b8f3a' },
-  { key:'fire',        name:'TEMPLE OF FIRE',    tint:'#4a1608', rail:'#c2521a' },
-  { key:'frozen',      name:'FROZEN CANYON',     tint:'#20415c', rail:'#7fc4e8' },
-  { key:'sky',         name:'SKY TEMPLE',        tint:'#3d4a66', rail:'#d8c48a' },
-  { key:'desert',      name:'DESERT CANYON',     tint:'#5c3a1c', rail:'#c9924a' },
-  { key:'haunted',     name:'HAUNTED FOREST',    tint:'#33184a', rail:'#a05fd0' },
-  { key:'underground', name:'UNDERGROUND RUINS', tint:'#12303a', rail:'#3fc9b0' }
+  { key:'jungle',      name:'JUNGLE RUINS',      tint:'#3a5c2c', rail:'#8fb055', wall:'#4a5c38' },
+  { key:'fire',        name:'TEMPLE OF FIRE',    tint:'#5c2410', rail:'#e0702a', wall:'#5a2a18' },
+  { key:'frozen',      name:'FROZEN CANYON',     tint:'#4a6c88', rail:'#bfe4f7', wall:'#5a7a94' },
+  { key:'sky',         name:'SKY TEMPLE',        tint:'#6a6a54', rail:'#e8d9a8', wall:'#7a7460' },
+  { key:'desert',      name:'DESERT CANYON',     tint:'#7a5630', rail:'#e0b268', wall:'#8a6a40' },
+  { key:'haunted',     name:'HAUNTED FOREST',    tint:'#3d2456', rail:'#c088e8', wall:'#42305c' },
+  { key:'underground', name:'UNDERGROUND RUINS', tint:'#2a4a52', rail:'#5fe0c4', wall:'#2e4a52' }
 ];
-BIOMES.forEach(function (b) { img('bg_' + b.key, 'bg_' + b.key + '.jpg'); });
+/* Six painted scenes per biome. Only the biome in play (and the next one) is
+   fetched, so the run starts on ~400KB instead of every backdrop at once. */
+var SCENES = 6;
+function sceneKey(b, n) { return 'bg_' + b + '_' + n; }
+function loadBiome(i) {
+  var b = BIOMES[(i % BIOMES.length + BIOMES.length) % BIOMES.length];
+  if (b._req) return; b._req = 1;
+  for (var n = 1; n <= SCENES; n++) img(sceneKey(b.key, n), sceneKey(b.key, n) + '.jpg');
+}
+loadBiome(0); loadBiome(1);
 
 /* ---------- world constants ---------- */
 /* Camera tuning. PLAYER_Z is chosen so the player's ground contact projects
    to roughly 78% down the screen: horizon + CAM_Y*focal/PLAYER_Z. Getting this
    wrong puts the player's feet below the viewport and scales them enormously. */
-var LANE = 250;                 // lateral spacing between lane centres
+var LANE = 246;                 // lateral spacing between lane centres
 var LANES = [-LANE, 0, LANE];
-var CAM_Y = 250;                // camera height above the path
-var PLAYER_Z = 900;             // player's fixed distance in front of the camera
+var CAM_Y = 700;                // camera height above the path
+var PLAYER_Z = 1150;            // player's fixed distance in front of the camera
 var Z_FAR = 7200, Z_CULL = 330;
-var GRAV = 3400;
+var GRAV = 2950;
 var SPEED_MIN = 1500, SPEED_MAX = 3200;
 
 function focal() { return Math.max(W, 560) * 0.92; }
@@ -290,7 +301,7 @@ function moveLane(d) {
 }
 function doJump() {
   if (!S || S.mode !== 'play' || S.air || S.slide > 0) return;
-  S.vy = S.powers.superjump ? 1750 : 1330;
+  S.vy = S.powers.superjump ? 1980 : 1560;
   S.air = true; sfx('jump');
 }
 function doSlide() {
@@ -478,7 +489,7 @@ function update(dt) {
     if (o.z < Z_CULL) { S.obstacles.splice(i, 1); continue; }
     if (!o.hit && Math.abs(o.z - PLAYER_Z) < 190 && o.lane === S.lane) {
       var cleared =
-        (o.o.act === 'jump'  && S.y > 120) ||
+        (o.o.act === 'jump'  && S.y > 130) ||
         (o.o.act === 'slide' && S.slide > 0) ||
         (o.o.act === 'dodge' && false);
       o.hit = true;
@@ -569,55 +580,115 @@ function render() {
   ctx.save();
   ctx.translate(shakeX, shakeY);
 
-  /* sky + backdrop */
+  /* ---------- sky + painted backdrop ----------
+     One panel, drawn wide enough that its edges never enter frame, so there
+     is no tiling seam. Progress through a biome cross-fades scene 1 -> 6, so
+     a run travels through a place instead of looping one image. */
   var hz = horizon();
   ctx.fillStyle = '#05030a'; ctx.fillRect(-20, -20, W + 40, H + 40);
-  var bg = A['bg_' + b.key];
-  if (bg && bg.width) {
-    // The backdrop must fill from the top of the screen down to the horizon,
-    // whatever the aspect: size it by height first, then widen if a tall
-    // portrait screen would leave the sides short.
-    var bh = hz + 60, bw = bh * (bg.width / bg.height);
-    if (bw < W * 1.3) { bw = W * 1.3; bh = bw * (bg.height / bg.width); }
-    var off = ((S.dist * 2.2) % bw);
-    ctx.globalAlpha = 0.55 + 0.45 * S.biomeFade;
-    ctx.drawImage(bg, -off, hz - bh, bw, bh);
-    ctx.drawImage(bg, -off + bw, hz - bh, bw, bh);
+
+  var prog = (S.dist % 700) / 700;                 // position within this biome
+  var sIdx = Math.min(SCENES, 1 + Math.floor(prog * SCENES));
+  var sNext = Math.min(SCENES, sIdx + 1);
+  var blend = (prog * SCENES) % 1;
+  function paintScene(im, alpha) {
+    if (!im || !im.width || alpha <= 0.01) return;
+    var bh = hz + 70, bw = bh * (im.width / im.height);
+    if (bw < W * 1.5) { bw = W * 1.5; bh = bw * (im.height / im.width); }
+    var drift = -((S.dist * 0.9) % (bw - W)) - (bw - W) * 0;
+    ctx.globalAlpha = alpha;
+    ctx.drawImage(im, Math.max(-(bw - W), drift), hz - bh + H * 0.13, bw, bh);
     ctx.globalAlpha = 1;
   }
-  // haze at the horizon so the track melts into the distance
-  var hg = ctx.createLinearGradient(0, hz - 90, 0, hz + 190);
+  paintScene(A[sceneKey(b.key, sIdx)], 1);
+  if (sNext !== sIdx) paintScene(A[sceneKey(b.key, sNext)], blend);
+  // haze where the path meets the painting, so they belong to one world
+  var hg = ctx.createLinearGradient(0, hz - 120, 0, hz + 90);
   hg.addColorStop(0, 'rgba(5,3,10,0)');
-  hg.addColorStop(0.45, hexA(b.tint, 0.55));
-  hg.addColorStop(1, 'rgba(5,3,10,0)');
-  ctx.fillStyle = hg; ctx.fillRect(0, hz - 90, W, 280);
+  hg.addColorStop(0.62, hexA(b.tint, 0.34));
+  hg.addColorStop(1, hexA(b.tint, 0));
+  ctx.fillStyle = hg; ctx.fillRect(0, hz - 120, W, 210);
 
-  /* the path: quads from far to near, banded for a sense of speed */
-  var segs = 30, zNear = Z_CULL, zFar = 7200;
-  var scroll = (S.dist * 100) % 600;
-  for (var i = segs; i >= 1; i--) {
-    var z0 = zNear + Math.pow(i / segs, 2.1) * (zFar - zNear);
-    var z1 = zNear + Math.pow((i - 1) / segs, 2.1) * (zFar - zNear);
-    var a0 = project(-LANE * 1.62, 0, z0), a1 = project(LANE * 1.62, 0, z0);
-    var c0 = project(-LANE * 1.62, 0, z1), c1 = project(LANE * 1.62, 0, z1);
-    var band = Math.floor((z0 + scroll) / 300) % 2;
-    var fade = Math.min(1, 1.35 - z0 / zFar);
-    ctx.fillStyle = band ? shade(b.tint, 0.20, fade) : shade(b.tint, 0.30, fade);
+  /* ground either side of the path — without this the walkway floats in a
+     black void and the props beside it look pasted on */
+  var gg2 = ctx.createLinearGradient(0, hz, 0, H);
+  gg2.addColorStop(0, hexA(b.tint, 0));          // painting still showing through
+  gg2.addColorStop(0.20, hexA(b.tint, 0.82));
+  gg2.addColorStop(0.45, shade(b.tint, -0.52, 1));
+  gg2.addColorStop(1, shade(b.tint, -0.74, 1));
+  ctx.fillStyle = gg2; ctx.fillRect(0, hz - 1, W, H - hz + 2);
+
+  /* ---------- the path ----------
+     Textured and perspective-correct: the screen is walked in horizontal
+     bands, each band's depth is solved from its y, and a slice of the stone
+     tile is stretched across it. Offsetting the slice by distance travelled
+     makes the surface itself scroll, which is what actually sells speed —
+     a flat coloured wedge cannot. */
+  var tile = A.tile_path, tileOK = tile && tile.width;
+  var EDGE = LANE * 1.22;
+  var TEXZ = 260;                                  // world units per texture repeat
+  var travelled = S.dist * 100;
+  var bandH = Math.max(2, Math.round(H / 190));
+  for (var sy = Math.ceil(hz + 1); sy < H; sy += bandH) {
+    var dy = sy - hz;
+    if (dy <= 0.5) continue;
+    var z0 = (CAM_Y * focal()) / dy;                       // depth at this row
+    var z1 = (CAM_Y * focal()) / (dy + bandH);             // depth one band nearer
+    if (z0 > 30000) continue;
+    var lx = project(-EDGE, 0, z0).x, rx = project(EDGE, 0, z0).x;
+    var fade = Math.max(0.16, Math.min(1, 1.3 - z0 / 10000));
+    if (tileOK) {
+      // map the band's depth span onto the tile so the surface compresses
+      // with distance instead of smearing one source row over many pixels
+      var vs = (((z0 + travelled) / TEXZ) % 1 + 1) % 1 * tile.height;
+      var vh = Math.max(1, Math.min(tile.height - 1, (z0 - z1) / TEXZ * tile.height));
+      if (vs + vh > tile.height) vs = tile.height - vh;
+      ctx.globalAlpha = fade;
+      ctx.drawImage(tile, 0, vs, tile.width, vh, lx, sy, rx - lx, bandH + 1);
+      ctx.globalAlpha = 1;
+      if (fade < 1) { ctx.fillStyle = hexA(b.tint, (1 - fade) * 0.9); ctx.fillRect(lx, sy, rx - lx, bandH + 1); }
+    } else {
+      ctx.fillStyle = shade(b.tint, 0.1, fade);
+      ctx.fillRect(lx, sy, rx - lx, bandH + 1);
+    }
+  }
+  // lane seams and the lit kerb down each side
+  for (var li = 0; li < 2; li++) {
+    var lxw = (li ? 0.5 : -0.5) * LANE;
+    ctx.strokeStyle = hexA(b.rail, 0.22); ctx.lineWidth = Math.max(1, W / 700);
+    var t0 = project(lxw, 0, 340), t1 = project(lxw, 0, 9000);
+    ctx.beginPath(); ctx.moveTo(t0.x, t0.y); ctx.lineTo(t1.x, t1.y); ctx.stroke();
+  }
+  for (var ei = 0; ei < 2; ei++) {
+    var ex = (ei ? 1 : -1) * LANE * 1.22;
+    var e0 = project(ex, 0, 340), e1 = project(ex, 0, 9000);
+    var e0t = project(ex, 150, 340), e1t = project(ex, 150, 9000);
+    ctx.fillStyle = hexA(b.wall, 0.9);
     ctx.beginPath();
-    ctx.moveTo(a0.x, a0.y); ctx.lineTo(a1.x, a1.y); ctx.lineTo(c1.x, c1.y); ctx.lineTo(c0.x, c0.y);
+    ctx.moveTo(e0.x, e0.y); ctx.lineTo(e1.x, e1.y);
+    ctx.lineTo(e1t.x, e1t.y); ctx.lineTo(e0t.x, e0t.y);
     ctx.closePath(); ctx.fill();
-    // lane seams
-    ctx.strokeStyle = hexA(b.rail, 0.16 * fade); ctx.lineWidth = 1.5;
-    [-LANE / 2, LANE / 2].forEach(function (lx) {
-      var p0 = project(lx, 0, z0), p1 = project(lx, 0, z1);
-      ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.stroke();
-    });
-    // side rails
-    ctx.strokeStyle = hexA(b.rail, 0.5 * fade); ctx.lineWidth = 2.5;
-    [-LANE * 1.62, LANE * 1.62].forEach(function (lx) {
-      var q0 = project(lx, 0, z0), q1 = project(lx, 0, z1);
-      ctx.beginPath(); ctx.moveTo(q0.x, q0.y); ctx.lineTo(q1.x, q1.y); ctx.stroke();
-    });
+    ctx.strokeStyle = hexA(b.rail, 0.5); ctx.lineWidth = Math.max(1, W / 620);
+    ctx.beginPath(); ctx.moveTo(e0t.x, e0t.y); ctx.lineTo(e1t.x, e1t.y); ctx.stroke();
+  }
+
+  /* roadside dressing — props streaming past the edges are what the eye
+     actually reads as speed, far more than the path texture alone */
+  var propArt = [A.prop_bush, A.prop_rocks, A.prop_bush2, A.prop_pillar, A.prop_wall, A.prop_torch];
+  var EDGEP = LANE * 1.22;
+  var SPACING = 760;
+  var firstI = Math.floor((travelled + 400) / SPACING);
+  for (var pi = firstI; pi < firstI + 12; pi++) {
+    var pz = pi * SPACING - travelled;
+    if (pz < 360 || pz > 9000) continue;
+    for (var side = 0; side < 2; side++) {
+      var art = propArt[(pi * 2 + side + (pi % 3)) % propArt.length];
+      if (!art || !art.width) continue;
+      var pxw = (side ? 1 : -1) * (EDGEP + 90 + ((pi * 37 + side * 61) % 120));
+      var pp = project(pxw, 0, pz);
+      if (pp.s <= 0) continue;
+      drawSprite(art, pp.x, pp.y, 210 * pp.s, Math.min(1, pp.s * 26));
+    }
   }
 
   /* everything in the world, painted far to near */
@@ -659,20 +730,24 @@ function render() {
     }
   }
 
-  /* the Stone Guardian, looming from the bottom edge as it closes */
-  if (S.guard > 0.2 || S.mode === 'caught') {
-    var g = S.mode === 'caught' ? Math.min(1, 0.55 + S.caught * 1.5) : S.guard;
-    var gi = S.mode === 'caught' ? A.guard_roar
-           : (Math.floor(S.t * 7) % 3 === 0 ? A.guard2 : (Math.floor(S.t * 7) % 3 === 1 ? A.guard3 : A.guard1));
-    var gh = H * (0.30 + g * 0.72);
-    var gy = H + gh * (1 - g) * 0.62 + (S.guardShake > 0 ? (Math.random() - 0.5) * 12 : 0);
-    ctx.save();
-    var gl = ctx.createRadialGradient(W / 2, H, 40, W / 2, H, H * 0.9);
-    gl.addColorStop(0, 'rgba(150,60,220,' + (0.30 * g).toFixed(3) + ')');
+  /* ---------- the Stone Guardian ----------
+     It has to apply pressure without taking the screen away from you: at
+     normal proximity it is a shape hunched at the very bottom edge with a
+     purple wash creeping up. Only the catch itself fills the frame. */
+  var caughtNow = S.mode === 'caught';
+  if (S.guard > 0.34 || caughtNow) {
+    var g = caughtNow ? Math.min(1, 0.5 + S.caught * 1.6) : (S.guard - 0.34) / 0.66;
+    var gi = caughtNow ? A.guard_roar
+           : [A.guard1, A.guard2, A.guard3][Math.floor(S.t * 6) % 3];
+    // creeping wash first — the player feels it before they see it
+    var gl = ctx.createLinearGradient(0, H, 0, H - H * (0.30 + g * 0.35));
+    gl.addColorStop(0, 'rgba(150,60,220,' + (0.34 * g + (caughtNow ? 0.3 : 0)).toFixed(3) + ')');
     gl.addColorStop(1, 'rgba(150,60,220,0)');
     ctx.fillStyle = gl; ctx.fillRect(0, 0, W, H);
-    ctx.restore();
-    drawSprite(gi, W / 2, gy, gh, Math.min(1, 0.45 + g));
+    var gh = caughtNow ? H * (0.42 + g * 0.72) : H * (0.14 + g * 0.20);
+    var gy = H + gh * (caughtNow ? (1 - g) * 0.5 : 0.30 - g * 0.16)
+             + (S.guardShake > 0 ? (Math.random() - 0.5) * 10 : 0);
+    drawSprite(gi, W / 2, gy, gh, caughtNow ? 1 : 0.55 + g * 0.45);
   }
 
   ctx.restore();
@@ -708,27 +783,42 @@ function lerpLane(l) {
 
 function drawPlayer() {
   var pr = project(S.laneX, S.y, PLAYER_Z);
-  var h = Math.max(150, H * 0.30);
+  var h = Math.max(150, H * 0.30) * (1 + Math.min(0.14, S.y / 2600));
   // contact shadow
   var sp = project(S.laneX, 0, PLAYER_Z);
   ctx.save();
-  ctx.globalAlpha = Math.max(0.12, 0.4 - S.y / 700);
+  // the shadow shrinking and darkening apart from him is most of what makes
+  // a jump legible from behind, where vertical travel is heavily foreshortened
+  var lift = Math.min(1, S.y / 380);
+  ctx.globalAlpha = Math.max(0.10, 0.42 - lift * 0.3);
   ctx.fillStyle = '#000';
   ctx.beginPath();
-  ctx.ellipse(sp.x, sp.y, 74 * pr.s, 20 * pr.s, 0, 0, 7);
+  ctx.ellipse(sp.x, sp.y, (74 - lift * 26) * pr.s, (20 - lift * 7) * pr.s, 0, 0, 7);
   ctx.fill();
   ctx.restore();
 
-  var im;
-  if (S.stumble > 0) im = A.stumble;
-  else if (S.slide > 0) im = A.slide;
-  else if (S.air) im = A.jump;
+  /* Animation state. The camera is behind Drippy, so every pose has to be a
+     BACK view — a front-facing leap breaks the point of view instantly, which
+     is exactly what the first build got wrong. Front-facing art is only used
+     for the stumble, where he has been spun around anyway. */
+  var im, drift = S.targetX - S.laneX;
+  if (S.stumble > 0) im = A.stumble;                       // spun to face us: correct here
+  else if (S.slide > 0) im = A.slide_back || A.slide;
+  else if (S.air) im = A.jump_back || A.jump;
+  else if (Math.abs(drift) > LANE * 0.22) im = (drift < 0 ? A.lean_l : A.lean_r) || A['run1'];
   else im = A['run' + (1 + (Math.floor(S.anim) % 7))];
-  if (S.powers.shield) im = A.shielded;
+  if (S.powers.shield && !S.air && S.slide <= 0) im = A.shielded;
 
   var alpha = (S.iframe > 0 && S.stumble <= 0 && Math.floor(S.t * 14) % 2) ? 0.45 : 1;
   var lean = (S.targetX - S.laneX) * -0.00055;
-  drawSprite(im, pr.x, pr.y, S.slide > 0 ? h * 0.72 : h, alpha, lean);
+  // Sizing by height alone explodes the landscape-shaped stumble frame across
+  // the screen, so clamp the resulting width and back the height off to match.
+  var hh = S.slide > 0 ? h * 0.72 : h;
+  if (im && im.width) {
+    var wNow = im.width * (hh / im.height), wMax = W * 0.52;
+    if (wNow > wMax) hh *= wMax / wNow;
+  }
+  drawSprite(im, pr.x, pr.y, hh, alpha, lean);
 
   if (S.powers.magnet) {
     ctx.save();
