@@ -50,6 +50,14 @@
     {
       "source": "/dash",
       "destination": "/runner.html"
+    },
+    {
+      "source": "/arcade",
+      "destination": "/arcade.html"
+    },
+    {
+      "source": "/doghouse",
+      "destination": "/arcade.html"
     }
   ],
   "headers": [
@@ -156,6 +164,24 @@
     },
     {
       "source": "/dash",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, must-revalidate, max-age=0"
+        }
+      ]
+    },
+    {
+      "source": "/arcade",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, must-revalidate, max-age=0"
+        }
+      ]
+    },
+    {
+      "source": "/doghouse",
       "headers": [
         {
           "key": "Cache-Control",

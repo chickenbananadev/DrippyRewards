@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>Drippy Dash — Temple Run</title>
+<title>Drippy Bone Rush — Temple Run</title>
 <meta name="description" content="Run the temple, dodge the ruins and collect bones before the Stone Guardian catches you. A $DRIPPY endless runner.">
 <meta name="theme-color" content="#0a0610">
-<meta property="og:title" content="Drippy Dash — collect the bones, outrun the Guardian">
+<meta property="og:title" content="Drippy Bone Rush — collect the bones, outrun the Guardian">
 <meta property="og:description" content="An endless temple run for $DRIPPY. Swipe to dodge, jump and slide.">
 <meta property="og:image" content="https://drippyrewards.com/assets/banner.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -113,7 +113,7 @@
 </div>
 
 <div class="screen on" id="scStart"><div class="inner">
-  <h1>DRIPPY <span>DASH</span></h1>
+  <h1>DRIPPY <span>BONE RUSH</span></h1>
   <div class="sub">Outrun the Stone Guardian</div>
   <button class="btn" id="btnPlay">Run</button>
   <div class="keys">
@@ -133,7 +133,7 @@
   </div>
   <div class="best">Best: <b><span id="ovBest">0</span>m</b> &middot; <b><span id="ovBestBones">0</span></b> bones</div>
   <button class="btn" id="btnAgain">Run Again</button>
-  <div style="margin-top:14px"><a class="btn ghost" href="/game">Try Drippy Run</a></div>
+  <div style="margin-top:14px"><a class="btn ghost" href="/arcade">Back to the Doghouse</a></div>
   <a class="backlink" href="/">&larr; drippyrewards.com</a>
 </div></div>
 
@@ -147,7 +147,7 @@
 <script src="tails-end-audio.js?v=2"></script>
 <script>
 /* ============================================================
-   DRIPPY DASH — a three-lane temple runner.
+   DRIPPY BONE RUSH — a three-lane temple runner.
 
    Rendering is pseudo-3D: the world is a set of objects with a depth (z),
    projected onto a 2D canvas with scale = FOCAL / z and painted far-to-near.
@@ -256,7 +256,7 @@ function newGame() {
 }
 var best = { dist:0, bones:0 };
 try {
-  var raw = localStorage.getItem('drippyDash');
+  var raw = localStorage.getItem('drippyDash') /* key kept: renaming it would wipe existing bests */;
   if (raw) best = JSON.parse(raw);
 } catch (e) {}
 
