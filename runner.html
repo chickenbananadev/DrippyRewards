@@ -222,17 +222,21 @@ function sampleFog(im) {
   try {
     var c = document.createElement('canvas'); c.width = 24; c.height = 12;
     var x = c.getContext('2d', { willReadFrequently: true });
-    x.drawImage(im, 0, im.height * 0.40, im.width, im.height * 0.14, 0, 0, 24, 12);
+    x.drawImage(im, 0, im.height * 0.34, im.width, im.height * 0.12, 0, 0, 24, 12);
     var d = x.getImageData(0, 0, 24, 12).data, r = 0, g = 0, bl = 0, n = 0;
     for (var i = 0; i < d.length; i += 4) { r += d[i]; g += d[i + 1]; bl += d[i + 2]; n++; }
-    return { r: r / n | 0, g: g / n | 0, b: bl / n | 0 };
+    // matched to the brightness/saturation the plate is drawn with, so the
+    // world fades into the colour actually on screen, not the raw file's
+    var K = 1.0;   // the plate is drawn unmodified now, so match it exactly
+    return { r: (r / n) * K | 0, g: (g / n) * K | 0, b: (bl / n) * K | 0 };
   } catch (e) { return null; }
 }
 function fogRGBA(a) { return 'rgba(' + FOGC.r + ',' + FOGC.g + ',' + FOGC.b + ',' + a + ')'; }
-function fogFor(z, far) {           // 0 near -> ~0.85 lost in the haze
-  // Never a full 1: distant geometry that fogs to solid colour turns the
-  // middle of the frame into a flat band with nothing to read.
-  return Math.max(0, Math.min(0.85, (z - 1100) / (far || 7600)));
+function fogFor(z, far) {
+  /* Atmosphere belongs to the DISTANCE only. Anything the player is about to
+     interact with stays crisp: fog does not begin until well beyond the
+     player's depth and never reaches full opacity. */
+  return Math.max(0, Math.min(0.7, (z - 2200) / (far || 8000)));
 }
 function loadBiome(i) {
   var b = BIOMES[(i % BIOMES.length + BIOMES.length) % BIOMES.length];
@@ -249,16 +253,23 @@ loadBiome(0); loadBiome(1);
    a high horizon so the sky is part of the picture, and a small runner. The
    earlier build had the path filling the frame, which left nowhere for the
    scenery that actually conveys travel. */
-var LANE = 200;                 // lateral spacing between lane centres
+/* Camera solved from the required screen composition rather than guessed:
+     horizon at 31% of viewport height
+     player's ground contact at 76%
+     lanes landing on 32% / 50% / 68% of viewport width at the player
+   With focal = 0.92*W those three constraints fix CAM_Y, PLAYER_Z and LANE.
+   Everything else (road width, object scale) then follows from projection. */
+var LANE = 155;                 // lateral spacing between lane centres
 var LANES = [-LANE, 0, LANE];
-var CAM_Y = 510;                // camera height above the path
-var PLAYER_Z = 1150;            // player's fixed distance in front of the camera
+var CAM_Y = 709;                // camera height above the path
+var PLAYER_Z = 1000;            // player's fixed distance in front of the camera
+var ROAD = LANE * 1.72;         // half-width of the road surface
 var Z_FAR = 7200, Z_CULL = 330;
 var GRAV = 2950;
 var SPEED_MIN = 1500, SPEED_MAX = 3200;
 
 function focal() { return Math.max(W, 560) * 0.92; }
-function horizon() { return H * 0.52; }
+function horizon() { return H * 0.31; }
 function project(x, y, z) {
   var s = focal() / Math.max(1, z);
   return { x: W / 2 + x * s, y: horizon() + (CAM_Y - y) * s, s: s };
@@ -671,6 +682,10 @@ function render() {
      a run travels through a place instead of looping one image. */
   var hz = horizon();
   ctx.fillStyle = '#05030a'; ctx.fillRect(-20, -20, W + 40, H + 40);
+  var skyG = ctx.createLinearGradient(0, 0, 0, hz + 40);
+  skyG.addColorStop(0, shade(b.tint, -0.62, 1));
+  skyG.addColorStop(1, 'rgb(' + FOGC.r + ',' + FOGC.g + ',' + FOGC.b + ')');
+  ctx.fillStyle = skyG; ctx.fillRect(0, 0, W, hz + 42);
 
   var prog = (S.dist % 700) / 700;                 // position within this biome
   var sIdx = Math.min(SCENES, 1 + Math.floor(prog * SCENES));
@@ -682,16 +697,22 @@ function render() {
      frame at different angles, which is exactly why it read as two scenes.
      Cropped here, the backdrop supplies sky, canopy and far silhouette, and
      every surface at ground level belongs to the engine. */
-  var SKY = 0.64;                                   // fraction above the painted horizon
+  var SKY = 0.46;                                   // fraction above the painted horizon
+  /* Drawn at essentially 1:1 and CROPPED, not stretched. The horizon band is
+     only ~31% of the viewport, and the source panel is 424px tall, so fitting
+     it by height is a downscale — which is sharp. Widening it to cover the
+     screen instead would have been a 2x upscale, which is what made it mush.
+     The extra width off-screen becomes the parallax drift range. */
   function paintScene(im, alpha) {
     if (!im || !im.width || alpha <= 0.01) return;
     var srcH = im.height * SKY;
-    var dh = hz + H * 0.05, dw = dh * (im.width / srcH);
-    if (dw < W * 1.4) { dw = W * 1.4; dh = dw * (srcH / im.width); }
+    var dh = hz + 4;
+    var k = dh / srcH;                              // ≈1 on a phone: no real zoom
+    var dw = im.width * k;
     var span = Math.max(1, dw - W);
-    var drift = -((S.dist * 0.7) % span);
+    var drift = -((S.dist * 0.55) % span);
     ctx.globalAlpha = alpha;
-    ctx.drawImage(im, 0, 0, im.width, srcH, drift, hz + H * 0.05 - dh, dw, dh);
+    ctx.drawImage(im, 0, 0, im.width, srcH, drift, hz + 4 - dh, dw, dh);
     ctx.globalAlpha = 1;
   }
   var cur = A[sceneKey(b.key, sIdx)];
@@ -703,13 +724,15 @@ function render() {
   }
   /* ground either side of the path — without this the walkway floats in a
      black void and the props beside it look pasted on */
-  var gg2 = ctx.createLinearGradient(0, hz - H * 0.05, 0, H);
-  gg2.addColorStop(0, fogRGBA(0));               // painting still fully visible
-  gg2.addColorStop(0.13, fogRGBA(0.78));         // dissolve into its own colour
-  gg2.addColorStop(0.34, 'rgb(' + FOGC.r + ',' + FOGC.g + ',' + FOGC.b + ')');
-  gg2.addColorStop(0.66, shade(b.tint, -0.46, 1));
-  gg2.addColorStop(1, shade(b.tint, -0.72, 1));
-  ctx.fillStyle = gg2; ctx.fillRect(0, hz - H * 0.05 - 1, W, H - hz + H * 0.05 + 2);
+  /* Ground plane. It starts at the painting's own horizon colour so the join
+     is a graded few percent of the screen rather than a hard line, then falls
+     away to the biome's ground tone by the time it reaches the player. */
+  var gg2 = ctx.createLinearGradient(0, hz - H * 0.02, 0, H);
+  gg2.addColorStop(0, fogRGBA(0.55));
+  gg2.addColorStop(0.10, 'rgb(' + FOGC.r + ',' + FOGC.g + ',' + FOGC.b + ')');
+  gg2.addColorStop(0.34, shade(b.tint, -0.34, 1));
+  gg2.addColorStop(1, shade(b.tint, -0.66, 1));
+  ctx.fillStyle = gg2; ctx.fillRect(0, hz - H * 0.02 - 1, W, H - hz + H * 0.02 + 2);
 
   /* ---------- the path ----------
      Textured and perspective-correct: the screen is walked in horizontal
@@ -718,7 +741,7 @@ function render() {
      makes the surface itself scroll, which is what actually sells speed —
      a flat coloured wedge cannot. */
   var tile = A.tile_path, tileOK = tile && tile.width;
-  var EDGE = LANE * 1.35;
+  var EDGE = ROAD;
   var TEXZ = 260;                                  // world units per texture repeat
   var travelled = S.dist * 100;
   var bandH = Math.max(2, Math.round(H / 190));
@@ -759,27 +782,22 @@ function render() {
     }
   }
 
+  /* A thin lip where the road meets the ground — enough to read as an edge,
+     with none of the coloured side panels that looked like placeholder strips. */
   for (var ei = 0; ei < 2; ei++) {
-    var ex = (ei ? 1 : -1) * LANE * 1.35;
-    var e0 = project(ex, 0, 340), e1 = project(ex, 0, 9000);
-    var e0t = project(ex, 150, 340), e1t = project(ex, 150, 9000);
-    ctx.fillStyle = hexA(b.wall, 0.9);
-    ctx.beginPath();
-    ctx.moveTo(e0.x, e0.y); ctx.lineTo(e1.x, e1.y);
-    ctx.lineTo(e1t.x, e1t.y); ctx.lineTo(e0t.x, e0t.y);
-    ctx.closePath(); ctx.fill();
-    ctx.strokeStyle = hexA(b.rail, 0.5); ctx.lineWidth = Math.max(1, W / 620);
-    ctx.beginPath(); ctx.moveTo(e0t.x, e0t.y); ctx.lineTo(e1t.x, e1t.y); ctx.stroke();
+    var ex = (ei ? 1 : -1) * ROAD;
+    var eN = project(ex, 0, 620), eF = project(ex, 0, 8000);
+    ctx.strokeStyle = hexA(b.rail, 0.30);
+    ctx.lineWidth = Math.max(1, W / 400);
+    ctx.beginPath(); ctx.moveTo(eN.x, eN.y); ctx.lineTo(eF.x, eF.y); ctx.stroke();
   }
 
-  /* roadside dressing — props streaming past the edges are what the eye
-     actually reads as speed, far more than the path texture alone */
   /* Roadside scenery. Two ranks: tall pieces set back and low dressing at the
      verge. Big and close is the point — sparse small props read as an empty
      plain, which is exactly how the first pass looked. */
   var tallArt = [A.prop_pillar, A.prop_wall];
   var lowArt  = [A.prop_bush, A.prop_rocks, A.prop_bush2];
-  var EDGEP = LANE * 1.35;
+  var EDGEP = ROAD;
   var SPACING = 520, travelled2 = S.dist * 100;
   var firstI = Math.floor((travelled2 + 400) / SPACING);
   for (var pi = firstI; pi < firstI + 22; pi++) {
