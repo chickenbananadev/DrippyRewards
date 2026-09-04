@@ -3,1024 +3,159 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>Drippy Bone Rush — Temple Run</title>
-<meta name="description" content="Run the temple, dodge the ruins and collect bones before the Stone Guardian catches you. A $DRIPPY endless runner.">
-<meta name="theme-color" content="#0a0610">
-<meta property="og:title" content="Drippy Bone Rush — collect the bones, outrun the Guardian">
-<meta property="og:description" content="An endless temple run for $DRIPPY. Swipe to dodge, jump and slide.">
-<meta property="og:image" content="https://drippyrewards.com/assets/banner.jpg">
+<title>Drippy Bone Rush</title>
+<meta name="description" content="Run the jungle, dodge the ruins and collect bones before the Stone Guardian catches you.">
+<meta name="theme-color" content="#05030a">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bowlby+One&family=Anton&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bowlby+One&family=Anton&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
-  :root{
-    --gold:#f5c542; --gold-glow:#ffd966; --gold-deep:#a8761f;
-    --cream:#f6e9c4; --dim:rgba(246,233,196,.62);
-    --purple:#a259ff; --black:#0a0610;
-    --display:'Bowlby One',cursive; --tag:'Anton',sans-serif; --mono:'JetBrains Mono',monospace;
-  }
-  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-  html,body{height:100%;background:#05030a;overflow:hidden;font-family:var(--mono);color:var(--cream);
-    overscroll-behavior:none;touch-action:none;user-select:none;-webkit-user-select:none}
-  #wrap{position:fixed;inset:0;display:grid;place-items:center}
-  canvas{display:block;width:100%;height:100%;object-fit:cover}
-
-  /* ---------- HUD ---------- */
-  #hud{position:absolute;inset:0;pointer-events:none;padding:calc(env(safe-area-inset-top,0) + 12px) 14px 14px}
-  .pill{
-    display:inline-flex;align-items:center;gap:8px;padding:7px 14px;border-radius:99px;
-    background:linear-gradient(180deg,rgba(28,20,10,.92),rgba(12,8,4,.92));
-    border:1.5px solid rgba(245,197,66,.45);box-shadow:0 3px 14px rgba(0,0,0,.5);
-    font-weight:600;font-size:15px;color:var(--gold-glow);font-variant-numeric:tabular-nums;
-  }
-  .pill img{width:20px;height:20px;object-fit:contain}
-  #hudTop{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
-  #hudLeft{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
-  #hudRight{display:flex;flex-direction:column;gap:8px;align-items:flex-end}
-  #mult{color:var(--purple);border-color:rgba(162,89,255,.5)}
-  #mult.hide{display:none}
-  #powers{display:flex;gap:7px;margin-top:9px}
-  .pw{position:relative;width:42px;height:42px;border-radius:50%;
-    background:rgba(10,6,16,.85);border:2px solid rgba(245,197,66,.5);display:grid;place-items:center}
-  .pw img{width:26px;height:26px;object-fit:contain}
-  .pw svg{position:absolute;inset:-2px;transform:rotate(-90deg)}
-  .pw circle{fill:none;stroke:var(--gold);stroke-width:3}
-  #btnPause{pointer-events:auto;cursor:pointer}
-
-  /* ---------- overlays ---------- */
-  .screen{
-    position:absolute;inset:0;display:none;place-items:center;text-align:center;
-    background:radial-gradient(ellipse at 50% 45%,rgba(20,10,30,.82),rgba(4,2,8,.96));
-    backdrop-filter:blur(3px);pointer-events:auto;padding:24px;
-  }
-  .screen.on{display:grid}
-  .screen .inner{max-width:460px;width:100%}
-  h1{font-family:var(--display);font-size:clamp(34px,10vw,62px);line-height:1;color:var(--gold);
-    text-shadow:0 0 44px rgba(245,197,66,.45);margin-bottom:6px}
-  h1 span{color:var(--purple)}
-  .sub{font-family:var(--tag);text-transform:uppercase;letter-spacing:5px;font-size:13px;color:var(--dim);margin-bottom:22px}
-  .btn{
-    display:inline-block;font-family:var(--tag);text-transform:uppercase;letter-spacing:3px;font-size:19px;
-    padding:15px 40px;border-radius:14px;border:0;cursor:pointer;color:#1a1005;
-    background:linear-gradient(135deg,var(--gold-deep),var(--gold-glow));
-    box-shadow:0 6px 26px rgba(245,197,66,.4);transition:transform .18s cubic-bezier(.22,1,.36,1)
-  }
-  .btn:active{transform:scale(.96)}
-  .btn.ghost{background:transparent;color:var(--dim);border:1px solid rgba(246,233,196,.25);
-    box-shadow:none;font-size:14px;padding:11px 24px}
-  .keys{margin-top:22px;font-size:12.5px;color:var(--dim);line-height:1.9}
-  .keys b{color:var(--gold);font-weight:600}
-  .scoreGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:18px 0 22px}
-  .sc{background:rgba(20,14,28,.7);border:1px solid rgba(245,197,66,.25);border-radius:14px;padding:14px 10px}
-  .sc .k{font-family:var(--tag);text-transform:uppercase;letter-spacing:2px;font-size:10.5px;color:var(--dim)}
-  .sc .v{font-family:var(--display);font-size:27px;color:var(--gold-glow);margin-top:5px;font-variant-numeric:tabular-nums}
-  .best{font-size:13px;color:var(--dim);margin-top:-8px;margin-bottom:16px}
-  .best b{color:var(--gold)}
-  .submit-row{display:flex;gap:8px;justify-content:center;margin:0 0 12px}
-  .submit-row input{
-    flex:0 1 190px;padding:12px 14px;border-radius:12px;text-align:center;
-    background:rgba(12,8,18,.9);border:1.5px solid rgba(245,197,66,.35);color:var(--gold-glow);
-    font-family:var(--mono);font-size:15px;letter-spacing:2px;text-transform:uppercase;
-  }
-  .submit-row input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(245,197,66,.16)}
-  .btn.btn-sm{font-size:14px;padding:12px 18px;letter-spacing:2px}
-  .submit-note{min-height:18px;font-size:12.5px;color:var(--dim);margin-bottom:14px}
-  .submit-note b{color:var(--gold-glow)}
-  #biomeName{
-    position:absolute;left:50%;top:22%;transform:translateX(-50%);pointer-events:none;
-    font-family:var(--display);font-size:clamp(15px,4.2vw,34px);color:var(--gold-glow);
-    text-shadow:0 0 40px rgba(245,197,66,.6);opacity:0;letter-spacing:1px;
-    width:86vw;max-width:620px;text-align:center;line-height:1.15;
-    overflow:hidden;text-overflow:ellipsis;
-  }
-  #toast{
-    position:absolute;left:50%;top:38%;transform:translateX(-50%);pointer-events:none;
-    font-family:var(--tag);text-transform:uppercase;letter-spacing:3px;font-size:clamp(15px,4.5vw,22px);
-    color:var(--gold-glow);text-shadow:0 2px 18px rgba(0,0,0,.8);opacity:0;white-space:nowrap;
-  }
-  .backlink{position:absolute;left:14px;bottom:calc(env(safe-area-inset-bottom,0) + 12px);
-    font-size:12px;color:var(--dim);text-decoration:none;pointer-events:auto}
-  .backlink:hover{color:var(--gold)}
-  @media(max-width:420px){ .pill{font-size:13.5px;padding:6px 11px} .pw{width:37px;height:37px} }
+:root{--gold:#f5c542;--cream:#f6e9c4;--dim:rgba(246,233,196,.64);--purple:#a259ff}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden;background:#05030a;color:var(--cream);font-family:'JetBrains Mono',monospace;overscroll-behavior:none;touch-action:none;user-select:none;-webkit-user-select:none}
+#game{position:fixed;inset:0;background:#05030a}
+canvas{display:block;width:100%;height:100%}
+#hud{position:fixed;inset:0;pointer-events:none;padding:calc(env(safe-area-inset-top,0px) + 12px) 14px calc(env(safe-area-inset-bottom,0px) + 12px)}
+.hudrow{display:flex;justify-content:space-between;gap:10px}.stack{display:flex;flex-direction:column;gap:8px;align-items:flex-start}.stack.right{align-items:flex-end}
+.pill{display:flex;align-items:center;gap:7px;padding:7px 12px;border-radius:999px;background:rgba(12,8,8,.78);border:1px solid rgba(245,197,66,.42);box-shadow:0 4px 18px rgba(0,0,0,.36);font-weight:700;color:#ffd966;font-size:14px;backdrop-filter:blur(6px)}
+.pill img{width:20px;height:20px;object-fit:contain}.pill.button{pointer-events:auto;cursor:pointer}
+#powers{display:flex;gap:6px}.power{position:relative;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:rgba(8,6,12,.82);border:2px solid rgba(245,197,66,.48)}.power img{width:25px;height:25px}.power .ring{position:absolute;inset:-2px;border-radius:50%;border:3px solid transparent;border-top-color:var(--gold);transform:rotate(var(--r,0deg))}
+#toast{position:absolute;top:38%;left:50%;transform:translate(-50%,0);font-family:'Anton',sans-serif;letter-spacing:3px;text-transform:uppercase;color:#ffd966;text-shadow:0 4px 16px #000;font-size:clamp(16px,4vw,24px);opacity:0;white-space:nowrap}
+.screen{position:fixed;inset:0;display:none;place-items:center;text-align:center;padding:24px;background:radial-gradient(ellipse at 50% 42%,rgba(25,15,32,.62),rgba(3,2,6,.88));backdrop-filter:blur(2px)}
+.screen.on{display:grid}.inner{width:min(92vw,470px)}
+h1{font-family:'Bowlby One',sans-serif;line-height:.98;color:var(--gold);font-size:clamp(38px,10vw,64px);text-shadow:0 8px 32px rgba(0,0,0,.58)}h1 span{color:var(--purple)}
+.tag{font-family:'Anton',sans-serif;text-transform:uppercase;letter-spacing:4px;color:var(--dim);font-size:13px;margin:10px 0 22px}.btn{border:0;border-radius:14px;padding:15px 38px;background:linear-gradient(135deg,#b17b21,#ffd966);color:#1a1005;font-family:'Anton',sans-serif;font-size:19px;text-transform:uppercase;letter-spacing:3px;cursor:pointer;box-shadow:0 8px 28px rgba(245,197,66,.26)}.btn:active{transform:scale(.97)}.ghost{margin-top:12px;background:rgba(8,6,12,.65);color:var(--cream);border:1px solid rgba(246,233,196,.18);box-shadow:none}.help{margin-top:18px;color:var(--dim);font-size:12px;line-height:1.9}.help b{color:#ffd966}
+.scoregrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:18px 0}.scorebox{border:1px solid rgba(245,197,66,.22);border-radius:14px;padding:13px;background:rgba(8,6,12,.66)}.scorebox small{display:block;color:var(--dim);text-transform:uppercase;letter-spacing:2px;font-family:'Anton',sans-serif}.scorebox strong{display:block;color:#ffd966;font-family:'Bowlby One',sans-serif;font-size:26px;margin-top:4px}.submit{display:flex;gap:8px;margin:0 0 12px}.submit input{min-width:0;flex:1;padding:12px;border-radius:12px;border:1px solid rgba(245,197,66,.35);background:rgba(8,6,12,.82);color:#ffd966;text-align:center;text-transform:uppercase;font-family:inherit;font-size:14px;outline:none}.submit .btn{padding:11px 14px;font-size:13px}.note{min-height:18px;color:var(--dim);font-size:12px;margin-bottom:12px}
+@media(max-width:420px){.pill{font-size:13px;padding:6px 10px}.power{width:36px;height:36px}}
 </style>
 </head>
 <body>
-<div id="wrap"><canvas id="cv"></canvas></div>
-
+<div id="game"><canvas id="cv"></canvas></div>
 <div id="hud">
-  <div id="hudTop">
-    <div id="hudLeft">
-      <div class="pill"><img src="assets/runner/bone_gold.png" alt=""><span id="uiBones">0</span></div>
-      <div class="pill" id="mult">×<span id="uiMult">1</span></div>
-      <div id="powers"></div>
-    </div>
-    <div id="hudRight">
-      <div class="pill"><span id="uiDist">0</span>m</div>
-      <div class="pill" id="btnPause">❚❚</div>
-    </div>
+  <div class="hudrow">
+    <div class="stack"><div class="pill"><img src="assets/runner/bone_gold.png" alt=""><span id="bones">0</span></div><div id="powers"></div></div>
+    <div class="stack right"><div class="pill"><span id="dist">0</span>m</div><div class="pill button" id="pause">❚❚</div></div>
   </div>
-  <div id="biomeName"></div>
   <div id="toast"></div>
 </div>
+<div class="screen on" id="start"><div class="inner"><h1>DRIPPY <span>BONE RUSH</span></h1><div class="tag">Run. Dodge. Collect. Survive.</div><button class="btn" id="play">Run</button><div class="help"><b>Swipe</b> left/right to change lanes<br><b>Swipe up</b> to jump · <b>Swipe down</b> to slide<br>Collect bones. Every mistake brings the Guardian closer.</div></div></div>
+<div class="screen" id="paused"><div class="inner"><h1>PAUSED</h1><div class="tag">Catch your breath</div><button class="btn" id="resume">Resume</button><button class="btn ghost" id="quit">End Run</button></div></div>
+<div class="screen" id="over"><div class="inner"><h1 id="overTitle">CAUGHT</h1><div class="tag" id="overTag">The Guardian got you</div><div class="scoregrid"><div class="scorebox"><small>Distance</small><strong><span id="od">0</span>m</strong></div><div class="scorebox"><small>Bones</small><strong id="ob">0</strong></div></div><div class="submit"><input id="name" maxlength="12" placeholder="YOUR NAME" autocomplete="off"><button class="btn" id="submit">Log</button></div><div class="note" id="note"></div><button class="btn" id="again">Run Again</button><br><a href="/arcade" class="btn ghost" style="display:inline-block;text-decoration:none">Back to Arcade</a></div></div>
 
-<div class="screen on" id="scStart"><div class="inner">
-  <h1>DRIPPY <span>BONE RUSH</span></h1>
-  <div class="sub">Outrun the Stone Guardian</div>
-  <button class="btn" id="btnPlay">Run</button>
-  <div class="keys">
-    <b>Swipe</b> or <b>arrow keys</b> to change lane<br>
-    <b>Swipe up</b> / <b>Space</b> to jump &middot; <b>Swipe down</b> to slide<br>
-    Collect bones. Every stumble brings the Guardian closer.
-  </div>
-  <a class="backlink" href="/">&larr; drippyrewards.com</a>
-</div></div>
-
-<div class="screen" id="scOver"><div class="inner">
-  <h1 id="overTitle">CAUGHT</h1>
-  <div class="sub" id="overSub">The Guardian got you</div>
-  <div class="scoreGrid">
-    <div class="sc"><div class="k">Distance</div><div class="v"><span id="ovDist">0</span>m</div></div>
-    <div class="sc"><div class="k">Bones</div><div class="v" id="ovBones">0</div></div>
-  </div>
-  <div class="best">Best: <b><span id="ovBest">0</span>m</b> &middot; <b><span id="ovBestBones">0</span></b> bones</div>
-  <div class="submit-row" id="submitRow">
-    <input id="nameIn" maxlength="12" placeholder="YOUR NAME" autocomplete="off" spellcheck="false" aria-label="Name for the leaderboard">
-    <button class="btn btn-sm" id="btnSubmit">Log Score</button>
-  </div>
-  <div class="submit-note" id="submitNote"></div>
-  <button class="btn" id="btnAgain">Run Again</button>
-  <div style="margin-top:14px"><a class="btn ghost" href="/arcade">Back to the Doghouse</a></div>
-  <a class="backlink" href="/">&larr; drippyrewards.com</a>
-</div></div>
-
-<div class="screen" id="scPause"><div class="inner">
-  <h1>PAUSED</h1>
-  <div class="sub">Catch your breath</div>
-  <button class="btn" id="btnResume">Resume</button>
-  <div style="margin-top:14px"><button class="btn ghost" id="btnQuit">End run</button></div>
-</div></div>
-
-<script src="tails-end-audio.js?v=2"></script>
 <script>
-/* ============================================================
-   DRIPPY BONE RUSH — a three-lane temple runner.
-
-   Rendering is pseudo-3D: the world is a set of objects with a depth (z),
-   projected onto a 2D canvas with scale = FOCAL / z and painted far-to-near.
-   No WebGL, no 3D models — the art is billboarded sprites, which keeps it
-   fast on phones and lets the hand-drawn assets read exactly as designed.
-   ============================================================ */
-(function () {
+(function(){
 'use strict';
+var cv=document.getElementById('cv'),ctx=cv.getContext('2d',{alpha:false});
+var W=0,H=0,DPR=1;
+function resize(){DPR=Math.min(2,window.devicePixelRatio||1);W=cv.clientWidth;H=cv.clientHeight;cv.width=Math.floor(W*DPR);cv.height=Math.floor(H*DPR);ctx.setTransform(DPR,0,0,DPR,0,0)}
+addEventListener('resize',resize);addEventListener('orientationchange',resize);
 
-/* ---------- canvas ---------- */
-var cv = document.getElementById('cv'), ctx = cv.getContext('2d');
-var W = 0, H = 0, DPR = 1;
-function resize() {
-  DPR = Math.min(2, window.devicePixelRatio || 1);
-  W = cv.clientWidth; H = cv.clientHeight;
-  cv.width = Math.floor(W * DPR); cv.height = Math.floor(H * DPR);
-  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+var A={};
+function load(name,file){var i=new Image();i.decoding='async';i.src='assets/runner/'+(file||name+'.png');A[name]=i;return i}
+for(var i=1;i<=7;i++)load('run'+i);
+['jump_back','slide_back','stumble','shielded','lean_l','lean_r','bone','bone_gold','bone_blue','bone_rainbow','bone_black','biscuit','coin','x2','magnet','wingbone','shield','shoe','ob_log','ob_boulder','ob_crate','ob_fire','ob_spikewall','ob_rope','ob_block','ob_spikes','ob_wall','ob_branch','guard1','guard2','guard3','guard_roar','fx_dust','fx_speed','fx_stars','tile_path','prop_bush','prop_rocks','prop_bush2','prop_pillar','prop_wall','prop_torch'].forEach(function(n){load(n)});
+var SCENES=7,JUNGLE_ORDER=[1,3,5,2,7,4,6];for(i=1;i<=SCENES;i++)load('bg'+i,'bg_jungle_'+i+'.jpg');
+
+var LANE=172,LANES=[-LANE,0,LANE],CAM_Y=720,PLAYER_Z=1050,ROAD=LANE*2.15,Z_FAR=8200,Z_CULL=300,GRAV=3000,SPEED_MIN=1450,SPEED_MAX=3000;
+function focal(){return Math.max(W,520)*0.95}function horizon(){return H*0.285}function project(x,y,z){var s=focal()/Math.max(1,z);return{x:W/2+x*s,y:horizon()+(CAM_Y-y)*s,s:s}}
+
+var OB=[{key:'ob_log',act:'jump',h:150,y:0},{key:'ob_crate',act:'jump',h:165,y:0},{key:'ob_spikes',act:'jump',h:120,y:0},{key:'ob_branch',act:'slide',h:155,y:215},{key:'ob_rope',act:'slide',h:165,y:205},{key:'ob_boulder',act:'dodge',h:245,y:0},{key:'ob_block',act:'dodge',h:235,y:0},{key:'ob_fire',act:'dodge',h:225,y:0},{key:'ob_spikewall',act:'dodge',h:230,y:0},{key:'ob_wall',act:'dodge',h:240,y:0}];
+var POW={magnet:{icon:'magnet',dur:5,label:'BONE MAGNET'},shield:{icon:'shield',dur:5,label:'DRIP SHIELD'},zoomies:{icon:'shoe',dur:5,label:'ZOOMIES'},x2:{icon:'x2',dur:5,label:'2X TREATS'},superjump:{icon:'wingbone',dur:5,label:'SUPER JUMP'}};
+var BK=[{key:'bone',v:1,p:.68},{key:'bone_gold',v:3,p:.16},{key:'bone_blue',v:5,p:.09},{key:'bone_rainbow',v:10,p:.05},{key:'bone_black',v:25,p:.02}];
+
+/* boneRushBest is the new save; drippyDash is the key the game shipped with
+   and the one the arcade page's "personal best" card reads — keep reading
+   and writing it so nobody's best is wiped and the cabinet stays honest. */
+var S=null,best={dist:0,bones:0};try{best=JSON.parse(localStorage.getItem('boneRushBest')||localStorage.getItem('drippyDash')||'null')||best}catch(e){}
+function state(){return{mode:'play',t:0,dist:0,speed:SPEED_MIN,bones:0,lane:1,laneX:0,targetX:0,y:0,vy:0,air:false,slide:0,stumble:0,iframe:0,anim:0,spawnZ:1800,ob:[],pk:[],fx:[],powers:{},guard:.1,shake:0,caught:0,near:0}}
+function $(id){return document.getElementById(id)}
+function toast(t,c){var e=$('toast');e.textContent=t;e.style.color=c||'#ffd966';e.style.transition='none';e.style.opacity=1;e.style.transform='translate(-50%,0)';requestAnimationFrame(function(){e.style.transition='opacity .8s ease,transform .8s ease';e.style.opacity=0;e.style.transform='translate(-50%,-26px)'})}
+
+function move(d){if(!S||S.mode!=='play')return;var n=Math.max(0,Math.min(2,S.lane+d));if(n!==S.lane){S.lane=n;S.targetX=LANES[n];SFX.click()}}
+function jump(){if(!S||S.mode!=='play'||S.air||S.slide>0)return;S.vy=S.powers.superjump?2000:1580;S.air=true;SFX.jump()}
+function slide(){if(!S||S.mode!=='play'||S.slide>0)return;if(S.air)S.vy=-1500;S.slide=.62;SFX.slide()}
+addEventListener('keydown',function(e){var k=e.key.toLowerCase();if(k==='arrowleft'||k==='a'){move(-1);e.preventDefault()}else if(k==='arrowright'||k==='d'){move(1);e.preventDefault()}else if(k==='arrowup'||k==='w'||k===' '){jump();e.preventDefault()}else if(k==='arrowdown'||k==='s'){slide();e.preventDefault()}else if(k==='escape'||k==='p')togglePause()});
+var sx=0,sy=0,moved=false;cv.addEventListener('touchstart',function(e){var t=e.changedTouches[0];sx=t.clientX;sy=t.clientY;moved=false},{passive:true});cv.addEventListener('touchmove',function(e){if(moved)return;var t=e.changedTouches[0],dx=t.clientX-sx,dy=t.clientY-sy;if(Math.abs(dx)<24&&Math.abs(dy)<24)return;moved=true;if(Math.abs(dx)>Math.abs(dy))move(dx>0?1:-1);else dy<0?jump():slide()},{passive:true});
+
+function pickBone(){var r=Math.random(),a=0;for(var i=0;i<BK.length;i++){a+=BK[i].p;if(r<a)return BK[i]}return BK[0]}
+function boneRun(l,z,n,arc){for(var i=0;i<n;i++){var b=pickBone();S.pk.push({kind:'bone',key:b.key,v:b.v,lane:l,z:z+i*190,y:arc?Math.sin(i/Math.max(1,n-1)*Math.PI)*230:55,spin:Math.random()*6})}}
+function power(l,z){var ks=Object.keys(POW),k=ks[(Math.random()*ks.length)|0];S.pk.push({kind:'power',key:POW[k].icon,power:k,lane:l,z:z,y:120,spin:0})}
+function spawn(z){var diff=Math.min(1,S.dist/3000),free=(Math.random()*3)|0,r=Math.random();if(r<.19-diff*.07){boneRun((Math.random()*3)|0,z,7+((Math.random()*4)|0),Math.random()<.35)}else if(r<.56){var l=(Math.random()*3)|0,o=OB[(Math.random()*OB.length)|0];S.ob.push({o:o,lane:l,z:z,hit:false});boneRun(o.act==='dodge'?(l+1+((Math.random()*2)|0))%3:l,z-250,5,o.act==='jump')}else if(r<.86){for(var x=0;x<3;x++)if(x!==free)S.ob.push({o:OB[(Math.random()*OB.length)|0],lane:x,z:z+(Math.random()*150-75),hit:false});boneRun(free,z-180,6,false)}else{var act=Math.random()<.5?'slide':'jump',pool=OB.filter(function(o){return o.act===act}),p=pool[(Math.random()*pool.length)|0];for(x=0;x<3;x++)S.ob.push({o:p,lane:x,z:z,hit:false});boneRun((Math.random()*3)|0,z+520,5,act==='jump')}if(Math.random()<.13)power((Math.random()*3)|0,z+850);return 2500+Math.random()*1050-diff*650}
+function give(k){S.powers[k]=POW[k].dur;toast(POW[k].label,k==='shield'?'#8fdcff':'#ffd966');SFX.power()}
+function stumble(){if(S.iframe>0)return;if(S.powers.shield){delete S.powers.shield;S.iframe=1;toast('SHIELD BROKE','#8fdcff');SFX.shield();return}S.stumble=.7;S.iframe=1.15;S.speed=Math.max(SPEED_MIN*.78,S.speed*.68);S.guard=Math.min(1,S.guard+.34);S.shake=13;SFX.hit();if(S.guard>=1)catchPlayer()}
+function catchPlayer(){if(S.mode!=='play')return;S.mode='caught';S.caught=0;SFX.roar();MUSIC.stop()}
+
+function update(dt){
+ if(!S)return;
+ if(S.mode==='caught'){S.caught+=dt;S.speed*=.9;if(S.caught>1.1)end();return}
+ if(S.mode!=='play')return;
+ S.t+=dt;for(var k in S.powers){S.powers[k]-=dt;if(S.powers[k]<=0)delete S.powers[k]}
+ var boost=S.powers.zoomies?1.36:1;S.speed=Math.min(SPEED_MAX,S.speed+31*dt);var v=S.speed*boost;S.dist+=v*dt/100;S.anim+=v*dt*.0017;
+ S.laneX+=(S.targetX-S.laneX)*Math.min(1,dt*13);
+ if(S.air){S.vy-=GRAV*dt;S.y+=S.vy*dt;if(S.y<=0){S.y=0;S.vy=0;S.air=false;dust(S.laneX,PLAYER_Z,false);SFX.land()}}
+ if(S.slide>0)S.slide-=dt;if(S.stumble>0)S.stumble-=dt;if(S.iframe>0)S.iframe-=dt;if(S.shake>0)S.shake=Math.max(0,S.shake-dt*36);S.guard=Math.max(.05,S.guard-dt*.05);
+ S.spawnZ-=v*dt;if(S.spawnZ<=0)S.spawnZ=spawn(Z_FAR);
+ var i,o,p;
+ for(i=S.ob.length-1;i>=0;i--){o=S.ob[i];o.z-=v*dt;if(o.z<Z_CULL){S.ob.splice(i,1);continue}if(!o.hit&&Math.abs(o.z-PLAYER_Z)<185&&o.lane===S.lane){var ok=(o.o.act==='jump'&&S.y>130)||(o.o.act==='slide'&&S.slide>0);o.hit=true;if(ok){S.near=.45;toast('NEAR MISS','#8fdcff');SFX.near()}else stumble()}}
+ for(i=S.pk.length-1;i>=0;i--){p=S.pk[i];p.z-=v*dt;p.spin+=dt*3;if(p.z<Z_CULL){S.pk.splice(i,1);continue}if(S.powers.magnet&&p.kind==='bone'&&p.z<PLAYER_Z+2200)p.lane+=(S.lane-p.lane)*Math.min(1,dt*4);if(Math.abs(p.z-PLAYER_Z)<205&&Math.abs(p.lane-S.lane)<.52&&Math.abs(p.y-(S.y+90))<210){if(p.kind==='bone'){var vv=p.v*(S.powers.x2?2:1);S.bones+=vv;SFX.coin(p.v);dust(LANES[Math.round(p.lane)]||0,p.z,true)}else give(p.power);S.pk.splice(i,1)}}
+ for(i=S.fx.length-1;i>=0;i--){S.fx[i].life-=dt;S.fx[i].z-=v*dt;if(S.fx[i].life<=0)S.fx.splice(i,1)}
+ if(S.near>0)S.near-=dt;hud()
 }
-addEventListener('resize', resize); addEventListener('orientationchange', resize);
+function dust(x,z,gold){S.fx.push({x:x,z:z,life:.36,max:.36,gold:gold})}
+function hud(){$('dist').textContent=Math.floor(S.dist).toLocaleString();$('bones').textContent=S.bones.toLocaleString();var box=$('powers');box.innerHTML='';Object.keys(S.powers).forEach(function(k){var e=document.createElement('div');e.className='power';var pct=S.powers[k]/POW[k].dur;e.innerHTML='<div class="ring" style="--r:'+(360*(1-pct))+'deg"></div><img src="assets/runner/'+POW[k].icon+'.png" alt="">';box.appendChild(e)})}
 
-/* ---------- assets ---------- */
-var A = {}, toLoad = 0, loaded = 0;
-function img(name, file) {
-  var i = new Image(); i.src = 'assets/runner/' + (file || name + '.png');
-  toLoad++; i.onload = i.onerror = function () { loaded++; }; A[name] = i; return i;
-}
-for (var r = 1; r <= 7; r++) img('run' + r);
-['jump','slide','stumble','shielded','idle_back','jump_back','slide_back','lean_l','lean_r',
- 'bone','bone_gold','bone_blue','bone_rainbow','bone_black','biscuit',
- 'coin','x2','magnet','wingbone','shield','shoe',
- 'ob_log','ob_boulder','ob_crate','ob_fire','ob_spikewall','ob_rope','ob_block','ob_spikes','ob_wall','ob_branch',
- 'guard1','guard2','guard3','guard_roar','fx_dust','fx_speed','fx_stars'].forEach(function (n) { img(n); });
-['tile_path','prop_bush','prop_rocks','prop_bush2','prop_pillar','prop_wall','prop_torch'].forEach(function (n) { img(n); });
-var BIOMES = [
-  { key:'jungle',      name:'JUNGLE RUINS',      tint:'#3a5c2c', rail:'#8fb055', wall:'#4a5c38' },
-  { key:'fire',        name:'TEMPLE OF FIRE',    tint:'#5c2410', rail:'#e0702a', wall:'#5a2a18' },
-  { key:'frozen',      name:'FROZEN CANYON',     tint:'#4a6c88', rail:'#bfe4f7', wall:'#5a7a94' },
-  { key:'sky',         name:'SKY TEMPLE',        tint:'#6a6a54', rail:'#e8d9a8', wall:'#7a7460' },
-  { key:'desert',      name:'DESERT CANYON',     tint:'#7a5630', rail:'#e0b268', wall:'#8a6a40' },
-  { key:'haunted',     name:'HAUNTED FOREST',    tint:'#3d2456', rail:'#c088e8', wall:'#42305c' },
-  { key:'underground', name:'UNDERGROUND RUINS', tint:'#2a4a52', rail:'#5fe0c4', wall:'#2e4a52' }
-];
-/* Six painted scenes per biome. Only the biome in play (and the next one) is
-   fetched, so the run starts on ~400KB instead of every backdrop at once. */
-var SCENES = 6;
-function sceneKey(b, n) { return 'bg_' + b + '_' + n; }
+function drawImg(im,x,y,h,a,rot){if(!im||!im.width||h<=0)return;var w=im.width*(h/im.height);ctx.save();ctx.globalAlpha=a==null?1:a;ctx.translate(x,y);if(rot)ctx.rotate(rot);ctx.drawImage(im,-w/2,-h,w,h);ctx.restore()}
+function cover(im,alpha){if(!im||!im.width)return;var scale=Math.max(W/im.width,H/im.height),dw=im.width*scale,dh=im.height*scale;var pan=Math.sin(S.dist*.00045)*Math.max(0,(dw-W)*.18);ctx.globalAlpha=alpha;ctx.drawImage(im,(W-dw)/2+pan,(H-dh)/2,dw,dh);ctx.globalAlpha=1}
+function sceneBackdrop(){var span=150,phase=S.dist/span,slot=Math.floor(phase),f=phase-slot;f=f*f*(3-2*f);var a=JUNGLE_ORDER[slot%JUNGLE_ORDER.length],b=JUNGLE_ORDER[(slot+1)%JUNGLE_ORDER.length];ctx.fillStyle='#071008';ctx.fillRect(0,0,W,H);cover(A['bg'+a],1);if(f>.001)cover(A['bg'+b],f);var shade=ctx.createLinearGradient(0,H*.38,0,H);shade.addColorStop(0,'rgba(5,12,6,0)');shade.addColorStop(.38,'rgba(5,10,5,.10)');shade.addColorStop(1,'rgba(4,8,4,.42)');ctx.fillStyle=shade;ctx.fillRect(0,0,W,H);var mist=ctx.createLinearGradient(0,horizon()-H*.05,0,horizon()+H*.2);mist.addColorStop(0,'rgba(200,225,190,0)');mist.addColorStop(.35,'rgba(194,215,183,.11)');mist.addColorStop(1,'rgba(30,47,28,0)');ctx.fillStyle=mist;ctx.fillRect(0,horizon()-H*.08,W,H*.28)}
+function road(){var hz=horizon(),tile=A.tile_path,travel=S.dist*100,TEX=290,band=Math.max(2,Math.round(H/220));for(var y=Math.ceil(hz);y<H;y+=band){var dy=y-hz;if(dy<1)continue;var z0=CAM_Y*focal()/dy,z1=CAM_Y*focal()/(dy+band);if(z0>35000)continue;var left=project(-ROAD,0,z0).x,right=project(ROAD,0,z0).x;if(tile&&tile.width){var vs=(((z0+travel)/TEX)%1+1)%1*tile.height,vh=Math.max(1,Math.min(tile.height-1,(z0-z1)/TEX*tile.height));if(vs+vh>tile.height)vs=tile.height-vh;ctx.drawImage(tile,0,vs,tile.width,vh,left,y,right-left,band+1)}else{ctx.fillStyle='#62654a';ctx.fillRect(left,y,right-left,band+1)}var edgeAlpha=Math.max(0,Math.min(.42,(7000-z0)/7000));if(edgeAlpha>0){var ew=Math.max(1,(right-left)*.045);ctx.fillStyle='rgba(34,58,27,'+edgeAlpha+')';ctx.fillRect(left,y,ew,band+1);ctx.fillRect(right-ew,y,ew,band+1)}}}
+function shadow(x,y,w,h,a){ctx.save();ctx.globalAlpha=a==null?.3:a;ctx.fillStyle='#000';ctx.beginPath();ctx.ellipse(x,y,w,h,0,0,Math.PI*2);ctx.fill();ctx.restore()}
+function grounded(im,x,y,h,a,rot){if(!im||!im.width)return;var w=im.width*(h/im.height);shadow(x,y,Math.min(w*.34,55),Math.max(2,h*.035),Math.min(.38,a==null?1:a)*.62);drawImg(im,x,y,h,a,rot)}
+function scenery(){var spacing=470,travel=S.dist*100,first=Math.floor((travel+250)/spacing),low=[A.prop_bush,A.prop_rocks,A.prop_bush2],tall=[A.prop_pillar,A.prop_wall,A.prop_torch];for(var q=first;q<first+26;q++){var z=q*spacing-travel;if(z<310||z>10500)continue;for(var side=0;side<2;side++){var seed=q*17+side*31,sg=side?1:-1;var li=low[seed%low.length],x=sg*(ROAD+55+(seed%100)),p=project(x,0,z),alpha=Math.min(1,p.s*28);if(p.s>0&&alpha>.035)grounded(li,p.x,p.y,205*p.s,alpha,0);if(seed%4===0){var ti=tall[(seed>>2)%tall.length],tx=sg*(ROAD+250+(seed%220)),tp=project(tx,0,z),ta=Math.min(1,tp.s*27);if(tp.s>0&&ta>.03)grounded(ti,tp.x,tp.y,520*tp.s,ta,0)}}}}
+function player(){var pr=project(S.laneX,S.y,PLAYER_Z),base=project(S.laneX,0,PLAYER_Z),h=Math.max(112,H*.205);var lift=Math.min(1,S.y/420);shadow(base.x,base.y,(65-lift*20)*pr.s,(18-lift*6)*pr.s,.36-lift*.23);var drift=S.targetX-S.laneX,im;if(S.stumble>0)im=A.stumble;else if(S.slide>0)im=A.slide_back;else if(S.air)im=A.jump_back;else if(Math.abs(drift)>LANE*.18)im=drift<0?A.lean_l:A.lean_r;else im=A['run'+(1+(Math.floor(S.anim)%7))];if(S.powers.shield&&!S.air&&S.slide<=0)im=A.shielded;var hh=S.slide>0?h*.72:h,alpha=(S.iframe>0&&S.stumble<=0&&Math.floor(S.t*14)%2)?.46:1,lean=drift*-.00045;drawImg(im,pr.x,pr.y,hh,alpha,lean);if(S.powers.magnet){ctx.save();ctx.strokeStyle='rgba(100,210,255,'+(.4+Math.sin(S.t*9)*.15)+')';ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(pr.x,pr.y-h*.42,h*.52,h*.47,0,0,Math.PI*2);ctx.stroke();ctx.restore()}}
+function worldObjects(){var list=[];S.ob.forEach(function(o){list.push({z:o.z,t:'o',d:o})});S.pk.forEach(function(p){list.push({z:p.z,t:'p',d:p})});S.fx.forEach(function(f){list.push({z:f.z,t:'f',d:f})});list.push({z:PLAYER_Z,t:'me'});list.sort(function(a,b){return b.z-a.z});list.forEach(function(it){if(it.t==='o'){var o=it.d,p=project(LANES[o.lane],o.o.y,o.z),a=Math.min(1,p.s*24);if(p.s>0&&a>.035)grounded(A[o.o.key],p.x,p.y,o.o.h*p.s,a,0)}else if(it.t==='p'){var q=it.d,l=q.lane%1===0?LANES[q.lane]:LANES[Math.max(0,Math.min(2,Math.round(q.lane)))],p2=project(l,q.y,q.z),a2=Math.min(1,p2.s*26);if(p2.s>0&&a2>.04)drawImg(A[q.key],p2.x,p2.y+Math.sin(S.t*4+q.z*.003)*5*p2.s,(q.kind==='power'?112:82)*p2.s,a2,0)}else if(it.t==='f'){var f=it.d,p3=project(f.x,0,f.z),k=1-f.life/f.max;drawImg(f.gold?A.fx_stars:A.fx_dust,p3.x,p3.y,(90+k*120)*p3.s,(1-k)*.78,0)}else player()})}
+function guardian(){if(S.guard<.34&&S.mode!=='caught')return;var caught=S.mode==='caught',g=caught?Math.min(1,.5+S.caught*1.5):(S.guard-.34)/.66,im=caught?A.guard_roar:[A.guard1,A.guard2,A.guard3][Math.floor(S.t*6)%3];var wash=ctx.createLinearGradient(0,H,0,H*.55);wash.addColorStop(0,'rgba(145,60,215,'+(g*.30)+')');wash.addColorStop(1,'rgba(145,60,215,0)');ctx.fillStyle=wash;ctx.fillRect(0,0,W,H);var gh=caught?H*(.52+g*.62):H*(.13+g*.19),gy=H+gh*(caught?(1-g)*.35:.24-g*.12);drawImg(im,W/2,gy,gh,caught?1:.55+g*.4,0)}
+function render(){if(!S)return;var dx=S.shake?(Math.random()-.5)*S.shake:0,dy=S.shake?(Math.random()-.5)*S.shake:0;ctx.save();ctx.translate(dx,dy);sceneBackdrop();road();scenery();worldObjects();guardian();ctx.restore();var grade=ctx.createRadialGradient(W/2,H*.54,H*.2,W/2,H*.54,H*.9);grade.addColorStop(0,'rgba(0,0,0,0)');grade.addColorStop(1,'rgba(0,0,0,.28)');ctx.fillStyle=grade;ctx.fillRect(0,0,W,H);if(S.near>0){ctx.fillStyle='rgba(125,210,255,'+(S.near*.16)+')';ctx.fillRect(0,0,W,H)}if(S.stumble>0){var v=ctx.createRadialGradient(W/2,H/2,H*.2,W/2,H/2,H*.75);v.addColorStop(0,'rgba(255,50,50,0)');v.addColorStop(1,'rgba(255,40,40,'+(S.stumble*.34)+')');ctx.fillStyle=v;ctx.fillRect(0,0,W,H)}}
 
-/* The single biggest reason the first builds read as "two scenes": the engine
-   faded distant geometry toward a hand-picked palette colour while the painted
-   backdrop ended on a completely different one, so the join was a visible
-   line. Instead, sample the painting's own lower edge once it loads and fade
-   everything — path, terrain, props, obstacles — into exactly that colour.
-   Foreground and background then share a horizon and read as one place. */
-var FOGC = { r: 30, g: 40, b: 30 };
-function sampleFog(im) {
-  try {
-    var c = document.createElement('canvas'); c.width = 24; c.height = 12;
-    var x = c.getContext('2d', { willReadFrequently: true });
-    x.drawImage(im, 0, im.height * 0.34, im.width, im.height * 0.12, 0, 0, 24, 12);
-    var d = x.getImageData(0, 0, 24, 12).data, r = 0, g = 0, bl = 0, n = 0;
-    for (var i = 0; i < d.length; i += 4) { r += d[i]; g += d[i + 1]; bl += d[i + 2]; n++; }
-    // matched to the brightness/saturation the plate is drawn with, so the
-    // world fades into the colour actually on screen, not the raw file's
-    var K = 1.0;   // the plate is drawn unmodified now, so match it exactly
-    return { r: (r / n) * K | 0, g: (g / n) * K | 0, b: (bl / n) * K | 0 };
-  } catch (e) { return null; }
-}
-function fogRGBA(a) { return 'rgba(' + FOGC.r + ',' + FOGC.g + ',' + FOGC.b + ',' + a + ')'; }
-function fogFor(z, far) {
-  /* Atmosphere belongs to the DISTANCE only. Anything the player is about to
-     interact with stays crisp: fog does not begin until well beyond the
-     player's depth and never reaches full opacity. */
-  return Math.max(0, Math.min(0.7, (z - 2200) / (far || 8000)));
-}
-function loadBiome(i) {
-  var b = BIOMES[(i % BIOMES.length + BIOMES.length) % BIOMES.length];
-  if (b._req) return; b._req = 1;
-  for (var n = 1; n <= SCENES; n++) img(sceneKey(b.key, n), sceneKey(b.key, n) + '.jpg');
-}
-loadBiome(0); loadBiome(1);
+function end(){S.mode='over';MUSIC.stop();var d=Math.floor(S.dist);$('od').textContent=d.toLocaleString();$('ob').textContent=S.bones.toLocaleString();var rec=d>best.dist;if(rec)best.dist=d;if(S.bones>best.bones)best.bones=S.bones;try{localStorage.setItem('boneRushBest',JSON.stringify(best));localStorage.setItem('drippyDash',JSON.stringify(best))}catch(e){}$('overTitle').textContent=rec?'NEW BEST':'CAUGHT';$('overTag').textContent=rec?'The pack will hear about this':'The Guardian got you';$('over').classList.add('on')}
+function submit(){var input=$('name'),note=$('note'),name=(input.value||'').trim();if(name.length<2){note.textContent='Enter a name (2–12 characters).';return}var btn=$('submit');btn.disabled=true;note.textContent='Sending…';fetch('/api/leaderboard?board=arcade&game=bone-rush',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name,score:Math.floor(S.dist)+S.bones*10,meta:{dist:Math.floor(S.dist),bones:S.bones}})}).then(function(r){return r.json()}).then(function(j){if(j&&j.ok){note.textContent=j.rank?'On the board at #'+j.rank:'Score logged';$('name').parentElement.style.display='none'}else{note.textContent=(j&&j.error)||'Could not log score';btn.disabled=false}}).catch(function(){note.textContent='Network error — try again';btn.disabled=false})}
+function start(){resize();S=state();S.targetX=0;$('start').classList.remove('on');$('over').classList.remove('on');$('paused').classList.remove('on');$('name').parentElement.style.display='flex';$('note').textContent='';MUSIC.start()}
+function togglePause(){if(!S)return;if(S.mode==='play'){S.mode='pause';$('paused').classList.add('on');MUSIC.duck(true)}else if(S.mode==='pause'){S.mode='play';$('paused').classList.remove('on');MUSIC.duck(false);last=0}}
+$('play').onclick=start;$('again').onclick=start;$('pause').onclick=togglePause;$('resume').onclick=togglePause;$('quit').onclick=function(){$('paused').classList.remove('on');end()};$('submit').onclick=submit;$('name').addEventListener('keydown',function(e){if(e.key==='Enter')submit()});addEventListener('blur',function(){if(S&&S.mode==='play')togglePause()});
 
-/* ---------- world constants ---------- */
-/* Camera tuning. PLAYER_Z is chosen so the player's ground contact projects
-   to roughly 78% down the screen: horizon + CAM_Y*focal/PLAYER_Z. Getting this
-   wrong puts the player's feet below the viewport and scales them enormously. */
-/* Framing follows the genre: a NARROW road with a lot of world either side,
-   a high horizon so the sky is part of the picture, and a small runner. The
-   earlier build had the path filling the frame, which left nowhere for the
-   scenery that actually conveys travel. */
-/* Camera solved from the required screen composition rather than guessed:
-     horizon at 31% of viewport height
-     player's ground contact at 76%
-     lanes landing on 32% / 50% / 68% of viewport width at the player
-   With focal = 0.92*W those three constraints fix CAM_Y, PLAYER_Z and LANE.
-   Everything else (road width, object scale) then follows from projection. */
-var LANE = 155;                 // lateral spacing between lane centres
-var LANES = [-LANE, 0, LANE];
-var CAM_Y = 709;                // camera height above the path
-var PLAYER_Z = 1000;            // player's fixed distance in front of the camera
-var ROAD = LANE * 1.72;         // half-width of the road surface
-var Z_FAR = 7200, Z_CULL = 330;
-var GRAV = 2950;
-var SPEED_MIN = 1500, SPEED_MAX = 3200;
+var MUSIC=(function(){
+ var ac=null,master=null,timer=null,step=0,bpm=118,muted=false;
+ var bass=[55,55,65.41,49,55,73.42,65.41,49];
+ var lead=[220,246.94,261.63,329.63,293.66,261.63,246.94,196];
+ function ensure(){if(!ac){ac=new (window.AudioContext||window.webkitAudioContext)();master=ac.createGain();master.gain.value=.12;master.connect(ac.destination)}if(ac.state==='suspended')ac.resume()}
+ function tone(freq,dur,type,gain,when){var o=ac.createOscillator(),g=ac.createGain();o.type=type||'sine';o.frequency.setValueAtTime(freq,when);g.gain.setValueAtTime(0,when);g.gain.linearRampToValueAtTime(gain,when+.01);g.gain.exponentialRampToValueAtTime(.0001,when+dur);o.connect(g);g.connect(master);o.start(when);o.stop(when+dur+.03)}
+ function kick(when){var o=ac.createOscillator(),g=ac.createGain();o.type='sine';o.frequency.setValueAtTime(110,when);o.frequency.exponentialRampToValueAtTime(45,when+.16);g.gain.setValueAtTime(.24,when);g.gain.exponentialRampToValueAtTime(.0001,when+.18);o.connect(g);g.connect(master);o.start(when);o.stop(when+.2)}
+ function hat(when){var len=ac.sampleRate*.05,b=ac.createBuffer(1,len,ac.sampleRate),d=b.getChannelData(0);for(var i=0;i<len;i++)d[i]=Math.random()*2-1;var s=ac.createBufferSource(),f=ac.createBiquadFilter(),g=ac.createGain();s.buffer=b;f.type='highpass';f.frequency.value=6000;g.gain.setValueAtTime(.035,when);g.gain.exponentialRampToValueAtTime(.0001,when+.05);s.connect(f);f.connect(g);g.connect(master);s.start(when)}
+ function tick(){if(!ac||muted)return;var spb=60/bpm/2,now=ac.currentTime+.02;for(var n=0;n<4;n++){var st=step+n,t=now+n*spb;if(st%2===0)kick(t);hat(t);tone(bass[Math.floor(st/2)%bass.length],spb*.9,'triangle',.07,t);if(st%4===2)tone(lead[Math.floor(st/2)%lead.length],spb*.55,'square',.026,t)}step+=4}
+ function start(){ensure();stop();muted=false;master.gain.setTargetAtTime(.12,ac.currentTime,.08);tick();timer=setInterval(tick,(60/bpm/2)*4*1000)}
+ function stop(){if(timer){clearInterval(timer);timer=null}if(master&&ac)master.gain.setTargetAtTime(.0001,ac.currentTime,.08)}
+ function duck(v){if(master&&ac)master.gain.setTargetAtTime(v?.025:.12,ac.currentTime,.12)}
+ return{start:start,stop:stop,duck:duck,ensure:ensure}
+})();
 
-function focal() { return Math.max(W, 560) * 0.92; }
-function horizon() { return H * 0.31; }
-function project(x, y, z) {
-  var s = focal() / Math.max(1, z);
-  return { x: W / 2 + x * s, y: horizon() + (CAM_Y - y) * s, s: s };
-}
+var SFX=(function(){
+ function ping(f1,f2,d=.08,g=.05,type='square'){MUSIC.ensure();var ac=MUSIC_CTX(),o=ac.createOscillator(),gn=ac.createGain();o.type=type;o.frequency.setValueAtTime(f1,ac.currentTime);o.frequency.exponentialRampToValueAtTime(f2,ac.currentTime+d);gn.gain.setValueAtTime(g,ac.currentTime);gn.gain.exponentialRampToValueAtTime(.0001,ac.currentTime+d);o.connect(gn);gn.connect(ac.destination);o.start();o.stop(ac.currentTime+d+.02)}
+ function MUSIC_CTX(){return window.__drippyAudioCtx||(window.__drippyAudioCtx=new (window.AudioContext||window.webkitAudioContext)())}
+ return{
+  click:function(){ping(330,420,.05,.018)},
+  jump:function(){ping(280,620,.14,.035,'triangle')},
+  land:function(){ping(120,70,.08,.025,'sine')},
+  slide:function(){ping(180,90,.1,.022,'sawtooth')},
+  coin:function(v){ping(v>=5?820:620,v>=5?1180:880,.08,v>=5?.045:.028,'square')},
+  power:function(){ping(360,920,.18,.045,'triangle')},
+  shield:function(){ping(700,180,.18,.04,'sawtooth')},
+  hit:function(){ping(120,55,.2,.055,'sawtooth')},
+  roar:function(){ping(95,38,.5,.08,'sawtooth')},
+  near:function(){ping(520,760,.06,.02)}
+ }
+})();
 
-/* ---------- obstacle catalogue ----------
-   `act` is the action that clears it: jump, slide, or dodge (change lane).
-   `w` is its lateral half-width in world units — a dodge obstacle fills the
-   lane, a jumpable one is low, a slide one hangs overhead. */
-var OBSTACLES = [
-  { key:'ob_log',       act:'jump',  h:150, yOff:0,   w:150 },
-  { key:'ob_crate',     act:'jump',  h:165, yOff:0,   w:140 },
-  { key:'ob_spikes',    act:'jump',  h:120, yOff:0,   w:150 },
-  { key:'ob_branch',    act:'slide', h:150, yOff:210, w:170 },
-  { key:'ob_rope',      act:'slide', h:170, yOff:190, w:150 },
-  { key:'ob_boulder',   act:'dodge', h:250, yOff:0,   w:150 },
-  { key:'ob_block',     act:'dodge', h:250, yOff:0,   w:130 },
-  { key:'ob_fire',      act:'dodge', h:235, yOff:0,   w:120 },
-  { key:'ob_spikewall', act:'dodge', h:230, yOff:0,   w:150 },
-  { key:'ob_wall',      act:'dodge', h:245, yOff:0,   w:150 }
-];
-var POWERS = {
-  magnet:   { icon:'magnet',   dur:5, label:'BONE MAGNET' },
-  shield:   { icon:'shield',   dur:5, label:'DRIP SHIELD' },
-  zoomies:  { icon:'shoe',     dur:5, label:'ZOOMIES!' },
-  x2:       { icon:'x2',       dur:5, label:'2X TREATS' },
-  superjump:{ icon:'wingbone', dur:5, label:'SUPER JUMP' }
-};
-var BONE_KINDS = [
-  { key:'bone',         val:1,  p:0.68 },
-  { key:'bone_gold',    val:3,  p:0.16 },
-  { key:'bone_blue',    val:5,  p:0.09 },
-  { key:'bone_rainbow', val:10, p:0.05 },
-  { key:'bone_black',   val:25, p:0.02 }
-];
-
-/* ---------- state ---------- */
-var S = null;
-function newGame() {
-  return {
-    mode:'play', t:0, dist:0, speed:SPEED_MIN, bones:0, mult:1,
-    lane:1, laneX:0, targetX:0,
-    y:0, vy:0, air:false, slide:0, stumble:0, iframe:0,
-    anim:0, spawnZ:2200, biome:0, biomeFade:1,
-    obstacles:[], pickups:[], puffs:[], floats:[],
-    powers:{}, guard:0.12, guardShake:0, shake:0, caught:0,
-    lastAct:'', nearMiss:0
-  };
-}
-var best = { dist:0, bones:0 };
-try {
-  var raw = localStorage.getItem('drippyDash') /* key kept: renaming it would wipe existing bests */;
-  if (raw) best = JSON.parse(raw);
-} catch (e) {}
-
-/* ---------- helpers ---------- */
-var $ = function (id) { return document.getElementById(id); };
-function toast(msg, col) {
-  var el = $('toast'); el.textContent = msg;
-  el.style.color = col || 'var(--gold-glow)';
-  el.style.transition = 'none'; el.style.opacity = '1'; el.style.transform = 'translateX(-50%) translateY(0)';
-  requestAnimationFrame(function () {
-    el.style.transition = 'opacity .8s ease, transform .8s cubic-bezier(.22,1,.36,1)';
-    el.style.opacity = '0'; el.style.transform = 'translateX(-50%) translateY(-26px)';
-  });
-}
-function showBiome(name) {
-  var el = $('biomeName'); el.textContent = name;
-  el.style.transition = 'none'; el.style.opacity = '0';
-  requestAnimationFrame(function () {
-    el.style.transition = 'opacity .5s ease';
-    el.style.opacity = '1';
-    setTimeout(function () { el.style.opacity = '0'; }, 1500);
-  });
-}
-function sfx(n) { try { if (window.AUDIO && AUDIO.sfx && AUDIO.sfx[n]) AUDIO.sfx[n](); } catch (e) {} }
-
-/* ---------- input ---------- */
-function moveLane(d) {
-  if (!S || S.mode !== 'play') return;
-  var n = Math.max(0, Math.min(2, S.lane + d));
-  if (n !== S.lane) { S.lane = n; S.targetX = LANES[n]; sfx('click'); }
-}
-function doJump() {
-  if (!S || S.mode !== 'play' || S.air || S.slide > 0) return;
-  S.vy = S.powers.superjump ? 1980 : 1560;
-  S.air = true; sfx('jump');
-}
-function doSlide() {
-  if (!S || S.mode !== 'play' || S.slide > 0) return;
-  if (S.air) { S.vy = -1500; }        // slam down, then slide on landing
-  S.slide = 0.62; sfx('dash');
-}
-addEventListener('keydown', function (e) {
-  var k = e.key.toLowerCase();
-  if (['arrowleft','a'].indexOf(k) >= 0) { moveLane(-1); e.preventDefault(); }
-  else if (['arrowright','d'].indexOf(k) >= 0) { moveLane(1); e.preventDefault(); }
-  else if (['arrowup','w',' '].indexOf(k) >= 0) { doJump(); e.preventDefault(); }
-  else if (['arrowdown','s'].indexOf(k) >= 0) { doSlide(); e.preventDefault(); }
-  else if (k === 'escape' || k === 'p') { togglePause(); }
-});
-var tsx = 0, tsy = 0, tsMoved = false;
-cv.addEventListener('touchstart', function (e) {
-  var t = e.changedTouches[0]; tsx = t.clientX; tsy = t.clientY; tsMoved = false;
-}, { passive: true });
-cv.addEventListener('touchmove', function (e) {
-  if (tsMoved) return;
-  var t = e.changedTouches[0], dx = t.clientX - tsx, dy = t.clientY - tsy;
-  if (Math.abs(dx) < 26 && Math.abs(dy) < 26) return;
-  tsMoved = true;
-  if (Math.abs(dx) > Math.abs(dy)) moveLane(dx > 0 ? 1 : -1);
-  else if (dy < 0) doJump(); else doSlide();
-}, { passive: true });
-cv.addEventListener('touchend', function (e) {
-  if (tsMoved) return;                       // a tap, not a swipe
-  var t = e.changedTouches[0];
-  if (t.clientY < H * 0.55) doJump(); else doSlide();
-}, { passive: true });
-
-/* ---------- spawning ----------
-   Patterns guarantee at least one clear lane, so every arrangement is
-   survivable with the right move. Difficulty raises the chance of the
-   busier patterns rather than ever sealing the track. */
-function pickBone() {
-  var r = Math.random(), acc = 0;
-  for (var i = 0; i < BONE_KINDS.length; i++) { acc += BONE_KINDS[i].p; if (r < acc) return BONE_KINDS[i]; }
-  return BONE_KINDS[0];
-}
-function addBoneRun(lane, z, n, arc) {
-  for (var i = 0; i < n; i++) {
-    var k = pickBone();
-    S.pickups.push({ kind:'bone', key:k.key, val:k.val, lane:lane, z:z + i * 190,
-                     y: arc ? Math.sin(i / (n - 1 || 1) * Math.PI) * 230 : 40, got:false, spin: Math.random() * 6 });
-  }
-}
-function addPower(lane, z) {
-  var keys = Object.keys(POWERS), k = keys[(Math.random() * keys.length) | 0];
-  S.pickups.push({ kind:'power', power:k, key:POWERS[k].icon, lane:lane, z:z, y:110, got:false, spin:0 });
-}
-function spawnChunk(z) {
-  var diff = Math.min(1, S.dist / 2600);           // 0 -> 1 across the first ~2.6km
-  var free = (Math.random() * 3) | 0;               // guaranteed clear lane
-  var roll = Math.random();
-
-  if (roll < 0.16 - diff * 0.06) {
-    // breather: a long bone run, sometimes arcing over nothing
-    addBoneRun((Math.random() * 3) | 0, z, 6 + ((Math.random() * 4) | 0), Math.random() < 0.35);
-  } else if (roll < 0.5) {
-    // single obstacle, bones arcing over it if it is jumpable
-    var lane = (Math.random() * 3) | 0;
-    var ob = OBSTACLES[(Math.random() * OBSTACLES.length) | 0];
-    S.obstacles.push({ o:ob, lane:lane, z:z, hit:false });
-    if (ob.act === 'jump') addBoneRun(lane, z - 380, 5, true);
-    else addBoneRun((lane + 1 + ((Math.random() * 2) | 0)) % 3, z, 4, false);
-  } else if (roll < 0.82) {
-    // two lanes blocked, one guaranteed open
-    for (var l = 0; l < 3; l++) {
-      if (l === free) continue;
-      var o2 = OBSTACLES[(Math.random() * OBSTACLES.length) | 0];
-      S.obstacles.push({ o:o2, lane:l, z:z + (Math.random() * 220 - 110), hit:false });
-    }
-    addBoneRun(free, z - 200, 5, false);
-  } else {
-    // a full-width slide or jump wall — same action clears every lane
-    var kind = Math.random() < 0.5 ? 'slide' : 'jump';
-    var pool = OBSTACLES.filter(function (o) { return o.act === kind; });
-    var pick = pool[(Math.random() * pool.length) | 0];
-    for (var l2 = 0; l2 < 3; l2++) S.obstacles.push({ o:pick, lane:l2, z:z, hit:false });
-    addBoneRun((Math.random() * 3) | 0, z + 520, 5, kind === 'jump');
-  }
-  if (Math.random() < 0.14) addPower((Math.random() * 3) | 0, z + 900);
-  return 2400 + Math.random() * 1100 - diff * 700;
-}
-
-/* ---------- power-ups ---------- */
-function givePower(k) {
-  S.powers[k] = POWERS[k].dur;
-  toast(POWERS[k].label, k === 'shield' ? '#7fd4ff' : 'var(--gold-glow)');
-  sfx('powerup');
-  if (k === 'x2') S.mult = 2;
-}
-function powerTick(dt) {
-  for (var k in S.powers) {
-    S.powers[k] -= dt;
-    if (S.powers[k] <= 0) { delete S.powers[k]; if (k === 'x2') S.mult = 1; }
-  }
-}
-
-/* ---------- stumble & the Guardian ---------- */
-function stumble() {
-  if (S.iframe > 0) return;
-  if (S.powers.shield) {
-    delete S.powers.shield; S.iframe = 1.0; sfx('shieldbreak');
-    toast('SHIELD BROKE', '#7fd4ff'); return;
-  }
-  S.stumble = 0.75; S.iframe = 1.25;
-  S.speed = Math.max(SPEED_MIN * 0.72, S.speed * 0.62);
-  S.guard = Math.min(1, S.guard + 0.34);
-  S.shake = 16; S.guardShake = 0.5;
-  sfx('hurt');
-  if (S.guard >= 1) caught();
-}
-function caught() {
-  if (S.mode !== 'play') return;
-  S.mode = 'caught'; S.caught = 0; sfx('roar');
-  try { AUDIO.stopMusic(); } catch (e) {}
-}
-/* The board score is one number that has to reward both halves of the game:
-   distance keeps you running, bones reward the risk of changing lane for them. */
-function runScore() { return Math.floor(S.dist) + S.bones * 10; }
-
-function submitScore() {
-  var note = $('submitNote'), btn = $('btnSubmit'), input = $('nameIn');
-  var name = (input.value || '').trim();
-  if (name.length < 2) { note.innerHTML = 'Enter a name (2-12 characters)'; input.focus(); return; }
-  try { localStorage.setItem('drippyDashName', name); } catch (e) {}
-  btn.disabled = true; note.textContent = 'Sending…';
-  fetch('/api/leaderboard?board=arcade&game=bone-rush', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: name, score: runScore(),
-      meta: { dist: Math.floor(S.dist), bones: S.bones } })
-  }).then(function (r) { return r.json(); }).then(function (j) {
-    if (j && j.ok) {
-      note.innerHTML = j.rank ? 'On the board at <b>#' + j.rank + '</b>' : 'Score logged';
-      $('submitRow').style.display = 'none';
-    } else {
-      note.textContent = (j && j.error) || 'Could not log that one';
-      btn.disabled = false;
-    }
-  }).catch(function () { note.textContent = 'Network error — try again'; btn.disabled = false; });
-}
-
-function endRun() {
-  S.mode = 'over';
-  var d = Math.floor(S.dist);
-  $('ovDist').textContent = d.toLocaleString();
-  $('ovBones').textContent = S.bones.toLocaleString();
-  var rec = d > best.dist;
-  if (rec) best.dist = d;
-  if (S.bones > best.bones) best.bones = S.bones;
-  try { localStorage.setItem('drippyDash', JSON.stringify(best)); } catch (e) {}
-  $('ovBest').textContent = best.dist.toLocaleString();
-  $('ovBestBones').textContent = best.bones.toLocaleString();
-  $('overTitle').textContent = rec ? 'NEW BEST' : 'CAUGHT';
-  $('overSub').textContent = rec ? 'The pack will hear about this' : 'The Guardian got you';
-  if (rec) sfx('levelup'); else sfx('over');
-  var row = $('submitRow'), note = $('submitNote'), btn = $('btnSubmit');
-  note.textContent = ''; btn.disabled = false;
-  row.style.display = (d > 0 || S.bones > 0) ? 'flex' : 'none';
-  try {
-    var saved = localStorage.getItem('drippyDashName');
-    if (saved && !$('nameIn').value) $('nameIn').value = saved;
-  } catch (e) {}
-  $('scOver').classList.add('on');
-}
-
-/* ---------- update ---------- */
-function update(dt) {
-  if (S.mode === 'caught') {
-    S.caught += dt;
-    S.speed *= 0.90;
-    if (S.caught > 1.15) endRun();
-    return;
-  }
-  if (S.mode !== 'play') return;
-
-  S.t += dt;
-  var boost = S.powers.zoomies ? 1.38 : 1;
-  S.speed = Math.min(SPEED_MAX, S.speed + 34 * dt) * 1;
-  var vel = S.speed * boost;
-  S.dist += vel * dt / 100;
-  S.anim += vel * dt * 0.0016;
-
-  // biome every 700m
-  var bi = Math.floor(S.dist / 700) % BIOMES.length;
-  if (bi !== S.biome) { S.biome = bi; S.biomeFade = 0; showBiome(BIOMES[bi].name); sfx('checkpoint'); }
-  S.biomeFade = Math.min(1, S.biomeFade + dt * 1.1);
-
-  // lateral movement, jump arc, slide timer
-  S.laneX += (S.targetX - S.laneX) * Math.min(1, dt * 13);
-  if (S.air) {
-    S.vy -= GRAV * dt; S.y += S.vy * dt;
-    if (S.y <= 0) { S.y = 0; S.vy = 0; S.air = false; puff(); sfx('land'); }
-  }
-  if (S.slide > 0) S.slide -= dt;
-  if (S.stumble > 0) S.stumble -= dt;
-  if (S.iframe > 0) S.iframe -= dt;
-  if (S.shake > 0) S.shake = Math.max(0, S.shake - dt * 42);
-  if (S.guardShake > 0) S.guardShake -= dt;
-  powerTick(dt);
-
-  // the Guardian eases back while the run stays clean
-  S.guard = Math.max(0.05, S.guard - dt * 0.052);
-
-  // spawn ahead
-  S.spawnZ -= vel * dt;
-  if (S.spawnZ <= 0) S.spawnZ = spawnChunk(Z_FAR);
-
-  // move the world toward the camera
-  var i, o, p;
-  for (i = S.obstacles.length - 1; i >= 0; i--) {
-    o = S.obstacles[i]; o.z -= vel * dt;
-    if (o.z < Z_CULL) { S.obstacles.splice(i, 1); continue; }
-    if (!o.hit && Math.abs(o.z - PLAYER_Z) < 190 && o.lane === S.lane) {
-      var cleared =
-        (o.o.act === 'jump'  && S.y > 130) ||
-        (o.o.act === 'slide' && S.slide > 0) ||
-        (o.o.act === 'dodge' && false);
-      o.hit = true;
-      if (!cleared) stumble();
-      else { S.nearMiss = 0.5; addFloat('NEAR MISS', o.lane, '#7fd4ff'); }
-    }
-  }
-  for (i = S.pickups.length - 1; i >= 0; i--) {
-    p = S.pickups[i]; p.z -= vel * dt; p.spin += dt * 3;
-    if (p.z < Z_CULL) { S.pickups.splice(i, 1); continue; }
-    // magnet drags nearby bones into the player's lane
-    if (S.powers.magnet && p.kind === 'bone' && p.z < PLAYER_Z + 2200) {
-      p.lane += (S.lane - p.lane) * Math.min(1, dt * 4);
-      p.y += (60 - p.y) * Math.min(1, dt * 3);
-    }
-    var laneDx = Math.abs((typeof p.lane === 'number' ? p.lane : S.lane) - S.lane);
-    if (!p.got && Math.abs(p.z - PLAYER_Z) < 210 && laneDx < 0.55) {
-      var dy = Math.abs(p.y - (S.y + 90));
-      if (dy < 190 || S.powers.magnet) {
-        p.got = true;
-        if (p.kind === 'bone') {
-          var v = p.val * S.mult;
-          S.bones += v; addFloat('+' + v, S.lane, '#ffd966');
-          sfx(p.val >= 5 ? 'bigcoin' : 'coin');
-          burst(p);
-        } else { givePower(p.power); }
-        S.pickups.splice(i, 1);
-      }
-    }
-  }
-  for (i = S.puffs.length - 1; i >= 0; i--) {
-    var pf = S.puffs[i]; pf.life -= dt; pf.z -= vel * dt;
-    if (pf.life <= 0) S.puffs.splice(i, 1);
-  }
-  for (i = S.floats.length - 1; i >= 0; i--) {
-    var fl = S.floats[i]; fl.life -= dt; fl.y -= dt * 90;
-    if (fl.life <= 0) S.floats.splice(i, 1);
-  }
-  if (S.nearMiss > 0) S.nearMiss -= dt;
-
-  updateHud();
-}
-function puff() { S.puffs.push({ z: PLAYER_Z, x: S.laneX, life: 0.45, max: 0.45 }); }
-function burst(p) { S.puffs.push({ z: p.z, x: LANES[Math.round(p.lane)] || 0, life: 0.3, max: 0.3, gold: true, y: p.y }); }
-function addFloat(txt, lane, col) {
-  S.floats.push({ txt: txt, x: LANES[lane] || 0, y: 200, life: 0.9, col: col });
-}
-
-/* ---------- HUD ---------- */
-var lastHud = '';
-function updateHud() {
-  var d = Math.floor(S.dist);
-  var sig = d + '|' + S.bones + '|' + S.mult + '|' + Object.keys(S.powers).join(',');
-  if (sig === lastHud) return;
-  lastHud = sig;
-  $('uiDist').textContent = d.toLocaleString();
-  $('uiBones').textContent = S.bones.toLocaleString();
-  $('mult').classList.toggle('hide', S.mult <= 1);
-  $('uiMult').textContent = S.mult;
-  var box = $('powers'), keys = Object.keys(S.powers);
-  box.innerHTML = '';
-  keys.forEach(function (k) {
-    var pct = S.powers[k] / POWERS[k].dur;
-    var el = document.createElement('div'); el.className = 'pw';
-    el.innerHTML = '<svg viewBox="0 0 46 46"><circle cx="23" cy="23" r="21" stroke-dasharray="' +
-      (2 * Math.PI * 21).toFixed(1) + '" stroke-dashoffset="' + ((1 - pct) * 2 * Math.PI * 21).toFixed(1) +
-      '"/></svg><img src="assets/runner/' + POWERS[k].icon + '.png" alt="">';
-    box.appendChild(el);
-  });
-}
-
-/* ---------- render ---------- */
-/* fog: 0 = untouched, 1 = fully dissolved into the horizon colour. Distant
-   sprites that stay crisp are what makes a foreground look pasted onto a
-   painting, so everything the engine draws gets the same treatment. */
-function drawSprite(im, sx, sy, targetH, alpha, rot, fog) {
-  if (!im || !im.width) return;
-  var w = im.width * (targetH / im.height);
-  ctx.save();
-  ctx.globalAlpha = alpha == null ? 1 : alpha;
-  ctx.translate(sx, sy);
-  if (rot) ctx.rotate(rot);
-  ctx.drawImage(im, -w / 2, -targetH, w, targetH);
-  if (fog > 0.02) {
-    // tint only the sprite's own pixels, never the box around it
-    ctx.globalCompositeOperation = 'source-atop';
-    ctx.globalAlpha = Math.min(0.92, fog) * (alpha == null ? 1 : alpha);
-    ctx.fillStyle = 'rgb(' + FOGC.r + ',' + FOGC.g + ',' + FOGC.b + ')';
-    ctx.fillRect(-w / 2 - 2, -targetH - 2, w + 4, targetH + 4);
-  }
-  ctx.restore();
-}
-
-function render() {
-  var b = BIOMES[S.biome];
-  var shakeX = S.shake ? (Math.random() - 0.5) * S.shake : 0;
-  var shakeY = S.shake ? (Math.random() - 0.5) * S.shake : 0;
-  ctx.save();
-  ctx.translate(shakeX, shakeY);
-
-  /* ---------- sky + painted backdrop ----------
-     One panel, drawn wide enough that its edges never enter frame, so there
-     is no tiling seam. Progress through a biome cross-fades scene 1 -> 6, so
-     a run travels through a place instead of looping one image. */
-  var hz = horizon();
-  ctx.fillStyle = '#05030a'; ctx.fillRect(-20, -20, W + 40, H + 40);
-  var skyG = ctx.createLinearGradient(0, 0, 0, hz + 40);
-  skyG.addColorStop(0, shade(b.tint, -0.62, 1));
-  skyG.addColorStop(1, 'rgb(' + FOGC.r + ',' + FOGC.g + ',' + FOGC.b + ')');
-  ctx.fillStyle = skyG; ctx.fillRect(0, 0, W, hz + 42);
-
-  var prog = (S.dist % 700) / 700;                 // position within this biome
-  var sIdx = Math.min(SCENES, 1 + Math.floor(prog * SCENES));
-  var sNext = Math.min(SCENES, sIdx + 1);
-  var blend = (prog * SCENES) % 1;
-  /* Only the part of the painting ABOVE its own vanishing point is used.
-     These are full scenes — they contain a painted path and ground of their
-     own — so drawing one whole behind a rendered path puts two floors in the
-     frame at different angles, which is exactly why it read as two scenes.
-     Cropped here, the backdrop supplies sky, canopy and far silhouette, and
-     every surface at ground level belongs to the engine. */
-  var SKY = 0.46;                                   // fraction above the painted horizon
-  /* Drawn at essentially 1:1 and CROPPED, not stretched. The horizon band is
-     only ~31% of the viewport, and the source panel is 424px tall, so fitting
-     it by height is a downscale — which is sharp. Widening it to cover the
-     screen instead would have been a 2x upscale, which is what made it mush.
-     The extra width off-screen becomes the parallax drift range. */
-  function paintScene(im, alpha) {
-    if (!im || !im.width || alpha <= 0.01) return;
-    var srcH = im.height * SKY;
-    var dh = hz + 4;
-    var k = dh / srcH;                              // ≈1 on a phone: no real zoom
-    var dw = im.width * k;
-    var span = Math.max(1, dw - W);
-    var drift = -((S.dist * 0.55) % span);
-    ctx.globalAlpha = alpha;
-    ctx.drawImage(im, 0, 0, im.width, srcH, drift, hz + 4 - dh, dw, dh);
-    ctx.globalAlpha = 1;
-  }
-  var cur = A[sceneKey(b.key, sIdx)];
-  paintScene(cur, 1);
-  if (sNext !== sIdx) paintScene(A[sceneKey(b.key, sNext)], blend);
-  if (cur && cur.width && cur._fogKey !== sIdx) {
-    var f = sampleFog(cur);
-    if (f) { FOGC = f; cur._fogKey = sIdx; }
-  }
-  /* ground either side of the path — without this the walkway floats in a
-     black void and the props beside it look pasted on */
-  /* Ground plane. It starts at the painting's own horizon colour so the join
-     is a graded few percent of the screen rather than a hard line, then falls
-     away to the biome's ground tone by the time it reaches the player. */
-  var gg2 = ctx.createLinearGradient(0, hz - H * 0.02, 0, H);
-  gg2.addColorStop(0, fogRGBA(0.55));
-  gg2.addColorStop(0.10, 'rgb(' + FOGC.r + ',' + FOGC.g + ',' + FOGC.b + ')');
-  gg2.addColorStop(0.34, shade(b.tint, -0.34, 1));
-  gg2.addColorStop(1, shade(b.tint, -0.66, 1));
-  ctx.fillStyle = gg2; ctx.fillRect(0, hz - H * 0.02 - 1, W, H - hz + H * 0.02 + 2);
-
-  /* ---------- the path ----------
-     Textured and perspective-correct: the screen is walked in horizontal
-     bands, each band's depth is solved from its y, and a slice of the stone
-     tile is stretched across it. Offsetting the slice by distance travelled
-     makes the surface itself scroll, which is what actually sells speed —
-     a flat coloured wedge cannot. */
-  var tile = A.tile_path, tileOK = tile && tile.width;
-  var EDGE = ROAD;
-  var TEXZ = 260;                                  // world units per texture repeat
-  var travelled = S.dist * 100;
-  var bandH = Math.max(2, Math.round(H / 190));
-  for (var sy = Math.ceil(hz + 1); sy < H; sy += bandH) {
-    var dy = sy - hz;
-    if (dy <= 0.5) continue;
-    var z0 = (CAM_Y * focal()) / dy;                       // depth at this row
-    var z1 = (CAM_Y * focal()) / (dy + bandH);             // depth one band nearer
-    if (z0 > 30000) continue;
-    var lx = project(-EDGE, 0, z0).x, rx = project(EDGE, 0, z0).x;
-    var fade = Math.max(0.16, Math.min(1, 1.3 - z0 / 10000));
-    if (tileOK) {
-      // map the band's depth span onto the tile so the surface compresses
-      // with distance instead of smearing one source row over many pixels
-      var vs = (((z0 + travelled) / TEXZ) % 1 + 1) % 1 * tile.height;
-      var vh = Math.max(1, Math.min(tile.height - 1, (z0 - z1) / TEXZ * tile.height));
-      if (vs + vh > tile.height) vs = tile.height - vh;
-      ctx.globalAlpha = fade;
-      ctx.drawImage(tile, 0, vs, tile.width, vh, lx, sy, rx - lx, bandH + 1);
-      ctx.globalAlpha = 1;
-      var fg = fogFor(z0);
-      if (fg > 0.01) { ctx.fillStyle = fogRGBA(fg); ctx.fillRect(lx, sy, rx - lx, bandH + 1); }
-    } else {
-      ctx.fillStyle = shade(b.tint, 0.1, fade);
-      ctx.fillRect(lx, sy, rx - lx, bandH + 1);
-    }
-  }
-  // dashed lane markings, spaced in world units so they stream toward you
-  for (var mi = 0; mi < 2; mi++) {
-    var mx = (mi ? 0.5 : -0.5) * LANE;
-    for (var dz = 0; dz < 22; dz++) {
-      var mz0 = 400 + dz * 420 - ((travelled % 420));
-      if (mz0 < 360 || mz0 > 9000) continue;
-      var m0 = project(mx, 2, mz0), m1 = project(mx, 2, mz0 + 190);
-      ctx.strokeStyle = hexA(b.rail, Math.min(0.72, 0.72 * (1 - mz0 / 9000) + 0.1));
-      ctx.lineWidth = Math.max(1, (W / 260) * (focal() / mz0));
-      ctx.beginPath(); ctx.moveTo(m0.x, m0.y); ctx.lineTo(m1.x, m1.y); ctx.stroke();
-    }
-  }
-
-  /* A thin lip where the road meets the ground — enough to read as an edge,
-     with none of the coloured side panels that looked like placeholder strips. */
-  for (var ei = 0; ei < 2; ei++) {
-    var ex = (ei ? 1 : -1) * ROAD;
-    var eN = project(ex, 0, 620), eF = project(ex, 0, 8000);
-    ctx.strokeStyle = hexA(b.rail, 0.30);
-    ctx.lineWidth = Math.max(1, W / 400);
-    ctx.beginPath(); ctx.moveTo(eN.x, eN.y); ctx.lineTo(eF.x, eF.y); ctx.stroke();
-  }
-
-  /* Roadside scenery. Two ranks: tall pieces set back and low dressing at the
-     verge. Big and close is the point — sparse small props read as an empty
-     plain, which is exactly how the first pass looked. */
-  var tallArt = [A.prop_pillar, A.prop_wall];
-  var lowArt  = [A.prop_bush, A.prop_rocks, A.prop_bush2];
-  var EDGEP = ROAD;
-  var SPACING = 520, travelled2 = S.dist * 100;
-  var firstI = Math.floor((travelled2 + 400) / SPACING);
-  for (var pi = firstI; pi < firstI + 22; pi++) {
-    var pz = pi * SPACING - travelled2;
-    if (pz < 300 || pz > 11000) continue;
-    for (var side = 0; side < 2; side++) {
-      var seed = (pi * 7 + side * 13);
-      // low dressing hugging the verge
-      var la = lowArt[seed % lowArt.length];
-      if (la && la.width) {
-        var lxp = (side ? 1 : -1) * (EDGEP + 40 + (seed % 60));
-        var lp = project(lxp, 0, pz);
-        if (lp.s > 0) drawSprite(la, lp.x, lp.y, 190 * lp.s, Math.min(1, lp.s * 30), 0, fogFor(pz, 5200));
-      }
-      // tall pieces set further back, only every other slot so they stay grand
-      if ((seed % 3) === 0) {
-        var ta = tallArt[(seed / 3 | 0) % tallArt.length];
-        if (ta && ta.width) {
-          var txp = (side ? 1 : -1) * (EDGEP + 210 + (seed % 190));
-          var tp = project(txp, 0, pz);
-          if (tp.s > 0) drawSprite(ta, tp.x, tp.y, 500 * tp.s, Math.min(1, tp.s * 30), 0, fogFor(pz, 5200));
-        }
-      }
-    }
-  }
-
-  /* everything in the world, painted far to near */
-  var items = [];
-  S.obstacles.forEach(function (o) { items.push({ z:o.z, t:'ob', d:o }); });
-  S.pickups.forEach(function (p) { items.push({ z:p.z, t:'pk', d:p }); });
-  S.puffs.forEach(function (p) { items.push({ z:p.z, t:'pf', d:p }); });
-  items.push({ z: PLAYER_Z, t:'pl' });
-  items.sort(function (m, n) { return n.z - m.z; });
-
-  items.forEach(function (it) {
-    if (it.t === 'ob') {
-      var o = it.d, pr = project(LANES[o.lane], o.o.yOff, o.z);
-      if (pr.s <= 0 || pr.y < -200) return;
-      drawSprite(A[o.o.key], pr.x, pr.y, o.o.h * pr.s, Math.min(1, pr.s * 22), 0, fogFor(o.z, 5200));
-    } else if (it.t === 'pk') {
-      var p = it.d, lx = typeof p.lane === 'number' ? (p.lane % 1 === 0 ? LANES[p.lane] : lerpLane(p.lane)) : 0;
-      var pp = project(lx, p.y, p.z);
-      if (pp.s <= 0) return;
-      var bob = Math.sin(S.t * 4 + p.z * 0.004) * 6 * pp.s;
-      drawSprite(A[p.key], pp.x, pp.y + bob, (p.kind === 'power' ? 105 : 78) * pp.s, Math.min(1, pp.s * 24), 0, fogFor(p.z, 6400));
-    } else if (it.t === 'pf') {
-      var f = it.d, fp = project(f.x, f.y || 0, f.z), k = 1 - f.life / f.max;
-      if (fp.s <= 0) return;
-      drawSprite(f.gold ? A.fx_stars : A.fx_dust, fp.x, fp.y, (90 + k * 130) * fp.s, (1 - k) * 0.85);
-    } else {
-      drawPlayer();
-    }
-  });
-
-  /* speed streaks when the run is fast or boosted */
-  var fast = (S.speed - SPEED_MIN) / (SPEED_MAX - SPEED_MIN);
-  if (fast > 0.35 || S.powers.zoomies) {
-    var n = S.powers.zoomies ? 9 : 5;
-    for (var s2 = 0; s2 < n; s2++) {
-      var sy = hz + 40 + ((S.t * 900 + s2 * 190) % (H - hz));
-      var sxx = (s2 % 2 ? 1 : -1) * (W * (0.16 + (s2 % 3) * 0.11));
-      drawSprite(A.fx_speed, W / 2 + sxx, sy, 60 + fast * 60, 0.16 + fast * 0.3);
-    }
-  }
-
-  /* ---------- the Stone Guardian ----------
-     It has to apply pressure without taking the screen away from you: at
-     normal proximity it is a shape hunched at the very bottom edge with a
-     purple wash creeping up. Only the catch itself fills the frame. */
-  var caughtNow = S.mode === 'caught';
-  if (S.guard > 0.34 || caughtNow) {
-    var g = caughtNow ? Math.min(1, 0.5 + S.caught * 1.6) : (S.guard - 0.34) / 0.66;
-    var gi = caughtNow ? A.guard_roar
-           : [A.guard1, A.guard2, A.guard3][Math.floor(S.t * 6) % 3];
-    // creeping wash first — the player feels it before they see it
-    var gl = ctx.createLinearGradient(0, H, 0, H - H * (0.30 + g * 0.35));
-    gl.addColorStop(0, 'rgba(150,60,220,' + (0.34 * g + (caughtNow ? 0.3 : 0)).toFixed(3) + ')');
-    gl.addColorStop(1, 'rgba(150,60,220,0)');
-    ctx.fillStyle = gl; ctx.fillRect(0, 0, W, H);
-    var gh = caughtNow ? H * (0.42 + g * 0.72) : H * (0.14 + g * 0.20);
-    var gy = H + gh * (caughtNow ? (1 - g) * 0.5 : 0.30 - g * 0.16)
-             + (S.guardShake > 0 ? (Math.random() - 0.5) * 10 : 0);
-    drawSprite(gi, W / 2, gy, gh, caughtNow ? 1 : 0.55 + g * 0.45);
-  }
-
-  ctx.restore();
-
-  /* one grade across the whole frame: a touch of the horizon colour plus a
-     vignette, so the painting and the rendered world are lit the same way */
-  var grade = ctx.createRadialGradient(W / 2, H * 0.55, H * 0.22, W / 2, H * 0.55, H * 0.95);
-  grade.addColorStop(0, fogRGBA(0));
-  grade.addColorStop(1, fogRGBA(0.22));
-  ctx.fillStyle = grade; ctx.fillRect(0, 0, W, H);
-  var vig = ctx.createRadialGradient(W / 2, H * 0.5, H * 0.34, W / 2, H * 0.5, H * 0.9);
-  vig.addColorStop(0, 'rgba(0,0,0,0)'); vig.addColorStop(1, 'rgba(0,0,0,.34)');
-  ctx.fillStyle = vig; ctx.fillRect(0, 0, W, H);
-
-  /* near-miss flash and stumble vignette */
-  if (S.nearMiss > 0) {
-    ctx.fillStyle = 'rgba(127,212,255,' + (S.nearMiss * 0.16).toFixed(3) + ')';
-    ctx.fillRect(0, 0, W, H);
-  }
-  if (S.stumble > 0) {
-    var vg = ctx.createRadialGradient(W / 2, H / 2, H * 0.24, W / 2, H / 2, H * 0.78);
-    vg.addColorStop(0, 'rgba(255,60,60,0)');
-    vg.addColorStop(1, 'rgba(255,40,40,' + (S.stumble * 0.4).toFixed(3) + ')');
-    ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
-  }
-
-  /* floating score text */
-  ctx.textAlign = 'center';
-  S.floats.forEach(function (f) {
-    var fp = project(f.x, f.y, PLAYER_Z + 120);
-    ctx.globalAlpha = Math.max(0, f.life);
-    ctx.fillStyle = f.col;
-    ctx.font = '700 ' + Math.round(26 * Math.min(1.4, fp.s * 30)) + 'px "JetBrains Mono", monospace';
-    ctx.fillText(f.txt, fp.x, fp.y);
-  });
-  ctx.globalAlpha = 1; ctx.textAlign = 'left';
-}
-
-function lerpLane(l) {
-  var i0 = Math.floor(l), i1 = Math.min(2, i0 + 1), f = l - i0;
-  return (LANES[Math.max(0, i0)] || 0) * (1 - f) + (LANES[i1] || 0) * f;
-}
-
-function drawPlayer() {
-  var pr = project(S.laneX, S.y, PLAYER_Z);
-  var h = Math.max(110, H * 0.215) * (1 + Math.min(0.16, S.y / 2400));
-  // contact shadow
-  var sp = project(S.laneX, 0, PLAYER_Z);
-  ctx.save();
-  // the shadow shrinking and darkening apart from him is most of what makes
-  // a jump legible from behind, where vertical travel is heavily foreshortened
-  var lift = Math.min(1, S.y / 380);
-  ctx.globalAlpha = Math.max(0.10, 0.42 - lift * 0.3);
-  ctx.fillStyle = '#000';
-  ctx.beginPath();
-  ctx.ellipse(sp.x, sp.y, (74 - lift * 26) * pr.s, (20 - lift * 7) * pr.s, 0, 0, 7);
-  ctx.fill();
-  ctx.restore();
-
-  /* Animation state. The camera is behind Drippy, so every pose has to be a
-     BACK view — a front-facing leap breaks the point of view instantly, which
-     is exactly what the first build got wrong. Front-facing art is only used
-     for the stumble, where he has been spun around anyway. */
-  var im, drift = S.targetX - S.laneX;
-  if (S.stumble > 0) im = A.stumble;                       // spun to face us: correct here
-  else if (S.slide > 0) im = A.slide_back || A.slide;
-  else if (S.air) im = A.jump_back || A.jump;
-  else if (Math.abs(drift) > LANE * 0.22) im = (drift < 0 ? A.lean_l : A.lean_r) || A['run1'];
-  else im = A['run' + (1 + (Math.floor(S.anim) % 7))];
-  if (S.powers.shield && !S.air && S.slide <= 0) im = A.shielded;
-
-  var alpha = (S.iframe > 0 && S.stumble <= 0 && Math.floor(S.t * 14) % 2) ? 0.45 : 1;
-  var lean = (S.targetX - S.laneX) * -0.00055;
-  // Sizing by height alone explodes the landscape-shaped stumble frame across
-  // the screen, so clamp the resulting width and back the height off to match.
-  var hh = S.slide > 0 ? h * 0.72 : h;
-  if (im && im.width) {
-    var wNow = im.width * (hh / im.height), wMax = W * 0.40;
-    if (wNow > wMax) hh *= wMax / wNow;
-  }
-  drawSprite(im, pr.x, pr.y, hh, alpha, lean);
-
-  if (S.powers.magnet) {
-    ctx.save();
-    ctx.strokeStyle = 'rgba(127,200,255,' + (0.35 + Math.sin(S.t * 9) * 0.2).toFixed(2) + ')';
-    ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.ellipse(pr.x, pr.y - h * 0.42, h * 0.55, h * 0.5, 0, 0, 7); ctx.stroke();
-    ctx.restore();
-  }
-}
-
-/* small colour helpers */
-function hx(c) { c = c.replace('#',''); var n = parseInt(c, 16); return [(n>>16)&255, (n>>8)&255, n&255]; }
-function hexA(c, a) { var p = hx(c); return 'rgba(' + p[0] + ',' + p[1] + ',' + p[2] + ',' + a + ')'; }
-function shade(c, amt, fade) {
-  var p = hx(c);
-  var f = function (v) { return Math.max(0, Math.min(255, Math.round(v * (1 + amt) * (0.35 + 0.65 * fade)))); };
-  return 'rgb(' + f(p[0]) + ',' + f(p[1]) + ',' + f(p[2]) + ')';
-}
-
-/* ---------- loop ---------- */
-var last = 0, raf = 0;
-function frame(ts) {
-  raf = requestAnimationFrame(frame);
-  if (!last) last = ts;
-  var dt = Math.min(0.05, (ts - last) / 1000); last = ts;
-  if (S) { update(dt); render(); }
-}
-
-/* ---------- flow ---------- */
-function start() {
-  resize();
-  S = newGame();
-  S.targetX = LANES[1];
-  $('scStart').classList.remove('on');
-  $('scOver').classList.remove('on');
-  $('scPause').classList.remove('on');
-  lastHud = ''; updateHud();
-  showBiome(BIOMES[0].name);
-  try { AUDIO.init(); AUDIO.playSong('neon'); } catch (e) {}
-  last = 0;
-}
-function togglePause() {
-  if (!S) return;
-  if (S.mode === 'play') { S.mode = 'pause'; $('scPause').classList.add('on'); }
-  else if (S.mode === 'pause') { S.mode = 'play'; $('scPause').classList.remove('on'); last = 0; }
-}
-$('btnPlay').onclick = start;
-$('btnAgain').onclick = start;
-$('btnSubmit').onclick = submitScore;
-$('nameIn').addEventListener('keydown', function (e) { if (e.key === 'Enter') submitScore(); });
-$('btnResume').onclick = togglePause;
-$('btnPause').onclick = togglePause;
-$('btnQuit').onclick = function () { $('scPause').classList.remove('on'); endRun(); };
-addEventListener('blur', function () { if (S && S.mode === 'play') togglePause(); });
-
-resize();
-S = newGame();            // idle world behind the start screen
-S.mode = 'pause';
-requestAnimationFrame(frame);
+var last=0;function frame(t){requestAnimationFrame(frame);if(!last)last=t;var dt=Math.min(.05,(t-last)/1000);last=t;if(S){update(dt);render()}}
+resize();S=state();S.mode='pause';requestAnimationFrame(frame);
 })();
 </script>
 </body>
