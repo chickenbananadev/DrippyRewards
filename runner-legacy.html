@@ -1,0 +1,1195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Drippy Bone Rush — Temple Run</title>
+<meta name="description" content="Run the temple, dodge the ruins and collect bones before the Stone Guardian catches you. A $DRIPPY endless runner.">
+<meta name="theme-color" content="#0a0610">
+<meta property="og:title" content="Drippy Bone Rush — collect the bones, outrun the Guardian">
+<meta property="og:description" content="An endless temple run for $DRIPPY. Swipe to dodge, jump and slide.">
+<meta property="og:image" content="https://drippyrewards.com/assets/banner.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bowlby+One&family=Anton&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --gold:#f5c542; --gold-glow:#ffd966; --gold-deep:#a8761f;
+    --cream:#f6e9c4; --dim:rgba(246,233,196,.62);
+    --purple:#a259ff; --black:#0a0610;
+    --display:'Bowlby One',cursive; --tag:'Anton',sans-serif; --mono:'JetBrains Mono',monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;background:#05030a;overflow:hidden;font-family:var(--mono);color:var(--cream);
+    overscroll-behavior:none;touch-action:none;user-select:none;-webkit-user-select:none}
+  #wrap{position:fixed;inset:0;display:grid;place-items:center}
+  canvas{display:block;width:100%;height:100%;object-fit:cover}
+
+  /* ---------- HUD ---------- */
+  #hud{position:absolute;inset:0;pointer-events:none;padding:calc(env(safe-area-inset-top,0) + 12px) 14px 14px}
+  .pill{
+    display:inline-flex;align-items:center;gap:8px;padding:7px 14px;border-radius:99px;
+    background:linear-gradient(180deg,rgba(28,20,10,.92),rgba(12,8,4,.92));
+    border:1.5px solid rgba(245,197,66,.45);box-shadow:0 3px 14px rgba(0,0,0,.5);
+    font-weight:600;font-size:15px;color:var(--gold-glow);font-variant-numeric:tabular-nums;
+  }
+  .pill img{width:20px;height:20px;object-fit:contain}
+  #hudTop{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+  #hudLeft{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+  #hudRight{display:flex;flex-direction:column;gap:8px;align-items:flex-end}
+  #mult{color:var(--purple);border-color:rgba(162,89,255,.5)}
+  #mult.hide{display:none}
+  #powers{display:flex;gap:7px;margin-top:9px}
+  .pw{position:relative;width:42px;height:42px;border-radius:50%;
+    background:rgba(10,6,16,.85);border:2px solid rgba(245,197,66,.5);display:grid;place-items:center}
+  .pw img{width:26px;height:26px;object-fit:contain}
+  .pw svg{position:absolute;inset:-2px;transform:rotate(-90deg)}
+  .pw circle{fill:none;stroke:var(--gold);stroke-width:3}
+  #btnPause{pointer-events:auto;cursor:pointer}
+
+  /* ---------- overlays ---------- */
+  .screen{
+    position:absolute;inset:0;display:none;place-items:center;text-align:center;
+    background:radial-gradient(ellipse at 50% 45%,rgba(20,10,30,.82),rgba(4,2,8,.96));
+    backdrop-filter:blur(3px);pointer-events:auto;padding:24px;
+  }
+  .screen.on{display:grid}
+  .screen .inner{max-width:460px;width:100%}
+  h1{font-family:var(--display);font-size:clamp(34px,10vw,62px);line-height:1;color:var(--gold);
+    text-shadow:0 0 44px rgba(245,197,66,.45);margin-bottom:6px}
+  h1 span{color:var(--purple)}
+  .sub{font-family:var(--tag);text-transform:uppercase;letter-spacing:5px;font-size:13px;color:var(--dim);margin-bottom:22px}
+  .btn{
+    display:inline-block;font-family:var(--tag);text-transform:uppercase;letter-spacing:3px;font-size:19px;
+    padding:15px 40px;border-radius:14px;border:0;cursor:pointer;color:#1a1005;
+    background:linear-gradient(135deg,var(--gold-deep),var(--gold-glow));
+    box-shadow:0 6px 26px rgba(245,197,66,.4);transition:transform .18s cubic-bezier(.22,1,.36,1)
+  }
+  .btn:active{transform:scale(.96)}
+  .btn.ghost{background:transparent;color:var(--dim);border:1px solid rgba(246,233,196,.25);
+    box-shadow:none;font-size:14px;padding:11px 24px}
+  .keys{margin-top:22px;font-size:12.5px;color:var(--dim);line-height:1.9}
+  .keys b{color:var(--gold);font-weight:600}
+  .scoreGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:18px 0 22px}
+  .sc{background:rgba(20,14,28,.7);border:1px solid rgba(245,197,66,.25);border-radius:14px;padding:14px 10px}
+  .sc .k{font-family:var(--tag);text-transform:uppercase;letter-spacing:2px;font-size:10.5px;color:var(--dim)}
+  .sc .v{font-family:var(--display);font-size:27px;color:var(--gold-glow);margin-top:5px;font-variant-numeric:tabular-nums}
+  .best{font-size:13px;color:var(--dim);margin-top:-8px;margin-bottom:16px}
+  .best b{color:var(--gold)}
+  .submit-row{display:flex;gap:8px;justify-content:center;margin:0 0 12px}
+  .submit-row input{
+    flex:0 1 190px;padding:12px 14px;border-radius:12px;text-align:center;
+    background:rgba(12,8,18,.9);border:1.5px solid rgba(245,197,66,.35);color:var(--gold-glow);
+    font-family:var(--mono);font-size:15px;letter-spacing:2px;text-transform:uppercase;
+  }
+  .submit-row input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(245,197,66,.16)}
+  .btn.btn-sm{font-size:14px;padding:12px 18px;letter-spacing:2px}
+  .submit-note{min-height:18px;font-size:12.5px;color:var(--dim);margin-bottom:14px}
+  .submit-note b{color:var(--gold-glow)}
+  #biomeName{
+    position:absolute;left:50%;top:22%;transform:translateX(-50%);pointer-events:none;
+    font-family:var(--display);font-size:clamp(15px,4.2vw,34px);color:var(--gold-glow);
+    text-shadow:0 0 40px rgba(245,197,66,.6);opacity:0;letter-spacing:1px;
+    width:86vw;max-width:620px;text-align:center;line-height:1.15;
+    overflow:hidden;text-overflow:ellipsis;
+  }
+  #toast{
+    position:absolute;left:50%;top:38%;transform:translateX(-50%);pointer-events:none;
+    font-family:var(--tag);text-transform:uppercase;letter-spacing:3px;font-size:clamp(15px,4.5vw,22px);
+    color:var(--gold-glow);text-shadow:0 2px 18px rgba(0,0,0,.8);opacity:0;white-space:nowrap;
+  }
+  .backlink{position:absolute;left:14px;bottom:calc(env(safe-area-inset-bottom,0) + 12px);
+    font-size:12px;color:var(--dim);text-decoration:none;pointer-events:auto}
+  .backlink:hover{color:var(--gold)}
+  @media(max-width:420px){ .pill{font-size:13.5px;padding:6px 11px} .pw{width:37px;height:37px} }
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="cv"></canvas></div>
+
+<div id="hud">
+  <div id="hudTop">
+    <div id="hudLeft">
+      <div class="pill"><img src="assets/runner/bone_gold.png" alt=""><span id="uiBones">0</span></div>
+      <div class="pill" id="mult">×<span id="uiMult">1</span></div>
+      <div id="powers"></div>
+    </div>
+    <div id="hudRight">
+      <div class="pill"><span id="uiDist">0</span>m</div>
+      <div class="pill" id="btnPause">❚❚</div>
+    </div>
+  </div>
+  <div id="biomeName"></div>
+  <div id="toast"></div>
+</div>
+
+<div class="screen on" id="scStart"><div class="inner">
+  <h1>DRIPPY <span>BONE RUSH</span></h1>
+  <div class="sub">Outrun the Stone Guardian</div>
+  <button class="btn" id="btnPlay">Run</button>
+  <div class="keys">
+    <b>Swipe</b> or <b>arrow keys</b> to change lane<br>
+    <b>Swipe up</b> / <b>Space</b> to jump &middot; <b>Swipe down</b> to slide<br>
+    Collect bones. Every stumble brings the Guardian closer.
+  </div>
+  <a class="backlink" href="/">&larr; drippyrewards.com</a>
+</div></div>
+
+<div class="screen" id="scOver"><div class="inner">
+  <h1 id="overTitle">CAUGHT</h1>
+  <div class="sub" id="overSub">The Guardian got you</div>
+  <div class="scoreGrid">
+    <div class="sc"><div class="k">Distance</div><div class="v"><span id="ovDist">0</span>m</div></div>
+    <div class="sc"><div class="k">Bones</div><div class="v" id="ovBones">0</div></div>
+  </div>
+  <div class="best">Best: <b><span id="ovBest">0</span>m</b> &middot; <b><span id="ovBestBones">0</span></b> bones</div>
+  <div class="submit-row" id="submitRow">
+    <input id="nameIn" maxlength="12" placeholder="YOUR NAME" autocomplete="off" spellcheck="false" aria-label="Name for the leaderboard">
+    <button class="btn btn-sm" id="btnSubmit">Log Score</button>
+  </div>
+  <div class="submit-note" id="submitNote"></div>
+  <button class="btn" id="btnAgain">Run Again</button>
+  <div style="margin-top:14px"><a class="btn ghost" href="/arcade">Back to the Doghouse</a></div>
+  <a class="backlink" href="/">&larr; drippyrewards.com</a>
+</div></div>
+
+<div class="screen" id="scPause"><div class="inner">
+  <h1>PAUSED</h1>
+  <div class="sub">Catch your breath</div>
+  <button class="btn" id="btnResume">Resume</button>
+  <div style="margin-top:14px"><button class="btn ghost" id="btnQuit">End run</button></div>
+</div></div>
+
+<script src="tails-end-audio.js?v=2"></script>
+<script>
+/* ============================================================
+   DRIPPY BONE RUSH — a three-lane temple runner.
+
+   Rendering is pseudo-3D: the world is a set of objects with a depth (z),
+   projected onto a 2D canvas with scale = FOCAL / z and painted far-to-near.
+   No WebGL, no 3D models — the art is billboarded sprites, which keeps it
+   fast on phones and lets the hand-drawn assets read exactly as designed.
+   ============================================================ */
+(function () {
+'use strict';
+
+/* ---------- canvas ---------- */
+var cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+var W = 0, H = 0, DPR = 1;
+function resize() {
+  DPR = Math.min(2, window.devicePixelRatio || 1);
+  W = cv.clientWidth; H = cv.clientHeight;
+  cv.width = Math.floor(W * DPR); cv.height = Math.floor(H * DPR);
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+}
+addEventListener('resize', resize); addEventListener('orientationchange', resize);
+
+/* ---------- assets ---------- */
+var A = {}, toLoad = 0, loaded = 0;
+function img(name, file) {
+  var i = new Image(); i.src = 'assets/runner/' + (file || name + '.png');
+  toLoad++; i.onload = i.onerror = function () { loaded++; }; A[name] = i; return i;
+}
+for (var r = 1; r <= 7; r++) img('run' + r);
+['jump','slide','stumble','shielded','idle_back','jump_back','slide_back','lean_l','lean_r',
+ 'bone','bone_gold','bone_blue','bone_rainbow','bone_black','biscuit',
+ 'coin','x2','magnet','wingbone','shield','shoe',
+ 'ob_log','ob_boulder','ob_crate','ob_fire','ob_spikewall','ob_rope','ob_block','ob_spikes','ob_wall','ob_branch',
+ 'guard1','guard2','guard3','guard_roar','fx_dust','fx_speed','fx_stars'].forEach(function (n) { img(n); });
+['tile_path','prop_bush','prop_rocks','prop_bush2','prop_pillar','prop_wall','prop_torch'].forEach(function (n) { img(n); });
+var BIOMES = [
+  /* jungle's panels are the hi-res paintings supplied 2026-09-04, exported
+     already cropped above their own painted path — so the whole file is sky
+     and scenery (sky:1) and there are seven of them, not six */
+  { key:'jungle',      name:'JUNGLE RUINS',      tint:'#3a5c2c', rail:'#8fb055', wall:'#4a5c38', sky:1, scenes:7 },
+  { key:'fire',        name:'TEMPLE OF FIRE',    tint:'#5c2410', rail:'#e0702a', wall:'#5a2a18' },
+  { key:'frozen',      name:'FROZEN CANYON',     tint:'#4a6c88', rail:'#bfe4f7', wall:'#5a7a94' },
+  { key:'sky',         name:'SKY TEMPLE',        tint:'#6a6a54', rail:'#e8d9a8', wall:'#7a7460' },
+  { key:'desert',      name:'DESERT CANYON',     tint:'#7a5630', rail:'#e0b268', wall:'#8a6a40' },
+  { key:'haunted',     name:'HAUNTED FOREST',    tint:'#3d2456', rail:'#c088e8', wall:'#42305c' },
+  { key:'underground', name:'UNDERGROUND RUINS', tint:'#2a4a52', rail:'#5fe0c4', wall:'#2e4a52' }
+];
+/* Six painted scenes per biome. Only the biome in play (and the next one) is
+   fetched, so the run starts on ~400KB instead of every backdrop at once. */
+var SCENES = 6;
+function sceneKey(b, n) { return 'bg_' + b + '_' + n; }
+
+/* The single biggest reason the first builds read as "two scenes": the engine
+   faded distant geometry toward a hand-picked palette colour while the painted
+   backdrop ended on a completely different one, so the join was a visible
+   line. Instead, sample the painting's own lower edge once it loads and fade
+   everything — path, terrain, props, obstacles — into exactly that colour.
+   Foreground and background then share a horizon and read as one place. */
+var FOGC = { r: 30, g: 40, b: 30 };
+function sampleFog(im, skyF) {
+  try {
+    var s = skyF || 0.46;
+    var c = document.createElement('canvas'); c.width = 24; c.height = 12;
+    var x = c.getContext('2d', { willReadFrequently: true });
+    // the strip immediately above the crop line — the last rows actually drawn
+    x.drawImage(im, 0, im.height * Math.max(0, s - 0.12), im.width, im.height * Math.min(0.12, s), 0, 0, 24, 12);
+    var d = x.getImageData(0, 0, 24, 12).data, r = 0, g = 0, bl = 0, n = 0;
+    for (var i = 0; i < d.length; i += 4) { r += d[i]; g += d[i + 1]; bl += d[i + 2]; n++; }
+    // matched to the brightness/saturation the plate is drawn with, so the
+    // world fades into the colour actually on screen, not the raw file's
+    var K = 1.0;   // the plate is drawn unmodified now, so match it exactly
+    return { r: (r / n) * K | 0, g: (g / n) * K | 0, b: (bl / n) * K | 0 };
+  } catch (e) { return null; }
+}
+function fogRGBA(a) { return 'rgba(' + FOGC.r + ',' + FOGC.g + ',' + FOGC.b + ',' + a + ')'; }
+function fogFor(z, far) {
+  /* Atmosphere belongs to the DISTANCE only. Anything the player is about to
+     interact with stays crisp: fog does not begin until well beyond the
+     player's depth and never reaches full opacity. */
+  return Math.max(0, Math.min(0.7, (z - 2200) / (far || 8000)));
+}
+/* Procedural jungle floor. The flat colour either side of the path was the
+   loudest "this is a game board" tell in the whole frame. Build a
+   soil/moss/leaf-litter texture once per scene, tinted from the painting's
+   own palette (FOGC), and drape it over the ground plane in perspective. */
+var GTEX = null, GKEY = '';
+function groundTex(key) {
+  if (GKEY === key && GTEX) return GTEX;
+  var c = document.createElement('canvas'); c.width = 680; c.height = 340;
+  var x = c.getContext('2d');
+  var s0 = 987654321;
+  for (var ki = 0; ki < key.length; ki++) s0 = (s0 * 33 + key.charCodeAt(ki)) & 0x7fffffff;
+  function rnd() { s0 = (s0 * 1103515245 + 12345) & 0x7fffffff; return s0 / 0x7fffffff; }
+  var br = FOGC.r * 0.42 | 0, bg = FOGC.g * 0.46 | 0, bb = FOGC.b * 0.38 | 0;
+  x.fillStyle = 'rgb(' + br + ',' + bg + ',' + bb + ')';
+  x.fillRect(0, 0, 680, 340);
+  // broad soft patches: moss beds and darker earth
+  for (var i = 0; i < 260; i++) {
+    var mossy = rnd() < 0.55;
+    var rr = mossy ? br * 0.7 + rnd() * 26 : br * (0.8 + rnd() * 0.7);
+    var gg = mossy ? bg * 1.05 + rnd() * 40 : bg * (0.75 + rnd() * 0.6);
+    var b2 = mossy ? bb * 0.6 + rnd() * 14 : bb * (0.7 + rnd() * 0.7);
+    x.fillStyle = 'rgba(' + (rr | 0) + ',' + (gg | 0) + ',' + (b2 | 0) + ',' + (0.12 + rnd() * 0.16).toFixed(2) + ')';
+    x.beginPath();
+    x.ellipse(rnd() * 680, rnd() * 340, 14 + rnd() * 60, 8 + rnd() * 30, rnd() * 3.2, 0, 7);
+    x.fill();
+  }
+  // leaf litter, twigs and pebbles
+  for (var j = 0; j < 900; j++) {
+    var kind = rnd();
+    if (kind < 0.45) x.fillStyle = 'rgba(' + (40 + rnd() * 50 | 0) + ',' + (70 + rnd() * 70 | 0) + ',' + (24 + rnd() * 30 | 0) + ',' + (0.16 + rnd() * 0.22).toFixed(2) + ')';
+    else if (kind < 0.75) x.fillStyle = 'rgba(' + (60 + rnd() * 40 | 0) + ',' + (48 + rnd() * 30 | 0) + ',' + (30 + rnd() * 20 | 0) + ',' + (0.14 + rnd() * 0.2).toFixed(2) + ')';
+    else x.fillStyle = 'rgba(' + (100 + rnd() * 60 | 0) + ',' + (104 + rnd() * 60 | 0) + ',' + (92 + rnd() * 50 | 0) + ',' + (0.10 + rnd() * 0.16).toFixed(2) + ')';
+    var lw = 2 + rnd() * 7;
+    x.save();
+    x.translate(rnd() * 680, rnd() * 340); x.rotate(rnd() * 3.2);
+    x.fillRect(-lw / 2, -lw / 4, lw, lw / 2);
+    x.restore();
+  }
+  GTEX = c; GKEY = key; return c;
+}
+/* soft contact shadow under anything standing on the ground — without it
+   every prop floats above the world like a sticker */
+function shadowBlob(x, y, rad, s, a) {
+  ctx.save();
+  ctx.globalAlpha = Math.min(0.4, (a || 0.3) * Math.min(1, s * 22));
+  ctx.fillStyle = '#000';
+  ctx.beginPath(); ctx.ellipse(x, y - rad * 0.03, rad, rad * 0.26, 0, 0, 7); ctx.fill();
+  ctx.restore();
+}
+function loadBiome(i) {
+  var b = BIOMES[(i % BIOMES.length + BIOMES.length) % BIOMES.length];
+  if (b._req) return; b._req = 1;
+  var count = b.scenes || SCENES;
+  for (var n = 1; n <= count; n++) img(sceneKey(b.key, n), sceneKey(b.key, n) + '.jpg');
+}
+loadBiome(0); loadBiome(1);
+
+/* ---------- world constants ---------- */
+/* Camera tuning. PLAYER_Z is chosen so the player's ground contact projects
+   to roughly 78% down the screen: horizon + CAM_Y*focal/PLAYER_Z. Getting this
+   wrong puts the player's feet below the viewport and scales them enormously. */
+/* Framing follows the genre: a NARROW road with a lot of world either side,
+   a high horizon so the sky is part of the picture, and a small runner. The
+   earlier build had the path filling the frame, which left nowhere for the
+   scenery that actually conveys travel. */
+/* Camera solved from the required screen composition rather than guessed:
+     horizon at 31% of viewport height
+     player's ground contact at 76%
+     lanes landing on 32% / 50% / 68% of viewport width at the player
+   With focal = 0.92*W those three constraints fix CAM_Y, PLAYER_Z and LANE.
+   Everything else (road width, object scale) then follows from projection. */
+var LANE = 155;                 // lateral spacing between lane centres
+var LANES = [-LANE, 0, LANE];
+var CAM_Y = 709;                // camera height above the path
+var PLAYER_Z = 1000;            // player's fixed distance in front of the camera
+var ROAD = LANE * 2.05;         // half-width of the road surface — generous, so the corridor stays substantial into the distance
+var Z_FAR = 7200, Z_CULL = 330;
+var GRAV = 2950;
+var SPEED_MIN = 1500, SPEED_MAX = 3200;
+
+function focal() { return Math.max(W, 560) * 0.92; }
+function horizon() { return H * 0.31; }
+function project(x, y, z) {
+  var s = focal() / Math.max(1, z);
+  return { x: W / 2 + x * s, y: horizon() + (CAM_Y - y) * s, s: s };
+}
+
+/* ---------- obstacle catalogue ----------
+   `act` is the action that clears it: jump, slide, or dodge (change lane).
+   `w` is its lateral half-width in world units — a dodge obstacle fills the
+   lane, a jumpable one is low, a slide one hangs overhead. */
+var OBSTACLES = [
+  { key:'ob_log',       act:'jump',  h:150, yOff:0,   w:150 },
+  { key:'ob_crate',     act:'jump',  h:165, yOff:0,   w:140 },
+  { key:'ob_spikes',    act:'jump',  h:120, yOff:0,   w:150 },
+  { key:'ob_branch',    act:'slide', h:150, yOff:210, w:170 },
+  { key:'ob_rope',      act:'slide', h:170, yOff:190, w:150 },
+  { key:'ob_boulder',   act:'dodge', h:250, yOff:0,   w:150 },
+  { key:'ob_block',     act:'dodge', h:250, yOff:0,   w:130 },
+  { key:'ob_fire',      act:'dodge', h:235, yOff:0,   w:120 },
+  { key:'ob_spikewall', act:'dodge', h:230, yOff:0,   w:150 },
+  { key:'ob_wall',      act:'dodge', h:245, yOff:0,   w:150 }
+];
+var POWERS = {
+  magnet:   { icon:'magnet',   dur:5, label:'BONE MAGNET' },
+  shield:   { icon:'shield',   dur:5, label:'DRIP SHIELD' },
+  zoomies:  { icon:'shoe',     dur:5, label:'ZOOMIES!' },
+  x2:       { icon:'x2',       dur:5, label:'2X TREATS' },
+  superjump:{ icon:'wingbone', dur:5, label:'SUPER JUMP' }
+};
+var BONE_KINDS = [
+  { key:'bone',         val:1,  p:0.68 },
+  { key:'bone_gold',    val:3,  p:0.16 },
+  { key:'bone_blue',    val:5,  p:0.09 },
+  { key:'bone_rainbow', val:10, p:0.05 },
+  { key:'bone_black',   val:25, p:0.02 }
+];
+
+/* ---------- state ---------- */
+var S = null;
+function newGame() {
+  return {
+    mode:'play', t:0, dist:0, speed:SPEED_MIN, bones:0, mult:1,
+    lane:1, laneX:0, targetX:0,
+    y:0, vy:0, air:false, slide:0, stumble:0, iframe:0,
+    anim:0, spawnZ:2200, biome:0, biomeFade:1,
+    obstacles:[], pickups:[], puffs:[], floats:[],
+    powers:{}, guard:0.12, guardShake:0, shake:0, caught:0,
+    lastAct:'', nearMiss:0
+  };
+}
+var best = { dist:0, bones:0 };
+try {
+  var raw = localStorage.getItem('drippyDash') /* key kept: renaming it would wipe existing bests */;
+  if (raw) best = JSON.parse(raw);
+} catch (e) {}
+
+/* ---------- helpers ---------- */
+var $ = function (id) { return document.getElementById(id); };
+function toast(msg, col) {
+  var el = $('toast'); el.textContent = msg;
+  el.style.color = col || 'var(--gold-glow)';
+  el.style.transition = 'none'; el.style.opacity = '1'; el.style.transform = 'translateX(-50%) translateY(0)';
+  requestAnimationFrame(function () {
+    el.style.transition = 'opacity .8s ease, transform .8s cubic-bezier(.22,1,.36,1)';
+    el.style.opacity = '0'; el.style.transform = 'translateX(-50%) translateY(-26px)';
+  });
+}
+function showBiome(name) {
+  var el = $('biomeName'); el.textContent = name;
+  el.style.transition = 'none'; el.style.opacity = '0';
+  requestAnimationFrame(function () {
+    el.style.transition = 'opacity .5s ease';
+    el.style.opacity = '1';
+    setTimeout(function () { el.style.opacity = '0'; }, 1500);
+  });
+}
+function sfx(n) { try { if (window.AUDIO && AUDIO.sfx && AUDIO.sfx[n]) AUDIO.sfx[n](); } catch (e) {} }
+
+/* ---------- input ---------- */
+function moveLane(d) {
+  if (!S || S.mode !== 'play') return;
+  var n = Math.max(0, Math.min(2, S.lane + d));
+  if (n !== S.lane) { S.lane = n; S.targetX = LANES[n]; sfx('click'); }
+}
+function doJump() {
+  if (!S || S.mode !== 'play' || S.air || S.slide > 0) return;
+  S.vy = S.powers.superjump ? 1980 : 1560;
+  S.air = true; sfx('jump');
+}
+function doSlide() {
+  if (!S || S.mode !== 'play' || S.slide > 0) return;
+  if (S.air) { S.vy = -1500; }        // slam down, then slide on landing
+  S.slide = 0.62; sfx('dash');
+}
+addEventListener('keydown', function (e) {
+  var k = e.key.toLowerCase();
+  if (['arrowleft','a'].indexOf(k) >= 0) { moveLane(-1); e.preventDefault(); }
+  else if (['arrowright','d'].indexOf(k) >= 0) { moveLane(1); e.preventDefault(); }
+  else if (['arrowup','w',' '].indexOf(k) >= 0) { doJump(); e.preventDefault(); }
+  else if (['arrowdown','s'].indexOf(k) >= 0) { doSlide(); e.preventDefault(); }
+  else if (k === 'escape' || k === 'p') { togglePause(); }
+});
+var tsx = 0, tsy = 0, tsMoved = false;
+cv.addEventListener('touchstart', function (e) {
+  var t = e.changedTouches[0]; tsx = t.clientX; tsy = t.clientY; tsMoved = false;
+}, { passive: true });
+cv.addEventListener('touchmove', function (e) {
+  if (tsMoved) return;
+  var t = e.changedTouches[0], dx = t.clientX - tsx, dy = t.clientY - tsy;
+  if (Math.abs(dx) < 26 && Math.abs(dy) < 26) return;
+  tsMoved = true;
+  if (Math.abs(dx) > Math.abs(dy)) moveLane(dx > 0 ? 1 : -1);
+  else if (dy < 0) doJump(); else doSlide();
+}, { passive: true });
+cv.addEventListener('touchend', function (e) {
+  if (tsMoved) return;                       // a tap, not a swipe
+  var t = e.changedTouches[0];
+  if (t.clientY < H * 0.55) doJump(); else doSlide();
+}, { passive: true });
+
+/* ---------- spawning ----------
+   Patterns guarantee at least one clear lane, so every arrangement is
+   survivable with the right move. Difficulty raises the chance of the
+   busier patterns rather than ever sealing the track. */
+function pickBone() {
+  var r = Math.random(), acc = 0;
+  for (var i = 0; i < BONE_KINDS.length; i++) { acc += BONE_KINDS[i].p; if (r < acc) return BONE_KINDS[i]; }
+  return BONE_KINDS[0];
+}
+function addBoneRun(lane, z, n, arc) {
+  for (var i = 0; i < n; i++) {
+    var k = pickBone();
+    S.pickups.push({ kind:'bone', key:k.key, val:k.val, lane:lane, z:z + i * 190,
+                     y: arc ? Math.sin(i / (n - 1 || 1) * Math.PI) * 230 : 40, got:false, spin: Math.random() * 6 });
+  }
+}
+function addPower(lane, z) {
+  var keys = Object.keys(POWERS), k = keys[(Math.random() * keys.length) | 0];
+  S.pickups.push({ kind:'power', power:k, key:POWERS[k].icon, lane:lane, z:z, y:110, got:false, spin:0 });
+}
+function spawnChunk(z) {
+  var diff = Math.min(1, S.dist / 2600);           // 0 -> 1 across the first ~2.6km
+  var free = (Math.random() * 3) | 0;               // guaranteed clear lane
+  var roll = Math.random();
+
+  if (roll < 0.16 - diff * 0.06) {
+    // breather: a long bone run, sometimes arcing over nothing
+    addBoneRun((Math.random() * 3) | 0, z, 6 + ((Math.random() * 4) | 0), Math.random() < 0.35);
+  } else if (roll < 0.5) {
+    // single obstacle, bones arcing over it if it is jumpable
+    var lane = (Math.random() * 3) | 0;
+    var ob = OBSTACLES[(Math.random() * OBSTACLES.length) | 0];
+    S.obstacles.push({ o:ob, lane:lane, z:z, hit:false });
+    if (ob.act === 'jump') addBoneRun(lane, z - 380, 5, true);
+    else addBoneRun((lane + 1 + ((Math.random() * 2) | 0)) % 3, z, 4, false);
+  } else if (roll < 0.82) {
+    // two lanes blocked, one guaranteed open
+    for (var l = 0; l < 3; l++) {
+      if (l === free) continue;
+      var o2 = OBSTACLES[(Math.random() * OBSTACLES.length) | 0];
+      S.obstacles.push({ o:o2, lane:l, z:z + (Math.random() * 220 - 110), hit:false });
+    }
+    addBoneRun(free, z - 200, 5, false);
+  } else {
+    // a full-width slide or jump wall — same action clears every lane
+    var kind = Math.random() < 0.5 ? 'slide' : 'jump';
+    var pool = OBSTACLES.filter(function (o) { return o.act === kind; });
+    var pick = pool[(Math.random() * pool.length) | 0];
+    for (var l2 = 0; l2 < 3; l2++) S.obstacles.push({ o:pick, lane:l2, z:z, hit:false });
+    addBoneRun((Math.random() * 3) | 0, z + 520, 5, kind === 'jump');
+  }
+  if (Math.random() < 0.14) addPower((Math.random() * 3) | 0, z + 900);
+  return 2400 + Math.random() * 1100 - diff * 700;
+}
+
+/* ---------- power-ups ---------- */
+function givePower(k) {
+  S.powers[k] = POWERS[k].dur;
+  toast(POWERS[k].label, k === 'shield' ? '#7fd4ff' : 'var(--gold-glow)');
+  sfx('powerup');
+  if (k === 'x2') S.mult = 2;
+}
+function powerTick(dt) {
+  for (var k in S.powers) {
+    S.powers[k] -= dt;
+    if (S.powers[k] <= 0) { delete S.powers[k]; if (k === 'x2') S.mult = 1; }
+  }
+}
+
+/* ---------- stumble & the Guardian ---------- */
+function stumble() {
+  if (S.iframe > 0) return;
+  if (S.powers.shield) {
+    delete S.powers.shield; S.iframe = 1.0; sfx('shieldbreak');
+    toast('SHIELD BROKE', '#7fd4ff'); return;
+  }
+  S.stumble = 0.75; S.iframe = 1.25;
+  S.speed = Math.max(SPEED_MIN * 0.72, S.speed * 0.62);
+  S.guard = Math.min(1, S.guard + 0.34);
+  S.shake = 16; S.guardShake = 0.5;
+  sfx('hurt');
+  if (S.guard >= 1) caught();
+}
+function caught() {
+  if (S.mode !== 'play') return;
+  S.mode = 'caught'; S.caught = 0; sfx('roar');
+  try { AUDIO.stopMusic(); } catch (e) {}
+}
+/* The board score is one number that has to reward both halves of the game:
+   distance keeps you running, bones reward the risk of changing lane for them. */
+function runScore() { return Math.floor(S.dist) + S.bones * 10; }
+
+function submitScore() {
+  var note = $('submitNote'), btn = $('btnSubmit'), input = $('nameIn');
+  var name = (input.value || '').trim();
+  if (name.length < 2) { note.innerHTML = 'Enter a name (2-12 characters)'; input.focus(); return; }
+  try { localStorage.setItem('drippyDashName', name); } catch (e) {}
+  btn.disabled = true; note.textContent = 'Sending…';
+  fetch('/api/leaderboard?board=arcade&game=bone-rush', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: name, score: runScore(),
+      meta: { dist: Math.floor(S.dist), bones: S.bones } })
+  }).then(function (r) { return r.json(); }).then(function (j) {
+    if (j && j.ok) {
+      note.innerHTML = j.rank ? 'On the board at <b>#' + j.rank + '</b>' : 'Score logged';
+      $('submitRow').style.display = 'none';
+    } else {
+      note.textContent = (j && j.error) || 'Could not log that one';
+      btn.disabled = false;
+    }
+  }).catch(function () { note.textContent = 'Network error — try again'; btn.disabled = false; });
+}
+
+function endRun() {
+  S.mode = 'over';
+  var d = Math.floor(S.dist);
+  $('ovDist').textContent = d.toLocaleString();
+  $('ovBones').textContent = S.bones.toLocaleString();
+  var rec = d > best.dist;
+  if (rec) best.dist = d;
+  if (S.bones > best.bones) best.bones = S.bones;
+  try { localStorage.setItem('drippyDash', JSON.stringify(best)); } catch (e) {}
+  $('ovBest').textContent = best.dist.toLocaleString();
+  $('ovBestBones').textContent = best.bones.toLocaleString();
+  $('overTitle').textContent = rec ? 'NEW BEST' : 'CAUGHT';
+  $('overSub').textContent = rec ? 'The pack will hear about this' : 'The Guardian got you';
+  if (rec) sfx('levelup'); else sfx('over');
+  var row = $('submitRow'), note = $('submitNote'), btn = $('btnSubmit');
+  note.textContent = ''; btn.disabled = false;
+  row.style.display = (d > 0 || S.bones > 0) ? 'flex' : 'none';
+  try {
+    var saved = localStorage.getItem('drippyDashName');
+    if (saved && !$('nameIn').value) $('nameIn').value = saved;
+  } catch (e) {}
+  $('scOver').classList.add('on');
+}
+
+/* ---------- update ---------- */
+function update(dt) {
+  if (S.mode === 'caught') {
+    S.caught += dt;
+    S.speed *= 0.90;
+    if (S.caught > 1.15) endRun();
+    return;
+  }
+  if (S.mode !== 'play') return;
+
+  S.t += dt;
+  var boost = S.powers.zoomies ? 1.38 : 1;
+  S.speed = Math.min(SPEED_MAX, S.speed + 34 * dt) * 1;
+  var vel = S.speed * boost;
+  S.dist += vel * dt / 100;
+  S.anim += vel * dt * 0.0016;
+
+  // biome every 700m
+  var bi = Math.floor(S.dist / 700) % BIOMES.length;
+  if (bi !== S.biome) { S.biome = bi; S.biomeFade = 0; showBiome(BIOMES[bi].name); sfx('checkpoint'); }
+  S.biomeFade = Math.min(1, S.biomeFade + dt * 1.1);
+
+  // lateral movement, jump arc, slide timer
+  S.laneX += (S.targetX - S.laneX) * Math.min(1, dt * 13);
+  if (S.air) {
+    S.vy -= GRAV * dt; S.y += S.vy * dt;
+    if (S.y <= 0) { S.y = 0; S.vy = 0; S.air = false; puff(); sfx('land'); }
+  } else if (S.slide <= 0 && S.stumble <= 0) {
+    // footfall dust: small, frequent, at his paws — reinforces ground contact
+    S._foot = (S._foot || 0) - dt;
+    if (S._foot <= 0) {
+      S._foot = 0.15;
+      S.puffs.push({ z: PLAYER_Z - 10, x: S.laneX + (Math.random() - 0.5) * 46, life: 0.32, max: 0.32, small: true });
+    }
+  }
+  if (S.slide > 0) S.slide -= dt;
+  if (S.stumble > 0) S.stumble -= dt;
+  if (S.iframe > 0) S.iframe -= dt;
+  if (S.shake > 0) S.shake = Math.max(0, S.shake - dt * 42);
+  if (S.guardShake > 0) S.guardShake -= dt;
+  powerTick(dt);
+
+  // the Guardian eases back while the run stays clean
+  S.guard = Math.max(0.05, S.guard - dt * 0.052);
+
+  // spawn ahead
+  S.spawnZ -= vel * dt;
+  if (S.spawnZ <= 0) S.spawnZ = spawnChunk(Z_FAR);
+
+  // move the world toward the camera
+  var i, o, p;
+  for (i = S.obstacles.length - 1; i >= 0; i--) {
+    o = S.obstacles[i]; o.z -= vel * dt;
+    if (o.z < Z_CULL) { S.obstacles.splice(i, 1); continue; }
+    if (!o.hit && Math.abs(o.z - PLAYER_Z) < 190 && o.lane === S.lane) {
+      var cleared =
+        (o.o.act === 'jump'  && S.y > 130) ||
+        (o.o.act === 'slide' && S.slide > 0) ||
+        (o.o.act === 'dodge' && false);
+      o.hit = true;
+      if (!cleared) stumble();
+      else { S.nearMiss = 0.5; addFloat('NEAR MISS', o.lane, '#7fd4ff'); }
+    }
+  }
+  for (i = S.pickups.length - 1; i >= 0; i--) {
+    p = S.pickups[i]; p.z -= vel * dt; p.spin += dt * 3;
+    if (p.z < Z_CULL) { S.pickups.splice(i, 1); continue; }
+    // magnet drags nearby bones into the player's lane
+    if (S.powers.magnet && p.kind === 'bone' && p.z < PLAYER_Z + 2200) {
+      p.lane += (S.lane - p.lane) * Math.min(1, dt * 4);
+      p.y += (60 - p.y) * Math.min(1, dt * 3);
+    }
+    var laneDx = Math.abs((typeof p.lane === 'number' ? p.lane : S.lane) - S.lane);
+    if (!p.got && Math.abs(p.z - PLAYER_Z) < 210 && laneDx < 0.55) {
+      var dy = Math.abs(p.y - (S.y + 90));
+      if (dy < 190 || S.powers.magnet) {
+        p.got = true;
+        if (p.kind === 'bone') {
+          var v = p.val * S.mult;
+          S.bones += v; addFloat('+' + v, S.lane, '#ffd966');
+          sfx(p.val >= 5 ? 'bigcoin' : 'coin');
+          burst(p);
+        } else { givePower(p.power); }
+        S.pickups.splice(i, 1);
+      }
+    }
+  }
+  for (i = S.puffs.length - 1; i >= 0; i--) {
+    var pf = S.puffs[i]; pf.life -= dt; pf.z -= vel * dt;
+    if (pf.life <= 0) S.puffs.splice(i, 1);
+  }
+  for (i = S.floats.length - 1; i >= 0; i--) {
+    var fl = S.floats[i]; fl.life -= dt; fl.y -= dt * 90;
+    if (fl.life <= 0) S.floats.splice(i, 1);
+  }
+  if (S.nearMiss > 0) S.nearMiss -= dt;
+
+  updateHud();
+}
+function puff() { S.puffs.push({ z: PLAYER_Z, x: S.laneX, life: 0.45, max: 0.45 }); }
+function burst(p) { S.puffs.push({ z: p.z, x: LANES[Math.round(p.lane)] || 0, life: 0.3, max: 0.3, gold: true, y: p.y }); }
+function addFloat(txt, lane, col) {
+  S.floats.push({ txt: txt, x: LANES[lane] || 0, y: 200, life: 0.9, col: col });
+}
+
+/* ---------- HUD ---------- */
+var lastHud = '';
+function updateHud() {
+  var d = Math.floor(S.dist);
+  var sig = d + '|' + S.bones + '|' + S.mult + '|' + Object.keys(S.powers).join(',');
+  if (sig === lastHud) return;
+  lastHud = sig;
+  $('uiDist').textContent = d.toLocaleString();
+  $('uiBones').textContent = S.bones.toLocaleString();
+  $('mult').classList.toggle('hide', S.mult <= 1);
+  $('uiMult').textContent = S.mult;
+  var box = $('powers'), keys = Object.keys(S.powers);
+  box.innerHTML = '';
+  keys.forEach(function (k) {
+    var pct = S.powers[k] / POWERS[k].dur;
+    var el = document.createElement('div'); el.className = 'pw';
+    el.innerHTML = '<svg viewBox="0 0 46 46"><circle cx="23" cy="23" r="21" stroke-dasharray="' +
+      (2 * Math.PI * 21).toFixed(1) + '" stroke-dashoffset="' + ((1 - pct) * 2 * Math.PI * 21).toFixed(1) +
+      '"/></svg><img src="assets/runner/' + POWERS[k].icon + '.png" alt="">';
+    box.appendChild(el);
+  });
+}
+
+/* ---------- render ---------- */
+/* fog: 0 = untouched, 1 = fully dissolved into the horizon colour. Distant
+   sprites that stay crisp are what makes a foreground look pasted onto a
+   painting, so everything the engine draws gets the same treatment. */
+var SCR = document.createElement('canvas'); SCR.width = 560; SCR.height = 560;
+var scx = SCR.getContext('2d');
+function drawSprite(im, sx, sy, targetH, alpha, rot, fog, flip) {
+  if (!im || !im.width || targetH < 2) return;
+  var w = im.width * (targetH / im.height);
+  var a = alpha == null ? 1 : alpha;
+  if (a <= 0.01) return;
+  /* Composite through a scratch buffer: source-atop on the main canvas hits
+     the whole rectangle (the scene beneath is opaque), so fog and lighting
+     have to land on the sprite's own pixels in isolation first. */
+  var k = Math.min(1, 512 / Math.max(w * DPR, targetH * DPR));
+  var bw = Math.max(2, Math.round(w * DPR * k)), bh = Math.max(2, Math.round(targetH * DPR * k));
+  scx.clearRect(0, 0, SCR.width, SCR.height);
+  scx.drawImage(im, 0, 0, bw, bh);
+  scx.globalCompositeOperation = 'source-atop';
+  if (fog > 0.02) {
+    scx.globalAlpha = Math.min(0.92, fog);
+    scx.fillStyle = 'rgb(' + FOGC.r + ',' + FOGC.g + ',' + FOGC.b + ')';
+    scx.fillRect(0, 0, bw, bh);
+    scx.globalAlpha = 1;
+  }
+  // the scene's key light — warm from the upper right, shaded toward the
+  // base — is most of what stops sprites reading as pasted-on stickers
+  var lg = scx.createLinearGradient(bw, 0, bw * 0.1, bh);
+  lg.addColorStop(0, 'rgba(255,214,150,0.13)');
+  lg.addColorStop(0.5, 'rgba(0,0,0,0)');
+  lg.addColorStop(1, 'rgba(10,16,8,0.20)');
+  scx.fillStyle = lg; scx.fillRect(0, 0, bw, bh);
+  scx.globalCompositeOperation = 'source-over';
+  ctx.save();
+  ctx.globalAlpha = a;
+  ctx.translate(sx, sy);
+  if (rot) ctx.rotate(rot);
+  if (flip) ctx.scale(-1, 1);
+  ctx.drawImage(SCR, 0, 0, bw, bh, -w / 2, -targetH, w, targetH);
+  ctx.restore();
+}
+
+function render() {
+  var b = BIOMES[S.biome];
+  var shakeX = S.shake ? (Math.random() - 0.5) * S.shake : 0;
+  var shakeY = S.shake ? (Math.random() - 0.5) * S.shake : 0;
+  ctx.save();
+  ctx.translate(shakeX, shakeY);
+
+  /* ---------- sky + painted backdrop ----------
+     One panel, drawn wide enough that its edges never enter frame, so there
+     is no tiling seam. Progress through a biome cross-fades scene 1 -> 6, so
+     a run travels through a place instead of looping one image. */
+  var hz = horizon();
+  ctx.fillStyle = '#05030a'; ctx.fillRect(-20, -20, W + 40, H + 40);
+  var skyG = ctx.createLinearGradient(0, 0, 0, hz + 40);
+  skyG.addColorStop(0, shade(b.tint, -0.62, 1));
+  skyG.addColorStop(1, 'rgb(' + FOGC.r + ',' + FOGC.g + ',' + FOGC.b + ')');
+  ctx.fillStyle = skyG; ctx.fillRect(0, 0, W, hz + 42);
+
+  var nScenes = b.scenes || SCENES;
+  var prog = (S.dist % 700) / 700;                 // position within this biome
+  var sIdx = Math.min(nScenes, 1 + Math.floor(prog * nScenes));
+  var sNext = Math.min(nScenes, sIdx + 1);
+  var blend = (prog * nScenes) % 1;
+  /* Only the part of the painting ABOVE its own vanishing point is used.
+     These are full scenes — they contain a painted path and ground of their
+     own — so drawing one whole behind a rendered path puts two floors in the
+     frame at different angles, which is exactly why it read as two scenes.
+     Cropped here, the backdrop supplies sky, canopy and far silhouette, and
+     every surface at ground level belongs to the engine. */
+  var SKY = b.sky || 0.46;                          // fraction above the painted horizon
+  /* Drawn at essentially 1:1 and CROPPED, not stretched. The horizon band is
+     only ~31% of the viewport, so fitting the crop by height is a downscale —
+     which is sharp. The extra width off-screen becomes the parallax drift
+     range. If height-fitting leaves the panel narrower than the screen (a
+     wide desktop window), widen to cover instead, anchored at the BOTTOM so
+     it is sky that gets cropped away, never the scenery at the horizon. */
+  /* The painting continues BELOW the game's horizon: its lowest rows are
+     foliage and pedestals (the painted path was cropped off at export), so
+     letting it run ~7.5% of the screen further down and dissolving the
+     procedural ground in over that overlap removes the horizontal seam. */
+  var hzB = hz + H * 0.075;
+  function paintScene(im, alpha) {
+    if (!im || !im.width || alpha <= 0.01) return;
+    var srcH = im.height * SKY;
+    var dh = hzB;
+    var k = dh / srcH;                              // ≈1 on a phone: no real zoom
+    var pad = W * 0.18;                             // drift range kept off-screen
+    if (im.width * k < W + pad) { k = (W + pad) / im.width; dh = srcH * k; }
+    var dw = im.width * k;
+    var span = Math.max(1, dw - W);
+    var drift = -((S.dist * 0.55) % span);
+    ctx.globalAlpha = alpha;
+    ctx.drawImage(im, 0, 0, im.width, srcH, drift, hzB - dh, dw, dh);
+    ctx.globalAlpha = 1;
+  }
+  var cur = A[sceneKey(b.key, sIdx)];
+  paintScene(cur, 1);
+  if (sNext !== sIdx) paintScene(A[sceneKey(b.key, sNext)], blend);
+  if (cur && cur.width && cur._fogKey !== sIdx) {
+    var f = sampleFog(cur, SKY);
+    if (f) { FOGC = f; cur._fogKey = sIdx; }
+  }
+  /* ---------- the ground plane ----------
+     A perspective-mapped jungle floor built from the painting's own palette,
+     dissolving IN over the backdrop's lower overlap — never a flat colour,
+     never a horizontal line where background ends and game begins. */
+  var travelled = S.dist * 100;
+  var bandH = Math.max(2, Math.round(H / 190));
+  var blendBand = H * 0.115;               // how far below hz the painting still shows through
+  /* the base tone fades IN under the ground bands — an opaque fill starting
+     at a fixed row is exactly the horizontal line this pass is removing */
+  var gBase = ctx.createLinearGradient(0, hz, 0, hz + blendBand * 1.2);
+  var gCol = (FOGC.r * 0.42 | 0) + ',' + (FOGC.g * 0.46 | 0) + ',' + (FOGC.b * 0.38 | 0);
+  gBase.addColorStop(0, 'rgba(' + gCol + ',0)');
+  gBase.addColorStop(1, 'rgba(' + gCol + ',1)');
+  ctx.fillStyle = gBase; ctx.fillRect(0, hz, W, H - hz);
+  var gt = groundTex(b.key + ':' + sIdx);
+  var TEXG = 430;
+  for (var gy = Math.ceil(hz + 1); gy < H; gy += bandH) {
+    var gdy = gy - hz; if (gdy <= 0.5) continue;
+    var gz0 = (CAM_Y * focal()) / gdy;
+    var gz1 = (CAM_Y * focal()) / (gdy + bandH);
+    if (gz0 > 30000) continue;
+    var gvs = (((gz0 + travelled) / TEXG) % 1 + 1) % 1 * gt.height;
+    var gvh = Math.max(1, Math.min(gt.height - 1, (gz0 - gz1) / TEXG * gt.height));
+    if (gvs + gvh > gt.height) gvs = gt.height - gvh;
+    var ga = Math.min(1, gdy / blendBand);
+    ctx.globalAlpha = ga;
+    ctx.drawImage(gt, 0, gvs, gt.width, gvh, 0, gy, W, bandH + 1);
+    ctx.globalAlpha = 1;
+    var gfg = Math.min(0.8, fogFor(gz0) * 1.25 + (1 - ga) * 0.10);
+    if (gfg > 0.01) { ctx.fillStyle = fogRGBA(gfg); ctx.fillRect(0, gy, W, bandH + 1); }
+  }
+  /* a breath of mist across the join, in the painting's own colour */
+  var mist = ctx.createLinearGradient(0, hz - H * 0.02, 0, hzB + H * 0.10);
+  mist.addColorStop(0, fogRGBA(0));
+  mist.addColorStop(0.45, fogRGBA(0.44));
+  mist.addColorStop(1, fogRGBA(0));
+  ctx.fillStyle = mist; ctx.fillRect(0, hz - H * 0.02, W, hzB - hz + H * 0.12);
+
+  /* ---------- midground ruins ----------
+     The transition zone the frame was missing: broken columns, walls and
+     vegetation clumps set well back and well fogged, so the painting grows
+     out into the playfield instead of ending at it. */
+  var mgArt = [A.prop_pillar, A.prop_wall, A.prop_bush, A.prop_rocks];
+  var MSP = 760;
+  var mFirst = Math.floor((travelled + 2600) / MSP);
+  for (var mgi = mFirst + 11; mgi >= mFirst; mgi--) {
+    var mz = mgi * MSP - travelled;
+    if (mz < 2600 || mz > 11500) continue;
+    for (var ms = 0; ms < 2; ms++) {
+      var mseed = mgi * 31 + ms * 17;
+      var ma = mgArt[mseed % mgArt.length];
+      if (!ma || !ma.width) continue;
+      var mxp = (ms ? 1 : -1) * (ROAD * 1.5 + (mseed * 53 % 900));
+      var mp = project(mxp, 0, mz);
+      if (mp.s <= 0) continue;
+      var mh = (380 + (mseed * 29 % 260)) * mp.s;
+      drawSprite(ma, mp.x, mp.y, mh, 1, 0, Math.min(0.86, fogFor(mz, 4200) + 0.22), (mseed % 2) === 0);
+    }
+  }
+
+  /* ---------- the path ----------
+     Textured and perspective-correct: the screen is walked in horizontal
+     bands, each band's depth is solved from its y, and a slice of the stone
+     tile is stretched across it. Offsetting the slice by distance travelled
+     makes the surface itself scroll, which is what actually sells speed —
+     a flat coloured wedge cannot. */
+  var tile = A.tile_path, tileOK = tile && tile.width;
+  var EDGE = ROAD;
+  var TEXZ = 260;                                  // world units per texture repeat
+  /* the edge meanders a little as it scrolls — a ruler-straight texture
+     boundary is what made the path look pasted onto the ground */
+  function edgeWob(z) {
+    return 1 + 0.05 * Math.sin((z + travelled) * 0.0019) + 0.035 * Math.sin((z + travelled) * 0.00052 + 2.1);
+  }
+  for (var sy = Math.ceil(hz + 1); sy < H; sy += bandH) {
+    var dy = sy - hz;
+    if (dy <= 0.5) continue;
+    var z0 = (CAM_Y * focal()) / dy;                       // depth at this row
+    var z1 = (CAM_Y * focal()) / (dy + bandH);             // depth one band nearer
+    if (z0 > 30000) continue;
+    var wob = edgeWob(z0);
+    var lx = project(-EDGE * wob, 0, z0).x, rx = project(EDGE * wob, 0, z0).x;
+    var fade = Math.max(0.16, Math.min(1, 1.3 - z0 / 10000));
+    if (tileOK) {
+      // map the band's depth span onto the tile so the surface compresses
+      // with distance instead of smearing one source row over many pixels
+      var vs = (((z0 + travelled) / TEXZ) % 1 + 1) % 1 * tile.height;
+      var vh = Math.max(1, Math.min(tile.height - 1, (z0 - z1) / TEXZ * tile.height));
+      if (vs + vh > tile.height) vs = tile.height - vh;
+      ctx.globalAlpha = fade;
+      ctx.drawImage(tile, 0, vs, tile.width, vh, lx, sy, rx - lx, bandH + 1);
+      ctx.globalAlpha = 1;
+      var fg = fogFor(z0);
+      if (fg > 0.01) { ctx.fillStyle = fogRGBA(fg); ctx.fillRect(lx, sy, rx - lx, bandH + 1); }
+    } else {
+      ctx.fillStyle = shade(b.tint, 0.1, fade);
+      ctx.fillRect(lx, sy, rx - lx, bandH + 1);
+    }
+  }
+  /* No lane markings and no rail lines: the three lanes live in the world
+     geometry, and the road's border is a broken mossy fringe instead of a
+     drawn edge, so the stone belongs to the jungle around it. */
+  var fCol = 'rgba(' + (FOGC.r * 0.5 | 0) + ',' + (FOGC.g * 0.62 | 0) + ',' + (FOGC.b * 0.42 | 0) + ',';
+  for (var fy = Math.ceil(hz + H * 0.02); fy < H; fy += bandH) {
+    var fdy = fy - hz; if (fdy <= 0.5) continue;
+    var fz0 = (CAM_Y * focal()) / fdy;
+    if (fz0 > 12000) continue;
+    var fwob = edgeWob(fz0);
+    var fs = focal() / fz0;
+    var flx = W / 2 - EDGE * fwob * fs, frx = W / 2 + EDGE * fwob * fs;
+    var fw = (3 + 14 * Math.min(1, fs * 12)) * (0.7 + 0.6 * Math.abs(Math.sin(fz0 * 0.013 + travelled * 0.002)));
+    ctx.fillStyle = fCol + (0.34 * Math.min(1, fs * 16)).toFixed(3) + ')';
+    ctx.fillRect(flx - fw * 0.5, fy, fw, bandH + 1);
+    ctx.fillRect(frx - fw * 0.5, fy, fw, bandH + 1);
+  }
+  /* low growth breaking the road edge itself, far to near */
+  var lowArt = [A.prop_bush, A.prop_rocks, A.prop_bush2];
+  var TSP = 210;
+  var tFirst = Math.floor((travelled + 300) / TSP);
+  for (var ti = tFirst + 34; ti >= tFirst; ti--) {
+    var tseed = ti * 13;
+    if ((tseed % 7) < 2) continue;                 // gaps keep it irregular
+    var tz = ti * TSP - travelled + ((tseed * 29) % 130) - 65;
+    if (tz < 320 || tz > 7600) continue;
+    var tArt = lowArt[tseed % lowArt.length];
+    if (!tArt || !tArt.width) continue;
+    var txv = ((tseed % 2) ? 1 : -1) * (ROAD * edgeWob(tz) + ((tseed * 7) % 62) - 20);
+    var tp = project(txv, 0, tz);
+    if (tp.s <= 0) continue;
+    var th = (46 + (tseed * 11 % 96)) * tp.s;
+    shadowBlob(tp.x, tp.y, th * 0.62, tp.s, 0.26);
+    drawSprite(tArt, tp.x, tp.y, th, 1, 0, fogFor(tz, 5200), (tseed % 4) < 2);
+  }
+
+  /* Roadside scenery. Two ranks: tall pieces set back and low dressing at the
+     verge. Big and close is the point — sparse small props read as an empty
+     plain, which is exactly how the first pass looked. */
+  var tallArt = [A.prop_pillar, A.prop_wall];
+  var EDGEP = ROAD;
+  var SPACING = 520;
+  var firstI = Math.floor((travelled + 400) / SPACING);
+  for (var pi = firstI + 21; pi >= firstI; pi--) {          // far to near
+    var pz = pi * SPACING - travelled;
+    if (pz < 300 || pz > 11000) continue;
+    for (var side = 0; side < 2; side++) {
+      var seed = (pi * 7 + side * 13);
+      // low dressing hugging the verge — jittered scale, some mirrored
+      var la = lowArt[seed % lowArt.length];
+      if (la && la.width) {
+        var lxp = (side ? 1 : -1) * (EDGEP + 60 + (seed % 80));
+        var lp = project(lxp, 0, pz);
+        if (lp.s > 0) {
+          var lh = (150 + (seed * 17) % 110) * lp.s;
+          shadowBlob(lp.x, lp.y, lh * 0.55, lp.s, 0.3);
+          drawSprite(la, lp.x, lp.y, lh, Math.min(1, lp.s * 30), 0, fogFor(pz, 5200), (seed % 4) < 2);
+        }
+      }
+      // tall pieces set further back, only every third slot so they stay grand
+      if ((seed % 3) === 0) {
+        var ta = tallArt[(seed / 3 | 0) % tallArt.length];
+        if (ta && ta.width) {
+          var txp = (side ? 1 : -1) * (EDGEP + 210 + (seed % 190));
+          var tp = project(txp, 0, pz);
+          if (tp.s > 0) {
+            var thh = (440 + (seed * 23) % 160) * tp.s;
+            shadowBlob(tp.x, tp.y, thh * 0.34, tp.s, 0.32);
+            drawSprite(ta, tp.x, tp.y, thh, Math.min(1, tp.s * 30), 0, fogFor(pz, 5200), (seed % 6) < 3);
+            // a tuft of growth overlapping its base ties it into the terrain
+            var ba = lowArt[(seed + 1) % lowArt.length];
+            if (ba && ba.width) drawSprite(ba, tp.x + (side ? -1 : 1) * thh * 0.16, tp.y + thh * 0.015, thh * 0.24, Math.min(1, tp.s * 30), 0, fogFor(pz, 5200), (seed % 2) === 0);
+          }
+        }
+      }
+    }
+  }
+
+  /* everything in the world, painted far to near */
+  var items = [];
+  S.obstacles.forEach(function (o) { items.push({ z:o.z, t:'ob', d:o }); });
+  S.pickups.forEach(function (p) { items.push({ z:p.z, t:'pk', d:p }); });
+  S.puffs.forEach(function (p) { items.push({ z:p.z, t:'pf', d:p }); });
+  items.push({ z: PLAYER_Z, t:'pl' });
+  items.sort(function (m, n) { return n.z - m.z; });
+
+  items.forEach(function (it) {
+    if (it.t === 'ob') {
+      var o = it.d, pr = project(LANES[o.lane], o.o.yOff, o.z);
+      if (pr.s <= 0 || pr.y < -200) return;
+      var og = project(LANES[o.lane], 0, o.z);
+      shadowBlob(og.x, og.y, o.o.h * 0.5 * pr.s, pr.s, 0.3);
+      drawSprite(A[o.o.key], pr.x, pr.y, o.o.h * pr.s, Math.min(1, pr.s * 22), 0, fogFor(o.z, 5200));
+    } else if (it.t === 'pk') {
+      var p = it.d, lx = typeof p.lane === 'number' ? (p.lane % 1 === 0 ? LANES[p.lane] : lerpLane(p.lane)) : 0;
+      var pp = project(lx, p.y, p.z);
+      if (pp.s <= 0) return;
+      var bob = Math.sin(S.t * 4 + p.z * 0.004) * 6 * pp.s;
+      drawSprite(A[p.key], pp.x, pp.y + bob, (p.kind === 'power' ? 105 : 78) * pp.s, Math.min(1, pp.s * 24), 0, fogFor(p.z, 6400));
+    } else if (it.t === 'pf') {
+      var f = it.d, fp = project(f.x, f.y || 0, f.z), k = 1 - f.life / f.max;
+      if (fp.s <= 0) return;
+      var fsz = f.small ? (36 + k * 52) : (90 + k * 130);
+      drawSprite(f.gold ? A.fx_stars : A.fx_dust, fp.x, fp.y, fsz * fp.s, (1 - k) * (f.small ? 0.5 : 0.85));
+    } else {
+      drawPlayer();
+    }
+  });
+
+  /* speed streaks when the run is fast or boosted */
+  var fast = (S.speed - SPEED_MIN) / (SPEED_MAX - SPEED_MIN);
+  if (fast > 0.35 || S.powers.zoomies) {
+    var n = S.powers.zoomies ? 9 : 5;
+    for (var s2 = 0; s2 < n; s2++) {
+      var sy = hz + 40 + ((S.t * 900 + s2 * 190) % (H - hz));
+      var sxx = (s2 % 2 ? 1 : -1) * (W * (0.16 + (s2 % 3) * 0.11));
+      drawSprite(A.fx_speed, W / 2 + sxx, sy, 60 + fast * 60, 0.16 + fast * 0.3);
+    }
+  }
+
+  /* ---------- the Stone Guardian ----------
+     It has to apply pressure without taking the screen away from you: at
+     normal proximity it is a shape hunched at the very bottom edge with a
+     purple wash creeping up. Only the catch itself fills the frame. */
+  var caughtNow = S.mode === 'caught';
+  if (S.guard > 0.34 || caughtNow) {
+    var g = caughtNow ? Math.min(1, 0.5 + S.caught * 1.6) : (S.guard - 0.34) / 0.66;
+    var gi = caughtNow ? A.guard_roar
+           : [A.guard1, A.guard2, A.guard3][Math.floor(S.t * 6) % 3];
+    // creeping wash first — the player feels it before they see it
+    var gl = ctx.createLinearGradient(0, H, 0, H - H * (0.30 + g * 0.35));
+    gl.addColorStop(0, 'rgba(150,60,220,' + (0.34 * g + (caughtNow ? 0.3 : 0)).toFixed(3) + ')');
+    gl.addColorStop(1, 'rgba(150,60,220,0)');
+    ctx.fillStyle = gl; ctx.fillRect(0, 0, W, H);
+    var gh = caughtNow ? H * (0.42 + g * 0.72) : H * (0.14 + g * 0.20);
+    var gy = H + gh * (caughtNow ? (1 - g) * 0.5 : 0.30 - g * 0.16)
+             + (S.guardShake > 0 ? (Math.random() - 0.5) * 10 : 0);
+    drawSprite(gi, W / 2, gy, gh, caughtNow ? 1 : 0.55 + g * 0.45);
+  }
+
+  ctx.restore();
+
+  /* one grade across the whole frame: a touch of the horizon colour plus a
+     vignette, so the painting and the rendered world are lit the same way */
+  var grade = ctx.createRadialGradient(W / 2, H * 0.55, H * 0.22, W / 2, H * 0.55, H * 0.95);
+  grade.addColorStop(0, fogRGBA(0));
+  grade.addColorStop(1, fogRGBA(0.22));
+  ctx.fillStyle = grade; ctx.fillRect(0, 0, W, H);
+  var vig = ctx.createRadialGradient(W / 2, H * 0.5, H * 0.34, W / 2, H * 0.5, H * 0.9);
+  vig.addColorStop(0, 'rgba(0,0,0,0)'); vig.addColorStop(1, 'rgba(0,0,0,.34)');
+  ctx.fillStyle = vig; ctx.fillRect(0, 0, W, H);
+
+  /* near-miss flash and stumble vignette */
+  if (S.nearMiss > 0) {
+    ctx.fillStyle = 'rgba(127,212,255,' + (S.nearMiss * 0.16).toFixed(3) + ')';
+    ctx.fillRect(0, 0, W, H);
+  }
+  if (S.stumble > 0) {
+    var vg = ctx.createRadialGradient(W / 2, H / 2, H * 0.24, W / 2, H / 2, H * 0.78);
+    vg.addColorStop(0, 'rgba(255,60,60,0)');
+    vg.addColorStop(1, 'rgba(255,40,40,' + (S.stumble * 0.4).toFixed(3) + ')');
+    ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+  }
+
+  /* floating score text */
+  ctx.textAlign = 'center';
+  S.floats.forEach(function (f) {
+    var fp = project(f.x, f.y, PLAYER_Z + 120);
+    ctx.globalAlpha = Math.max(0, f.life);
+    ctx.fillStyle = f.col;
+    ctx.font = '700 ' + Math.round(26 * Math.min(1.4, fp.s * 30)) + 'px "JetBrains Mono", monospace';
+    ctx.fillText(f.txt, fp.x, fp.y);
+  });
+  ctx.globalAlpha = 1; ctx.textAlign = 'left';
+}
+
+function lerpLane(l) {
+  var i0 = Math.floor(l), i1 = Math.min(2, i0 + 1), f = l - i0;
+  return (LANES[Math.max(0, i0)] || 0) * (1 - f) + (LANES[i1] || 0) * f;
+}
+
+function drawPlayer() {
+  var pr = project(S.laneX, S.y, PLAYER_Z);
+  var h = Math.max(110, H * 0.215) * (1 + Math.min(0.16, S.y / 2400));
+  // contact shadow
+  var sp = project(S.laneX, 0, PLAYER_Z);
+  ctx.save();
+  // the shadow shrinking and darkening apart from him is most of what makes
+  // a jump legible from behind, where vertical travel is heavily foreshortened
+  var lift = Math.min(1, S.y / 380);
+  ctx.globalAlpha = Math.max(0.10, 0.42 - lift * 0.3);
+  ctx.fillStyle = '#000';
+  ctx.beginPath();
+  ctx.ellipse(sp.x, sp.y, (74 - lift * 26) * pr.s, (20 - lift * 7) * pr.s, 0, 0, 7);
+  ctx.fill();
+  ctx.restore();
+
+  /* Animation state. The camera is behind Drippy, so every pose has to be a
+     BACK view — a front-facing leap breaks the point of view instantly, which
+     is exactly what the first build got wrong. Front-facing art is only used
+     for the stumble, where he has been spun around anyway. */
+  var im, drift = S.targetX - S.laneX;
+  if (S.stumble > 0) im = A.stumble;                       // spun to face us: correct here
+  else if (S.slide > 0) im = A.slide_back || A.slide;
+  else if (S.air) im = A.jump_back || A.jump;
+  else if (Math.abs(drift) > LANE * 0.22) im = (drift < 0 ? A.lean_l : A.lean_r) || A['run1'];
+  else im = A['run' + (1 + (Math.floor(S.anim) % 7))];
+  if (S.powers.shield && !S.air && S.slide <= 0) im = A.shielded;
+
+  var alpha = (S.iframe > 0 && S.stumble <= 0 && Math.floor(S.t * 14) % 2) ? 0.45 : 1;
+  var lean = (S.targetX - S.laneX) * -0.00055;
+  // Sizing by height alone explodes the landscape-shaped stumble frame across
+  // the screen, so clamp the resulting width and back the height off to match.
+  var hh = S.slide > 0 ? h * 0.72 : h;
+  if (im && im.width) {
+    var wNow = im.width * (hh / im.height), wMax = W * 0.40;
+    if (wNow > wMax) hh *= wMax / wNow;
+  }
+  drawSprite(im, pr.x, pr.y, hh, alpha, lean);
+
+  if (S.powers.magnet) {
+    ctx.save();
+    ctx.strokeStyle = 'rgba(127,200,255,' + (0.35 + Math.sin(S.t * 9) * 0.2).toFixed(2) + ')';
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.ellipse(pr.x, pr.y - h * 0.42, h * 0.55, h * 0.5, 0, 0, 7); ctx.stroke();
+    ctx.restore();
+  }
+}
+
+/* small colour helpers */
+function hx(c) { c = c.replace('#',''); var n = parseInt(c, 16); return [(n>>16)&255, (n>>8)&255, n&255]; }
+function hexA(c, a) { var p = hx(c); return 'rgba(' + p[0] + ',' + p[1] + ',' + p[2] + ',' + a + ')'; }
+function shade(c, amt, fade) {
+  var p = hx(c);
+  var f = function (v) { return Math.max(0, Math.min(255, Math.round(v * (1 + amt) * (0.35 + 0.65 * fade)))); };
+  return 'rgb(' + f(p[0]) + ',' + f(p[1]) + ',' + f(p[2]) + ')';
+}
+
+/* ---------- loop ---------- */
+var last = 0, raf = 0;
+function frame(ts) {
+  raf = requestAnimationFrame(frame);
+  if (!last) last = ts;
+  var dt = Math.min(0.05, (ts - last) / 1000); last = ts;
+  if (S) { update(dt); render(); }
+}
+
+/* ---------- flow ---------- */
+function start() {
+  resize();
+  S = newGame();
+  S.targetX = LANES[1];
+  $('scStart').classList.remove('on');
+  $('scOver').classList.remove('on');
+  $('scPause').classList.remove('on');
+  lastHud = ''; updateHud();
+  showBiome(BIOMES[0].name);
+  try { AUDIO.init(); AUDIO.playSong('neon'); } catch (e) {}
+  last = 0;
+}
+function togglePause() {
+  if (!S) return;
+  if (S.mode === 'play') { S.mode = 'pause'; $('scPause').classList.add('on'); }
+  else if (S.mode === 'pause') { S.mode = 'play'; $('scPause').classList.remove('on'); last = 0; }
+}
+$('btnPlay').onclick = start;
+$('btnAgain').onclick = start;
+$('btnSubmit').onclick = submitScore;
+$('nameIn').addEventListener('keydown', function (e) { if (e.key === 'Enter') submitScore(); });
+$('btnResume').onclick = togglePause;
+$('btnPause').onclick = togglePause;
+$('btnQuit').onclick = function () { $('scPause').classList.remove('on'); endRun(); };
+addEventListener('blur', function () { if (S && S.mode === 'play') togglePause(); });
+
+resize();
+S = newGame();            // idle world behind the start screen
+S.mode = 'pause';
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
