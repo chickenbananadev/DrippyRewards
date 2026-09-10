@@ -19,6 +19,11 @@ const HELIUS_RPC = () => 'https://mainnet.helius-rpc.com/?api-key=' + HELIUS_KEY
 const PARSE_URL = () => 'https://api.helius.xyz/v0/transactions?api-key=' + HELIUS_KEY;
 
 const TOTAL_BURN_KEY = 'drippy:burn:total';
+// Daily volume history: one hash field per UTC day. Each stats build (<=1-2
+// per minute thanks to the caches) overwrites today's field with the current
+// rolling 24h volume, so every field converges to an end-of-day snapshot ~=
+// that day's traded volume. Read back via /api/stats?volhist=1.
+const VOLHIST_KEY = 'drippy:volhist';
 const TOTAL_BURN_EVENTS_KEY = 'drippy:burn:events';
 
 async function redis(command){
@@ -126,6 +131,13 @@ function fetchMarket(){
       liquidityUsd: pair.liquidity?.usd ?? null
     };
   });
+}
+
+async function recordVolume(market){
+  if(!market || market.volume24h == null) return;
+  const day = new Date().toISOString().slice(0, 10);
+  await redis(['HSET', VOLHIST_KEY, day,
+    JSON.stringify({ v: Math.round(market.volume24h), p: market.priceUsd || null, t: Date.now() })]);
 }
 
 // --- On-chain supply (5 min cache) ----------------------------------------
@@ -306,6 +318,20 @@ module.exports = async (req, res) => {
 
   if (req.method === 'OPTIONS') { res.status(204).end(); return; }
 
+  // Volume history readout — needs only Redis, so it sits before the Helius
+  // guard. Powers the private /volume chart.
+  if (req.query && req.query.volhist === '1') {
+    const h = await redis(['HGETALL', VOLHIST_KEY]) || [];
+    const days = [];
+    for (let i = 0; i + 1 < h.length; i += 2) {
+      let rec = null; try { rec = JSON.parse(h[i + 1]); } catch (_) { rec = { v: Number(h[i + 1]) || 0 }; }
+      days.push({ d: h[i], v: rec.v || 0, p: rec.p ?? null });
+    }
+    days.sort((a, b) => (a.d < b.d ? -1 : 1));
+    res.status(200).json({ days, fetchedAt: new Date().toISOString() });
+    return;
+  }
+
   if(!HELIUS_KEY){
     res.status(500).json({ error: 'Server is missing HELIUS_API_KEY' });
     return;
@@ -319,6 +345,9 @@ module.exports = async (req, res) => {
     fetchRecentDrips().catch(() => null),
     fetchBurnTotals().catch(() => ({ tokensBurned: 0, burnEvents: 0 }))
   ]);
+
+  // best-effort daily volume snapshot; never let it break the stats payload
+  await recordVolume(market).catch(() => {});
 
   // Forge is the single source of truth for the burn trio when reachable —
   // never mix sources. (Production debug showed the old Math.max approach

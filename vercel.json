@@ -58,6 +58,10 @@
     {
       "source": "/doghouse",
       "destination": "/arcade.html"
+    },
+    {
+      "source": "/volume",
+      "destination": "/volume.html"
     }
   ],
   "headers": [
@@ -182,6 +186,15 @@
     },
     {
       "source": "/doghouse",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, must-revalidate, max-age=0"
+        }
+      ]
+    },
+    {
+      "source": "/volume",
       "headers": [
         {
           "key": "Cache-Control",

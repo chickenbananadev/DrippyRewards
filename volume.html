@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>$DRIPPY — Daily Volume</title>
+<meta name="robots" content="noindex,nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/* Personal tracking page — deliberately unlinked from the site nav.
+   Committed dark look; background painted explicitly. */
+:root{--gold:#f5c542;--bar:#b0891f;--ink:#f6e9c4;--ink2:rgba(246,233,196,.62);--ink3:rgba(246,233,196,.38);--line:rgba(246,233,196,.10)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0610;color:var(--ink);font-family:'JetBrains Mono',monospace;padding-block:34px 60px;padding-inline:16px}
+.wrap{max-width:860px;margin:0 auto}
+h1{font-family:'Anton',sans-serif;font-weight:400;letter-spacing:2px;font-size:clamp(21px,4.6vw,30px);text-transform:uppercase}
+h1 b{color:var(--gold);font-weight:400}
+.sub{color:var(--ink2);font-size:12.5px;margin:6px 0 26px;line-height:1.7}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:26px}
+.tile{border:1px solid rgba(245,197,66,.22);border-radius:12px;padding:13px 14px;background:rgba(20,14,28,.6)}
+.tile small{display:block;color:var(--ink3);text-transform:uppercase;letter-spacing:1.6px;font-size:10px;margin-bottom:6px}
+.tile strong{font-size:19px;color:var(--ink);font-weight:700;font-variant-numeric:tabular-nums}
+.tile.gold strong{color:var(--gold)}
+.chart-card{border:1px solid var(--line);border-radius:14px;background:rgba(14,9,20,.6);padding:18px 14px 10px;position:relative}
+.chart-h{font-size:11.5px;letter-spacing:2px;text-transform:uppercase;color:var(--ink2);margin:0 4px 14px}
+#chart{display:block;width:100%;height:auto}
+#tip{position:absolute;pointer-events:none;background:#171022;border:1px solid rgba(245,197,66,.35);border-radius:10px;padding:9px 11px;font-size:11.5px;line-height:1.75;color:var(--ink2);opacity:0;transition:opacity .12s ease;white-space:nowrap;box-shadow:0 8px 24px rgba(0,0,0,.5);z-index:2}
+#tip b{color:var(--ink);display:block;font-size:12px}
+#tip .g{color:var(--gold)}
+.note{color:var(--ink3);font-size:11px;line-height:1.8;margin:16px 4px 0}
+details{margin-top:26px}
+summary{cursor:pointer;color:var(--ink2);font-size:12px;letter-spacing:1px;text-transform:uppercase}
+table{width:100%;border-collapse:collapse;margin-top:12px;font-size:12px}
+th,td{text-align:right;padding:6px 8px;border-top:1px solid var(--line);font-variant-numeric:tabular-nums}
+th{color:var(--ink3);font-weight:400;text-transform:uppercase;letter-spacing:1px;font-size:10px}
+th:first-child,td:first-child{text-align:left}
+td{color:var(--ink2)}td.v{color:var(--ink)}
+.empty{color:var(--ink2);text-align:center;padding:46px 10px;font-size:13px;line-height:1.9}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>$DRIPPY <b>DAILY VOLUME</b></h1>
+  <p class="sub">Personal tracker — end-of-day snapshots of DexScreener's rolling 24h volume, recorded by the stats API.
+     Fee math assumes 5% per trade, split 75% holders / 25% dev.</p>
+
+  <div class="tiles" id="tiles" hidden>
+    <div class="tile gold"><small>Tracked volume</small><strong id="tVol">—</strong></div>
+    <div class="tile"><small>7-day avg / day</small><strong id="tAvg">—</strong></div>
+    <div class="tile"><small>Est. fees (5%)</small><strong id="tFees">—</strong></div>
+    <div class="tile"><small>Holders 75% · Dev 25%</small><strong id="tSplit">—</strong></div>
+  </div>
+
+  <div class="chart-card">
+    <div class="chart-h" id="chartH">Daily volume (USD)</div>
+    <svg id="chart" viewBox="0 0 860 320" role="img" aria-label="Daily traded volume in USD, one bar per day"></svg>
+    <div id="tip"></div>
+    <div class="empty" id="empty" hidden>No days recorded yet.<br>Tracking starts with the first stats refresh after this deploys — check back tomorrow.</div>
+  </div>
+  <p class="note" id="note" hidden></p>
+
+  <details id="tableWrap" hidden>
+    <summary>Table view</summary>
+    <table><thead><tr><th>Date</th><th>Volume</th><th>Est. fees</th><th>Holders 75%</th><th>Dev 25%</th></tr></thead><tbody id="tbody"></tbody></table>
+  </details>
+</div>
+
+<script>
+(function(){
+'use strict';
+var svg=document.getElementById('chart'),tip=document.getElementById('tip');
+function $(id){return document.getElementById(id)}
+function usd(n){if(n>=1e6)return '$'+(n/1e6).toFixed(2)+'M';if(n>=1e3)return '$'+(n/1e3).toFixed(1)+'K';return '$'+Math.round(n).toLocaleString()}
+function usdFull(n){return '$'+Math.round(n).toLocaleString()}
+
+function draw(days){
+  if(!days.length){$('empty').hidden=false;return}
+  $('tiles').hidden=false;$('tableWrap').hidden=false;$('note').hidden=false;
+
+  var total=0;days.forEach(function(d){total+=d.v});
+  var last7=days.slice(-7),avg7=last7.reduce(function(a,d){return a+d.v},0)/last7.length;
+  var fees=total*.05;
+  $('tVol').textContent=usd(total);
+  $('tAvg').textContent=usd(avg7);
+  $('tFees').textContent=usd(fees);
+  $('tSplit').textContent=usd(fees*.75)+' · '+usd(fees*.25);
+  $('note').textContent='Each bar is the rolling-24h volume at the last stats refresh of that UTC day — an end-of-day snapshot, not exchange-audited volume. Tracking began '+days[0].d+' ('+days.length+' day'+(days.length>1?'s':'')+' recorded).';
+  $('chartH').textContent='Daily volume (USD) · '+days[0].d+' → '+days[days.length-1].d;
+
+  // ---- chart geometry ----
+  var W=860,H=320,padL=54,padR=10,padT=14,padB=34;
+  var iw=W-padL-padR,ih=H-padT-padB;
+  var max=Math.max.apply(null,days.map(function(d){return d.v}))||1;
+  // round the axis top to a friendly step
+  var step=Math.pow(10,Math.floor(Math.log10(max)));
+  var top=Math.ceil(max/step*2)/2*step;if(top<max)top=max;
+  var n=days.length;
+  var slot=iw/n,gap=Math.max(2,Math.min(8,slot*.22)),bw=Math.max(2,slot-gap);
+  var NS='http://www.w3.org/2000/svg';
+  function el(t,at){var e=document.createElementNS(NS,t);for(var k in at)e.setAttribute(k,at[k]);return e}
+  svg.innerHTML='';
+
+  // recessive grid + y labels (3 lines)
+  for(var g=1;g<=3;g++){
+    var val=top*g/3,y=padT+ih-ih*g/3;
+    svg.appendChild(el('line',{x1:padL,y1:y,x2:W-padR,y2:y,stroke:'rgba(246,233,196,.09)','stroke-width':1}));
+    var t=el('text',{x:padL-8,y:y+4,'text-anchor':'end',fill:'rgba(246,233,196,.38)','font-size':11,'font-family':'JetBrains Mono, monospace'});
+    t.textContent=usd(val);svg.appendChild(t);
+  }
+  // baseline
+  svg.appendChild(el('line',{x1:padL,y1:padT+ih,x2:W-padR,y2:padT+ih,stroke:'rgba(246,233,196,.22)','stroke-width':1}));
+
+  // bars: rounded top (4px), anchored to the baseline
+  days.forEach(function(d,i){
+    var h=Math.max(1.5,ih*d.v/top),x=padL+i*slot+gap/2,y=padT+ih-h,r=Math.min(4,bw/2,h);
+    var p=el('path',{d:'M'+x+' '+(padT+ih)+' V'+(y+r)+' Q'+x+' '+y+' '+(x+r)+' '+y+' H'+(x+bw-r)+' Q'+(x+bw)+' '+y+' '+(x+bw)+' '+(y+r)+' V'+(padT+ih)+' Z',fill:'#b0891f'});
+    svg.appendChild(p);
+    // full-height invisible hit target, wider than the bar
+    var hit=el('rect',{x:padL+i*slot,y:padT,width:slot,height:ih,fill:'transparent'});
+    hit.addEventListener('mouseenter',function(ev){p.setAttribute('fill','#f5c542');show(d,padL+i*slot+slot/2,y)});
+    hit.addEventListener('mouseleave',function(){p.setAttribute('fill','#b0891f');tip.style.opacity=0});
+    svg.appendChild(hit);
+  });
+
+  // sparse x labels (~6)
+  var every=Math.max(1,Math.ceil(n/6));
+  days.forEach(function(d,i){
+    if(i%every!==0&&i!==n-1)return;
+    var t=el('text',{x:padL+i*slot+slot/2,y:H-10,'text-anchor':'middle',fill:'rgba(246,233,196,.38)','font-size':10,'font-family':'JetBrains Mono, monospace'});
+    t.textContent=d.d.slice(5);svg.appendChild(t);
+  });
+
+  function show(d,cx,cy){
+    var f=d.v*.05;
+    tip.innerHTML='<b>'+d.d+'</b>Volume <span class="g">'+usdFull(d.v)+'</span><br>Fees 5% '+usdFull(f)+'<br>Holders '+usdFull(f*.75)+' · Dev '+usdFull(f*.25)+(d.p?'<br>Price $'+Number(d.p).toFixed(7):'');
+    var card=svg.getBoundingClientRect(),sx=card.width/W;
+    tip.style.opacity=1;
+    var tx=cx*sx- tip.offsetWidth/2,ty=cy*(card.height/H)-tip.offsetHeight-10;
+    tx=Math.max(4,Math.min(card.width-tip.offsetWidth-4,tx));if(ty<4)ty=cy*(card.height/H)+16;
+    tip.style.left=tx+'px';tip.style.top=(ty+18)+'px';
+  }
+
+  // table
+  var tb=$('tbody');
+  tb.innerHTML=days.slice().reverse().map(function(d){var f=d.v*.05;
+    return '<tr><td>'+d.d+'</td><td class="v">'+usdFull(d.v)+'</td><td>'+usdFull(f)+'</td><td>'+usdFull(f*.75)+'</td><td>'+usdFull(f*.25)+'</td></tr>'}).join('');
+}
+
+fetch('/api/stats?volhist=1',{cache:'no-store'})
+  .then(function(r){return r.json()})
+  .then(function(j){draw((j&&j.days)||[])})
+  .catch(function(){$('empty').hidden=false;$('empty').innerHTML='Could not load history — try a refresh.'});
+})();
+</script>
+</body>
+</html>
